@@ -1,0 +1,12 @@
+{
+  "name": "clover",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "node ./test.js"
+  },
+  "bin": {
+    "clover_comp": "clover_comp.js"
+  }
+}
