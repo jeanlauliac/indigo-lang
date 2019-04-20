@@ -5,29 +5,24 @@ function main() {
   const state = {code, i: 0, phase: 'module', module: {functions: []}};
   let curFunc;
 
-  while (true) {
-    while (/^[ \n]$/.test(state.code[state.i])) {
+  while (state.i < state.code.length) {
+    while (state.i < state.code.length && /^[ \n]$/.test(state.code[state.i])) {
       ++state.i;
     }
     let token;
-    if (/[_a-zA-Z]/.test(state.code[state.i])) {
+    if (state.i === state.code.length) continue;
+    if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
       token = {type: 'identifier', value: state.code[state.i]};
       ++state.i;
-      while (state.i < state.code.length && /[_a-zA-Z0-9]/.test(state.code[state.i])) {
+      while (state.i < state.code.length && /^[_a-zA-Z0-9]$/.test(state.code[state.i])) {
         token.value += state.code[state.i];
         ++state.i;
       }
-      console.error(token.value);
-    } else if (/[(){}]/.test(state.code[state.i])) {
+    } else if (/^[(){}]$/.test(state.code[state.i])) {
       token = {type: 'operator', value: state.code[state.i]};
       ++state.i;
     } else {
       throw new Error(`unexpected character "${state.code[state.i]}"`);
-    }
-
-    if (token == null) {
-      if (state.phase !== 'module') throw new Error('unexpected end of file');
-      break;
     }
 
     const curPhase = state.phase;
@@ -73,10 +68,14 @@ function main() {
     }
   }
 
-  for (const func in state.module.functions) {
+  if (state.phase !== 'module') throw new Error(`unexpected end of file in "${state.phase}"`);
+
+  console.log('#!/usr/bin/env node\n');
+  for (const func of state.module.functions) {
     console.log(`function __${func.name}() {`);
-    console.log(`}`);
+    console.log(`}\n`);
   }
+  console.log('__main();');
 }
 
 main();
