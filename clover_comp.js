@@ -59,15 +59,19 @@ function writeStatement(statement) {
     write('  while (');
     writeExpression(statement.condition);
     write(') {}\n');
+    return;
   }
+  write(`  UNKNOWN_STATEMENT_${statement.type};\n`);
 }
 
 function writeExpression(expression) {
   if (expression.type === 'function_call') {
-    if (expression.functionName === '__read_file') {
+    if (expression.functionName[0] === '__read_file') {
       write("(require('fs').readFileSync)(");
+    } else if (expression.functionName[0] === '__write') {
+      write("process.stdout.write(");
     } else {
-      write(`__${expression.functionName}(`);
+      write(`__${expression.functionName.join('.')}(`);
     }
     for (const argument of expression.arguments) {
       if (argument.type === 'expression') {
@@ -106,10 +110,24 @@ function writeExpression(expression) {
       write(', ');
     }
     if (expression.typeName != null) {
-      write(`__type: ${JSON.stringify(expression.typeName)}`);
+      write(`__type: ${JSON.stringify(expression.typeName.join('.'))}`);
     }
     write('}');
+    return;
   }
+  if (expression.type === 'binary_operation') {
+    write('(');
+    writeExpression(expression.leftOperand);
+    write(` ${expression.operation} `);
+    writeExpression(expression.rightOperand);
+    write(')');
+    return;
+  }
+  if (expression.type === 'qualified_name') {
+    write(expression.value.join('.'));
+    return;
+  }
+  write(`UNKNOWN_EXPRESSION_${expression.type}`);
 }
 
 /**
@@ -174,7 +192,7 @@ function readStatement(state) {
     readToken(state);
     invariant(hasOperator(state, '='));
     readToken(state);
-    const initialValue = readPrimaryExpression(state);
+    const initialValue = readExpression(state);
     invariant(hasOperator(state, ';'));
     readToken(state);
     return {type: 'variable_declaration', name, initialValue};
@@ -183,7 +201,7 @@ function readStatement(state) {
     readToken(state);
     invariant(hasOperator(state, '('));
     readToken(state);
-    const condition = readPrimaryExpression(state);
+    const condition = readExpression(state);
     invariant(hasOperator(state, ')'));
     readToken(state);
     invariant(hasOperator(state, '{'));
@@ -193,12 +211,24 @@ function readStatement(state) {
     return {type: 'while_loop', condition}
   }
   if (state.token.type === 'identifier') {
-    const value = readPrimaryExpression(state);
+    const value = readExpression(state);
     invariant(hasOperator(state, ';'));
     readToken(state);
     return {type: 'expression', value};
   }
   invariant(false);
+}
+
+function readExpression(state) {
+  return readComparisonExpression(state);
+}
+
+function readComparisonExpression(state) {
+  const leftOperand = readPrimaryExpression(state);
+  if (!hasOperator(state, '<')) return leftOperand;
+  readToken(state);
+  const rightOperand = readPrimaryExpression(state);
+  return {type: 'binary_operation', operation: '<', leftOperand, rightOperand};
 }
 
 function readPrimaryExpression(state) {
@@ -216,16 +246,19 @@ function readPrimaryExpression(state) {
     return {type: 'bool_literal', value: false};
   }
 
-  const isQualifiedObjectLiteral =
-    state.token.type === 'identifier' &&
-    state.nextToken.type === 'operator' &&
-    state.nextToken.value === '{';
-  if (hasOperator(state, '{') || isQualifiedObjectLiteral) {
-    let typeName;
-    if (isQualifiedObjectLiteral) {
-      typeName = state.token.value;
+  const qualifiedName = [];
+  if (state.token.type === 'identifier') {
+    qualifiedName.push(state.token.value);
+    readToken(state);
+    while (hasOperator(state, '.')) {
+      readToken(state);
+      invariant(state.token.type === 'identifier');
+      qualifiedName.push(state.token.value);
       readToken(state);
     }
+  }
+
+  if (hasOperator(state, '{')) {
     readToken(state);
     const fields = [];
     while (state.token.type === 'identifier') {
@@ -233,7 +266,7 @@ function readPrimaryExpression(state) {
       readToken(state);
       invariant(hasOperator(state, ':'));
       readToken(state);
-      const value = readPrimaryExpression(state);
+      const value = readExpression(state);
       if (hasOperator(state, ',')) {
         readToken(state);
       } else {
@@ -243,19 +276,18 @@ function readPrimaryExpression(state) {
     }
     invariant(hasOperator(state, '}'));
     readToken(state);
-    return {type: 'object_literal', typeName, fields};
+    return {type: 'object_literal', typeName: qualifiedName, fields};
   }
-  invariant(state.token.type === 'identifier');
-  const name = state.token.value;
-  readToken(state);
+  invariant(qualifiedName.length > 0);
+
   if (hasOperator(state, '(')) {
     readToken(state);
     const arguments = [readCallArgument(state)];
     invariant(hasOperator(state, ')'));
     readToken(state);
-    return {type: 'function_call', functionName: name, arguments};
+    return {type: 'function_call', functionName: qualifiedName, arguments};
   }
-  return {type: 'identifier', name};
+  return {type: 'qualified_name', value: qualifiedName};
 }
 
 function readCallArgument(state) {
@@ -266,7 +298,7 @@ function readCallArgument(state) {
     readToken(state);
     return {type: 'reference', name};
   }
-  return {type: 'expression', value: readPrimaryExpression(state)};
+  return {type: 'expression', value: readExpression(state)};
 }
 
 function hasOperator(state, value) {

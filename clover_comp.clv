@@ -12,6 +12,7 @@ fn main() {
 
   let module = read_module(&state);
 
+  __write("#!/usr/bin/env node\n\n");
 }
 
 fn read_module(ref state: State) {
@@ -19,5 +20,5 @@ fn read_module(ref state: State) {
 }
 
 fn read_token(ref state: State) {
-  while (true) {}
+  while (state.i < state.code.length) {}
 }
