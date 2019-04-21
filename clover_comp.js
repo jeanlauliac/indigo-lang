@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const KEYWORKS = new Set(['let', 'fn', 'ref']);
+const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true', 'false']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -55,6 +55,11 @@ function writeStatement(statement) {
     write(';\n');
     return;
   }
+  if (statement.type === 'while_loop') {
+    write('  while (');
+    writeExpression(statement.condition);
+    write(') {}\n');
+  }
 }
 
 function writeExpression(expression) {
@@ -81,6 +86,10 @@ function writeExpression(expression) {
     return;
   }
   if (expression.type === 'string_literal') {
+    write(JSON.stringify(expression.value));
+    return;
+  }
+  if (expression.type === 'bool_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
@@ -170,6 +179,19 @@ function readStatement(state) {
     readToken(state);
     return {type: 'variable_declaration', name, initialValue};
   }
+  if (hasKeyword(state, 'while')) {
+    readToken(state);
+    invariant(hasOperator(state, '('));
+    readToken(state);
+    const condition = readPrimaryExpression(state);
+    invariant(hasOperator(state, ')'));
+    readToken(state);
+    invariant(hasOperator(state, '{'));
+    readToken(state);
+    invariant(hasOperator(state, '}'));
+    readToken(state);
+    return {type: 'while_loop', condition}
+  }
   if (state.token.type === 'identifier') {
     const value = readPrimaryExpression(state);
     invariant(hasOperator(state, ';'));
@@ -184,6 +206,14 @@ function readPrimaryExpression(state) {
     const value = state.token.value;
     readToken(state);
     return {type: 'string_literal', value};
+  }
+  if (hasKeyword(state, 'true')) {
+    readToken(state);
+    return {type: 'bool_literal', value: true};
+  }
+  if (hasKeyword(state, 'false')) {
+    readToken(state);
+    return {type: 'bool_literal', value: false};
   }
 
   const isQualifiedObjectLiteral =

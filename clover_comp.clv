@@ -1,12 +1,23 @@
 fn main() {
   let code = __read_file("./clover_comp.clv");
   let state = {
-    code: code, phase: "module",
-    token: None {}, nextToken: None {},
+    code: code,
+    phase: "module",
+    token: None {},
+    next_token: None {},
   };
+
   read_token(&state);
+  read_token(&state);
+
+  let module = read_module(&state);
+
+}
+
+fn read_module(ref state: State) {
+
 }
 
 fn read_token(ref state: State) {
-
+  while (true) {}
 }
