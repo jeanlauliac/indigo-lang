@@ -1,3 +1,4 @@
 void main() {
+  let code = read_file("./clover_comp.clv");
 
 }
