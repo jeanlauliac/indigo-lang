@@ -235,7 +235,15 @@ function readStatement(state) {
 }
 
 function readExpression(state) {
-  return readComparisonExpression(state);
+  return readLogicalAndExpression(state);
+}
+
+function readLogicalAndExpression(state) {
+  const leftOperand = readComparisonExpression(state);
+  if (!hasOperator(state, '&&')) return leftOperand;
+  readToken(state);
+  const rightOperand = readComparisonExpression(state);
+  return {type: 'binary_operation', operation: '&&', leftOperand, rightOperand};
 }
 
 function readComparisonExpression(state) {
@@ -364,8 +372,13 @@ function readToken(state) {
       token.type = 'keyword';
     }
   } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
-    token = {type: 'operator', value: state.code[state.i]};
+    let value = state.code[state.i];
     ++state.i;
+    if (value === '&' && state.code[state.i] === '&') {
+      value += state.code[state.i];
+      ++state.i;
+    }
+    token = {type: 'operator', value};
   } else if (state.code[state.i] === '"') {
     ++state.i;
     const start = state.i;
