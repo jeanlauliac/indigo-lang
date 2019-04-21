@@ -31,28 +31,52 @@ function writeStatement(statement) {
     write(';\n');
     return;
   }
+  if (statement.type === 'expression') {
+    write(`  `);
+    writeExpression(statement.value);
+    write(';\n');
+    return;
+  }
 }
 
 function writeExpression(expression) {
   if (expression.type === 'function_call') {
-    write(`${expression.functionName}(`);
+    if (expression.functionName === '__read_file') {
+      write("(require('fs').readFileSync)(");
+    } else {
+      write(`__${expression.functionName}(`);
+    }
     for (const argument of expression.arguments) {
       writeExpression(argument);
       write(', ');
+    }
+    if (expression.functionName === '__read_file') {
+      write("'utf8'")
     }
     write(')');
     return;
   }
   if (expression.type === 'string_literal') {
     write(JSON.stringify(expression.value));
+    return;
+  }
+  if (expression.type === 'identifier') {
+    write(expression.name);
+    return;
   }
 }
+
+/**
+ * ======== Parsing ========================================================
+ */
 
 function readModule(state) {
   const module = {functions: []};
   while (state.token.type === 'identifier') {
     readModuleDeclaration(state, module);
   }
+  console.error(state)
+  invariant(state.token.type === 'end_of_file');
   return module;
 }
 
@@ -72,21 +96,30 @@ function readModuleDeclaration(state, module) {
   while (!hasOperator(state, '}')) {
     statements.push(readStatement(state));
   }
+  readToken(state);
   module.functions.push({returnType: declType, name: declName, statements});
 }
 
 function readStatement(state) {
-  invariant(hasKeyword(state, 'let'));
-  readToken(state);
-  invariant(state.token.type === 'identifier');
-  const name = state.token.value;
-  readToken(state);
-  invariant(hasOperator(state, '='));
-  readToken(state);
-  const initialValue = readPrimaryExpression(state);
-  invariant(hasOperator(state, ';'));
-  readToken(state);
-  return {type: 'variable_declaration', name, initialValue}
+  if (hasKeyword(state, 'let')) {
+    readToken(state);
+    invariant(state.token.type === 'identifier');
+    const name = state.token.value;
+    readToken(state);
+    invariant(hasOperator(state, '='));
+    readToken(state);
+    const initialValue = readPrimaryExpression(state);
+    invariant(hasOperator(state, ';'));
+    readToken(state);
+    return {type: 'variable_declaration', name, initialValue};
+  }
+  if (state.token.type === 'identifier') {
+    const value = readPrimaryExpression(state);
+    invariant(hasOperator(state, ';'));
+    readToken(state);
+    return {type: 'expression', value};
+  }
+  invariant(false);
 }
 
 function readPrimaryExpression(state) {
@@ -98,12 +131,14 @@ function readPrimaryExpression(state) {
   invariant(state.token.type === 'identifier');
   const name = state.token.value;
   readToken(state);
-  invariant(hasOperator(state, '('));
-  readToken(state);
-  const arguments = [readPrimaryExpression(state)];
-  invariant(hasOperator(state, ')'));
-  readToken(state);
-  return {type: 'function_call', functionName: name, arguments};
+  if (hasOperator(state, '(')) {
+    readToken(state);
+    const arguments = [readPrimaryExpression(state)];
+    invariant(hasOperator(state, ')'));
+    readToken(state);
+    return {type: 'function_call', functionName: name, arguments};
+  }
+  return {type: 'identifier', name};
 }
 
 function hasOperator(state, value) {

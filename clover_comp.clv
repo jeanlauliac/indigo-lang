@@ -1,4 +1,8 @@
 void main() {
-  let code = read_file("./clover_comp.clv");
+  let code = __read_file("./clover_comp.clv");
+  read_token(state);
+}
+
+void read_token() {
 
 }
