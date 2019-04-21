@@ -20,5 +20,6 @@ fn read_module(ref state: State) {
 }
 
 fn read_token(ref state: State) {
+  let whitespace = set [' ', '\n'];
   while (state.i < state.code.length) {}
 }

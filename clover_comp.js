@@ -127,6 +127,21 @@ function writeExpression(expression) {
     write(expression.value.join('.'));
     return;
   }
+  if (expression.type === 'collection_literal') {
+    if (expression.typeName === 'set') {
+      write('new Set([');
+    }
+    for (const value of expression.values) {
+      writeExpression(value);
+      write(', ');
+    }
+    write('])');
+    return;
+  }
+  if (expression.type === 'character_literal') {
+    write(JSON.stringify(expression.value));
+    return;
+  }
   write(`UNKNOWN_EXPRESSION_${expression.type}`);
 }
 
@@ -237,6 +252,11 @@ function readPrimaryExpression(state) {
     readToken(state);
     return {type: 'string_literal', value};
   }
+  if (state.token.type === 'character_literal') {
+    const value = state.token.value;
+    readToken(state);
+    return {type: 'character_literal', value};
+  }
   if (hasKeyword(state, 'true')) {
     readToken(state);
     return {type: 'bool_literal', value: true};
@@ -256,6 +276,23 @@ function readPrimaryExpression(state) {
       qualifiedName.push(state.token.value);
       readToken(state);
     }
+  }
+
+  if (hasOperator(state, '[')) {
+    readToken(state);
+    invariant(qualifiedName.length <= 1);
+    const values = [];
+    while (!hasOperator(state, ']')) {
+      const expression = readExpression(state);
+      values.push(expression);
+      if (hasOperator(state, ',')) {
+        readToken(state);
+      } else {
+        invariant(hasOperator(state, ']'));
+      }
+    }
+    readToken(state);
+    return {type: 'collection_literal', typeName: qualifiedName[0], values};
   }
 
   if (hasOperator(state, '{')) {
@@ -326,7 +363,7 @@ function readToken(state) {
     if (KEYWORKS.has(token.value)) {
       token.type = 'keyword';
     }
-  } else if (/^[(){}=;:,.&<>/*+-]$/.test(state.code[state.i])) {
+  } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
     token = {type: 'operator', value: state.code[state.i]};
     ++state.i;
   } else if (state.code[state.i] === '"') {
@@ -338,11 +375,34 @@ function readToken(state) {
     invariant(state.i < state.code.length);
     token = {type: 'string_literal', value: state.code.substring(start, state.i)};
     ++state.i;
+  } else if (state.code[state.i] === "'") {
+    ++state.i;
+    invariant(state.i < state.code.length);
+    let value;
+    if (state.code[state.i] === '\\') {
+      ++state.i;
+      invariant(state.i < state.code.length);
+      value = getEscapedChar(state.code[state.i]);
+    } else {
+      value = state.code[state.i];
+    }
+    ++state.i;
+    invariant(state.i < state.code.length && state.code[state.i] === "'");
+    token = {type: 'character_literal', value};
+    ++state.i;
   } else {
     throw new Error(`unexpected character "${state.code[state.i]}"`);
   }
   state.token = state.nextToken;
   state.nextToken = token;
+}
+
+function getEscapedChar(code) {
+  switch (code) {
+    case 'n':
+      return '\n';
+  }
+  invariant(false);
 }
 
 function invariant(cond) {
