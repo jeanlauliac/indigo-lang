@@ -4,9 +4,9 @@ fn main() {
     code: code, phase: "module",
     token: None {}, nextToken: None {},
   };
-  read_token(state);
+  read_token(&state);
 }
 
-fn read_token(state: State) {
+fn read_token(ref state: State) {
 
 }

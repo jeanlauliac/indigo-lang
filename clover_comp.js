@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const KEYWORKS = new Set(['let', 'fn']);
+const KEYWORKS = new Set(['let', 'fn', 'ref']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -65,9 +65,14 @@ function writeExpression(expression) {
       write(`__${expression.functionName}(`);
     }
     for (const argument of expression.arguments) {
-      write('clone(');
-      writeExpression(argument);
-      write('), ');
+      if (argument.type === 'expression') {
+        write('clone(');
+        writeExpression(argument.value);
+        write(')');
+      } else if (argument.type === 'reference') {
+        write(argument.name);
+      }
+      write(', ');
     }
     if (expression.functionName === '__read_file') {
       write("'utf8'")
@@ -120,7 +125,12 @@ function readModuleDeclaration(state, module) {
   readToken(state);
 
   const arguments = [];
-  while (state.token.type === 'identifier') {
+  while (!hasOperator(state, ')')) {
+    const isRef = hasKeyword(state, 'ref');
+    if (isRef) {
+      readToken(state);
+    }
+    invariant(state.token.type === 'identifier');
     const name = state.token.value;
     readToken(state);
     invariant(hasOperator(state, ':'));
@@ -136,7 +146,6 @@ function readModuleDeclaration(state, module) {
     arguments.push({name, typeName});
   }
 
-  invariant(hasOperator(state, ')'));
   readToken(state);
   invariant(hasOperator(state, '{'));
   readToken(state);
@@ -211,12 +220,23 @@ function readPrimaryExpression(state) {
   readToken(state);
   if (hasOperator(state, '(')) {
     readToken(state);
-    const arguments = [readPrimaryExpression(state)];
+    const arguments = [readCallArgument(state)];
     invariant(hasOperator(state, ')'));
     readToken(state);
     return {type: 'function_call', functionName: name, arguments};
   }
   return {type: 'identifier', name};
+}
+
+function readCallArgument(state) {
+  if (hasOperator(state, '&')) {
+    readToken(state);
+    invariant(state.token.type === 'identifier');
+    const name = state.token.value;
+    readToken(state);
+    return {type: 'reference', name};
+  }
+  return {type: 'expression', value: readPrimaryExpression(state)};
 }
 
 function hasOperator(state, value) {
@@ -244,7 +264,7 @@ function readToken(state) {
     if (KEYWORKS.has(token.value)) {
       token.type = 'keyword';
     }
-  } else if (/^[(){}=;:,.]$/.test(state.code[state.i])) {
+  } else if (/^[(){}=;:,.&<>/*+-]$/.test(state.code[state.i])) {
     token = {type: 'operator', value: state.code[state.i]};
     ++state.i;
   } else if (state.code[state.i] === '"') {
