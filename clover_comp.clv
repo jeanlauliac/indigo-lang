@@ -1,4 +1,4 @@
-void main() {
+fn main() {
   let code = __read_file("./clover_comp.clv");
   let state = {
     code: code, phase: "module",
@@ -7,6 +7,6 @@ void main() {
   read_token(state);
 }
 
-void read_token() {
+fn read_token() {
 
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const KEYWORKS = new Set(['let']);
+const KEYWORKS = new Set(['let', 'fn']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -85,15 +85,14 @@ function writeExpression(expression) {
 
 function readModule(state) {
   const module = {functions: []};
-  while (state.token.type === 'identifier') {
+  while (state.token.type !== 'end_of_file') {
     readModuleDeclaration(state, module);
   }
-  invariant(state.token.type === 'end_of_file');
   return module;
 }
 
 function readModuleDeclaration(state, module) {
-  const declType = state.token.value;
+  invariant(hasKeyword(state, 'fn'));
   readToken(state);
   invariant(state.token.type === 'identifier');
   const declName = state.token.value;
@@ -109,7 +108,7 @@ function readModuleDeclaration(state, module) {
     statements.push(readStatement(state));
   }
   readToken(state);
-  module.functions.push({returnType: declType, name: declName, statements});
+  module.functions.push({name: declName, statements});
 }
 
 function readStatement(state) {
