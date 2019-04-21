@@ -14,6 +14,7 @@ function main() {
   const module = readModule(state);
 
   write('#!/usr/bin/env node\n\n');
+
   for (const func of module.functions) {
     write(`function __${func.name}(`);
     for (const argument of func.arguments) {
@@ -25,6 +26,19 @@ function main() {
     }
     write(`}\n\n`);
   }
+  write(`function clone(v) {
+  if (v == null) return v;
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return v;
+  if (Array.isArray(v)) return v.map(a => clone(a));
+  const o = {};
+  for (const k in v) {
+    o[k] = clone(v[k]);
+  }
+  return o;
+}
+
+`);
   write('__main();\n');
 }
 
@@ -51,8 +65,9 @@ function writeExpression(expression) {
       write(`__${expression.functionName}(`);
     }
     for (const argument of expression.arguments) {
+      write('clone(');
       writeExpression(argument);
-      write(', ');
+      write('), ');
     }
     if (expression.functionName === '__read_file') {
       write("'utf8'")
