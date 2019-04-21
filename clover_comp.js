@@ -64,6 +64,16 @@ function writeExpression(expression) {
     write(expression.name);
     return;
   }
+  if (expression.type === 'object_literal') {
+    write('{');
+    for (const field of expression.fields) {
+      write(field.name);
+      write(': ');
+      writeExpression(field.value);
+      write(', ');
+    }
+    write('}');
+  }
 }
 
 /**
@@ -75,7 +85,6 @@ function readModule(state) {
   while (state.token.type === 'identifier') {
     readModuleDeclaration(state, module);
   }
-  console.error(state)
   invariant(state.token.type === 'end_of_file');
   return module;
 }
@@ -128,6 +137,26 @@ function readPrimaryExpression(state) {
     readToken(state);
     return {type: 'string_literal', value};
   }
+  if (hasOperator(state, '{')) {
+    readToken(state);
+    const fields = [];
+    while (state.token.type === 'identifier') {
+      const name = state.token.value;
+      readToken(state);
+      invariant(hasOperator(state, ':'));
+      readToken(state);
+      const value = readPrimaryExpression(state);
+      if (hasOperator(state, ',')) {
+        readToken(state);
+      } else {
+        invariant(hasOperator(state, '}'));
+      }
+      fields.push({name, value});
+    }
+    invariant(hasOperator(state, '}'));
+    readToken(state);
+    return {type: 'object_literal', fields};
+  }
   invariant(state.token.type === 'identifier');
   const name = state.token.value;
   readToken(state);
@@ -166,7 +195,7 @@ function readToken(state) {
     if (KEYWORKS.has(token.value)) {
       token.type = 'keyword';
     }
-  } else if (/^[(){}=;]$/.test(state.code[state.i])) {
+  } else if (/^[(){}=;:,.]$/.test(state.code[state.i])) {
     token = {type: 'operator', value: state.code[state.i]};
     ++state.i;
   } else if (state.code[state.i] === '"') {

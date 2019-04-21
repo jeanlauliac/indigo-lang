@@ -1,5 +1,6 @@
 void main() {
   let code = __read_file("./clover_comp.clv");
+  let state = {code: code};
   read_token(state);
 }
 
