@@ -1,6 +1,9 @@
 void main() {
   let code = __read_file("./clover_comp.clv");
-  let state = {code: code};
+  let state = {
+    code: code, phase: "module",
+    token: None {}, nextToken: None {},
+  };
   read_token(state);
 }
 

@@ -72,6 +72,9 @@ function writeExpression(expression) {
       writeExpression(field.value);
       write(', ');
     }
+    if (expression.typeName != null) {
+      write(`__type: ${JSON.stringify(expression.typeName)}`);
+    }
     write('}');
   }
 }
@@ -137,7 +140,17 @@ function readPrimaryExpression(state) {
     readToken(state);
     return {type: 'string_literal', value};
   }
-  if (hasOperator(state, '{')) {
+
+  const isQualifiedObjectLiteral =
+    state.token.type === 'identifier' &&
+    state.nextToken.type === 'operator' &&
+    state.nextToken.value === '{';
+  if (hasOperator(state, '{') || isQualifiedObjectLiteral) {
+    let typeName;
+    if (isQualifiedObjectLiteral) {
+      typeName = state.token.value;
+      readToken(state);
+    }
     readToken(state);
     const fields = [];
     while (state.token.type === 'identifier') {
@@ -155,7 +168,7 @@ function readPrimaryExpression(state) {
     }
     invariant(hasOperator(state, '}'));
     readToken(state);
-    return {type: 'object_literal', fields};
+    return {type: 'object_literal', typeName, fields};
   }
   invariant(state.token.type === 'identifier');
   const name = state.token.value;
