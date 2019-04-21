@@ -15,7 +15,11 @@ function main() {
 
   write('#!/usr/bin/env node\n\n');
   for (const func of module.functions) {
-    write(`function __${func.name}() {\n`);
+    write(`function __${func.name}(`);
+    for (const argument of func.arguments) {
+      write(`${argument.name}, `);
+    }
+    write(`) {\n`);
     for (const statement of func.statements) {
       writeStatement(statement);
     }
@@ -99,6 +103,24 @@ function readModuleDeclaration(state, module) {
   readToken(state);
   invariant(hasOperator(state, '('));
   readToken(state);
+
+  const arguments = [];
+  while (state.token.type === 'identifier') {
+    const name = state.token.value;
+    readToken(state);
+    invariant(hasOperator(state, ':'));
+    readToken(state);
+    invariant(state.token.type === 'identifier');
+    const typeName = state.token.value;
+    readToken(state);
+    if (hasOperator(state, ',')) {
+      readToken(state);
+    } else {
+      invariant(hasOperator(state, ')'));
+    }
+    arguments.push({name, typeName});
+  }
+
   invariant(hasOperator(state, ')'));
   readToken(state);
   invariant(hasOperator(state, '{'));
@@ -108,7 +130,7 @@ function readModuleDeclaration(state, module) {
     statements.push(readStatement(state));
   }
   readToken(state);
-  module.functions.push({name: declName, statements});
+  module.functions.push({name: declName, statements, arguments});
 }
 
 function readStatement(state) {

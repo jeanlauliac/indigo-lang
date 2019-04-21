@@ -7,6 +7,6 @@ fn main() {
   read_token(state);
 }
 
-fn read_token() {
+fn read_token(state: State) {
 
 }
