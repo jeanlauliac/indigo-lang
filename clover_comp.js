@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true', 'false']);
+const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true', 'false', 'set', 'dict', 'vec']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -36,6 +36,11 @@ function main() {
     o[k] = clone(v[k]);
   }
   return o;
+}
+
+function access(collection, key) {
+  if (collection instanceof Set) return collection.has(key);
+  throw new Error('invalid collection');
 }
 
 `);
@@ -128,7 +133,7 @@ function writeExpression(expression) {
     return;
   }
   if (expression.type === 'collection_literal') {
-    if (expression.typeName === 'set') {
+    if (expression.dataType === 'set') {
       write('new Set([');
     }
     for (const value of expression.values) {
@@ -140,6 +145,12 @@ function writeExpression(expression) {
   }
   if (expression.type === 'character_literal') {
     write(JSON.stringify(expression.value));
+    return;
+  }
+  if (expression.type === 'collection_access') {
+    write(`access(${expression.collectionName.join('.')}, `);
+    writeExpression(expression.key);
+    write(')');
     return;
   }
   write(`UNKNOWN_EXPRESSION_${expression.type}`);
@@ -274,6 +285,25 @@ function readPrimaryExpression(state) {
     return {type: 'bool_literal', value: false};
   }
 
+  if (hasKeyword(state, 'set')) {
+    const dataType = 'set';
+    readToken(state);
+    invariant(hasOperator(state, '['));
+    readToken(state);
+    const values = [];
+    while (!hasOperator(state, ']')) {
+      const expression = readExpression(state);
+      values.push(expression);
+      if (hasOperator(state, ',')) {
+        readToken(state);
+      } else {
+        invariant(hasOperator(state, ']'));
+      }
+    }
+    readToken(state);
+    return {type: 'collection_literal', dataType, values};
+  }
+
   const qualifiedName = [];
   if (state.token.type === 'identifier') {
     qualifiedName.push(state.token.value);
@@ -288,19 +318,10 @@ function readPrimaryExpression(state) {
 
   if (hasOperator(state, '[')) {
     readToken(state);
-    invariant(qualifiedName.length <= 1);
-    const values = [];
-    while (!hasOperator(state, ']')) {
-      const expression = readExpression(state);
-      values.push(expression);
-      if (hasOperator(state, ',')) {
-        readToken(state);
-      } else {
-        invariant(hasOperator(state, ']'));
-      }
-    }
+    const key = readExpression(state);
+    invariant(hasOperator(state, ']'));
     readToken(state);
-    return {type: 'collection_literal', typeName: qualifiedName[0], values};
+    return {type: 'collection_access', collectionName: qualifiedName, key};
   }
 
   if (hasOperator(state, '{')) {
