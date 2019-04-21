@@ -2,6 +2,8 @@
 
 const KEYWORKS = new Set(['let']);
 
+const write = process.stdout.write.bind(process.stdout);
+
 function main() {
   const code = require('fs').readFileSync('./clover_comp.clv', 'utf8');
   const state = {code, i: 0, phase: 'module',
@@ -11,12 +13,39 @@ function main() {
 
   const module = readModule(state);
 
-  console.log('#!/usr/bin/env node\n');
+  write('#!/usr/bin/env node\n\n');
   for (const func of module.functions) {
-    console.log(`function __${func.name}() {`);
-    console.log(`}\n`);
+    write(`function __${func.name}() {\n`);
+    for (const statement of func.statements) {
+      writeStatement(statement);
+    }
+    write(`}\n\n`);
   }
-  console.log('__main();');
+  write('__main();\n');
+}
+
+function writeStatement(statement) {
+  if (statement.type === 'variable_declaration') {
+    write(`  let ${statement.name} = `);
+    writeExpression(statement.initialValue);
+    write(';\n');
+    return;
+  }
+}
+
+function writeExpression(expression) {
+  if (expression.type === 'function_call') {
+    write(`${expression.functionName}(`);
+    for (const argument of expression.arguments) {
+      writeExpression(argument);
+      write(', ');
+    }
+    write(')');
+    return;
+  }
+  if (expression.type === 'string_literal') {
+    write(JSON.stringify(expression.value));
+  }
 }
 
 function readModule(state) {
@@ -62,8 +91,9 @@ function readStatement(state) {
 
 function readPrimaryExpression(state) {
   if (state.token.type === 'string_literal') {
+    const value = state.token.value;
     readToken(state);
-    return {type: 'string_literal', value: state.token.value};
+    return {type: 'string_literal', value};
   }
   invariant(state.token.type === 'identifier');
   const name = state.token.value;

@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+
+function __main() {
+  let code = read_file("./clover_comp.clv", );
+}
+
+__main();
