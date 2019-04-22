@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
-  'false', 'set', 'dict', 'vec', 'if']);
+  'false', 'set', 'dict', 'vec', 'if', 'else']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -25,6 +25,7 @@ function main() {
     for (const statement of func.statements) {
       write('  ');
       writeStatement(statement, '  ');
+      write('\n');
     }
     write(`}\n\n`);
   }
@@ -57,12 +58,12 @@ function writeStatement(statement, indent) {
   if (statement.type === 'variable_declaration') {
     write(`let ${statement.name} = `);
     writeExpression(statement.initialValue);
-    write(';\n');
+    write(';');
     return;
   }
   if (statement.type === 'expression') {
     writeExpression(statement.value);
-    write(';\n');
+    write(';');
     return;
   }
   if (statement.type === 'while_loop') {
@@ -73,17 +74,21 @@ function writeStatement(statement, indent) {
       write(indent + '  ');
       writeStatement(subStatement, indent + '  ');
     }
-    write(`${indent}}\n`);
+    write(`${indent}}`);
     return;
   }
   if (statement.type === 'if') {
     write(`if (`);
     writeExpression(statement.condition);
     write(') ');
-    writeStatement(statement.consequent, indent + '  ');
+    writeStatement(statement.consequence, indent + '  ');
+    if (statement.alternative) {
+      write(' else ');
+      writeStatement(statement.alternative, indent + '  ');
+    }
     return;
   }
-  write(`UNKNOWN_STATEMENT_${statement.type};\n`);
+  write(`UNKNOWN_STATEMENT_${statement.type};`);
 }
 
 function writeExpression(expression) {
@@ -273,8 +278,13 @@ function readStatement(state) {
     const condition = readExpression(state);
     invariant(hasOperator(state, ')'));
     readToken(state);
-    const consequent = readStatement(state);
-    return {type: 'if', condition, consequent};
+    const consequence = readStatement(state);
+    let alternative;
+    if (hasKeyword(state, 'else')) {
+      readToken(state);
+      alternative = readStatement(state);
+    }
+    return {type: 'if', condition, consequence, alternative};
   }
   const value = readExpression(state);
   invariant(hasOperator(state, ';'));
