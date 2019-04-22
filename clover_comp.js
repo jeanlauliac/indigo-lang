@@ -151,7 +151,9 @@ function writeExpression(expression) {
   if (expression.type === 'binary_operation') {
     write('(');
     writeExpression(expression.leftOperand);
-    write(` ${expression.operation} `);
+    let {operation} = expression;
+    if (operation === '==') operation = '===';
+    write(` ${operation} `);
     writeExpression(expression.rightOperand);
     write(')');
     return;
