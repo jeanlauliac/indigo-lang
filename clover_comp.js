@@ -81,11 +81,20 @@ function writeStatement(statement, indent) {
     write(`if (`);
     writeExpression(statement.condition);
     write(') ');
-    writeStatement(statement.consequence, indent + '  ');
-    if (statement.alternative) {
+    writeStatement(statement.consequent, indent);
+    if (statement.alternate) {
       write(' else ');
-      writeStatement(statement.alternative, indent + '  ');
+      writeStatement(statement.alternate, indent);
     }
+    return;
+  }
+  if (statement.type === 'block') {
+    write('{\n');
+    for (const subStatement of statement.statements) {
+      write(indent + '  ');
+      writeStatement(subStatement, indent + '  ');
+    }
+    write(`${indent}}`);
     return;
   }
   write(`UNKNOWN_STATEMENT_${statement.type};`);
@@ -278,13 +287,22 @@ function readStatement(state) {
     const condition = readExpression(state);
     invariant(hasOperator(state, ')'));
     readToken(state);
-    const consequence = readStatement(state);
-    let alternative;
+    const consequent = readStatement(state);
+    let alternate;
     if (hasKeyword(state, 'else')) {
       readToken(state);
-      alternative = readStatement(state);
+      alternate = readStatement(state);
     }
-    return {type: 'if', condition, consequence, alternative};
+    return {type: 'if', condition, consequent, alternate};
+  }
+  if (hasOperator(state, '{')) {
+    readToken(state);
+    const statements = [];
+    while (!hasOperator(state, '}')) {
+      statements.push(readStatement(state));
+    }
+    readToken(state);
+    return {type: 'block', statements};
   }
   const value = readExpression(state);
   invariant(hasOperator(state, ';'));

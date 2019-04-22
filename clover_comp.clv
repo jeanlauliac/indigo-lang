@@ -25,5 +25,8 @@ fn read_token(ref state: State) {
     ++state.i;
   }
   let token = None {};
-  if (state.i == state.code.length) f; else g;
+  if (state.i == state.code.length) {
+  } else {
+    
+  }
 }
