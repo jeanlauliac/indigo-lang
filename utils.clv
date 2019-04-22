@@ -32,10 +32,7 @@ fn has_operator(ref state: State, ref value: string) {
 }
 
 fn read_token(ref state: State) {
-  let whitespace = set [' ', '\n'];
-  while (state.i < state.code.length && whitespace[state.code[state.i]]) {
-    ++state.i;
-  }
+  read_whitespace(&state);
   let token = None {};
   if (state.i == state.code.length) {
     token = End_of_file {};
@@ -48,6 +45,13 @@ fn read_token(ref state: State) {
   }
   state.token = state.next_token;
   state.next_token = token;
+}
+
+fn read_whitespace(ref state: State) {
+  let whitespace = set [' ', '\n'];
+  while (state.i < state.code.length && whitespace[state.code[state.i]]) {
+    ++state.i;
+  }
 }
 
 fn get_escaped_char(code: char) {

@@ -26,10 +26,7 @@ module.exports.has_operator = function __has_operator(state, value, ) {
 }
 
 module.exports.read_token = function __read_token(state, ) {
-  let whitespace = new Set([" ", "\n", ]);
-  while (((state.i < state.code.length) && access(whitespace, access(state.code, state.i)))) {
-    ++state.i;
-  }
+  __read_whitespace(state, );
   let token = {__type: "None"};
   if ((state.i === state.code.length)) {
     (token = {__type: "End_of_file"});
@@ -41,6 +38,13 @@ module.exports.read_token = function __read_token(state, ) {
   }
   (state.token = state.next_token);
   (state.next_token = token);
+}
+
+module.exports.read_whitespace = function __read_whitespace(state, ) {
+  let whitespace = new Set([" ", "\n", ]);
+  while (((state.i < state.code.length) && access(whitespace, access(state.code, state.i)))) {
+    ++state.i;
+  }
 }
 
 module.exports.get_escaped_char = function __get_escaped_char(code, ) {

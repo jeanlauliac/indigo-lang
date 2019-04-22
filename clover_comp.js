@@ -535,9 +535,7 @@ function hasIdentifier(state) {
 const OPERATORS = new Set(['&&', '++', '==']);
 
 function readToken(state) {
-  while (state.i < state.code.length && /^[ \n]$/.test(state.code[state.i])) {
-    ++state.i;
-  }
+  utils.read_whitespace(state);
   let token;
   if (state.i === state.code.length) {
     token = {__type: 'End_of_file'};
