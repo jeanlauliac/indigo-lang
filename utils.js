@@ -2,7 +2,7 @@
 
 module.exports.main = function __main() {
   let code = (require('fs').readFileSync)(clone("./clover_comp.clv"), );
-  let state = {code: code, phase: "module", token: {__type: "None"}, next_token: {__type: "None"}, __type: ""};
+  let state = {code: code, phase: "module", token: {__type: "None"}, next_token: {__type: "None"}, };
   __read_token(state, );
   __read_token(state, );
   let module = __read_module(state, );
@@ -10,15 +10,15 @@ module.exports.main = function __main() {
 }
 
 module.exports.read_module = function __read_module(state, ) {
-  let module = {functions: [], __type: ""};
-  while (isnt(state.token, End_of_file)) {
+  let module = {functions: [], };
+  while (!identity_test(state.token, "End_of_file")) {
     __read_module_declaration(state, module, );
   }
   return module;
 }
 
 module.exports.has_keyword = function __has_keyword(state, value, ) {
-  return (is(state.token, Keyword) && (state.token.value === value));
+  return (identity_test(state.token, "Keyword") && (state.token.value === value));
 }
 
 module.exports.read_token = function __read_token(state, ) {
@@ -60,3 +60,6 @@ function access(collection, key) {
   throw new Error('invalid collection');
 }
 
+function identity_test(value, type) {
+  return value.__type === type;
+}
