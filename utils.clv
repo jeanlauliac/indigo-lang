@@ -49,3 +49,14 @@ fn read_token(ref state: State) {
   state.token = state.next_token;
   state.next_token = token;
 }
+
+fn get_escaped_char(code: char) {
+  if (code == 'n') {
+    return '\n';
+  }
+  invariant(false);
+}
+
+fn invariant(cond: bool) {
+  if (!cond) __die("invariant failed");
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const utils = require('./utils');
-const {has_keyword, has_operator} = utils;
+const {has_keyword, has_operator, get_escaped_char, invariant} = utils;
 
 const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
   'false', 'set', 'dict', 'vec', 'if', 'else', 'is', 'isnt', 'return']);
@@ -114,6 +114,8 @@ function writeExpression(expression) {
       write("(require('fs').readFileSync)(");
     } else if (expression.functionName[0] === '__write') {
       write("process.stdout.write(");
+    } else if (expression.functionName[0] === '__die') {
+      write("throw new Error(");
     } else {
       write(`__${expression.functionName.join('.')}(`);
     }
@@ -219,6 +221,11 @@ function writeExpression(expression) {
     write(', ');
     write(JSON.stringify(expression.typeName.join('.')));
     write(')');
+    return;
+  }
+  if (expression.type === 'unary_operation') {
+    write(expression.operator);
+    writeExpression(expression.operand);
     return;
   }
   write(`UNKNOWN_EXPRESSION_${expression.type}`);
@@ -419,6 +426,13 @@ function readPrimaryExpression(state) {
     return {type: 'in_place_assignment', operator, target, isPrefix: true};
   }
 
+  if (has_operator(state, '!')) {
+    const operator = state.token.value;
+    readToken(state);
+    const operand = readPrimaryExpression(state);
+    return {type: 'unary_operation', operator, operand};
+  }
+
   if (has_keyword(state, 'set') || has_keyword(state, 'vec')) {
     const dataType = state.token.value;
     readToken(state);
@@ -537,7 +551,7 @@ function readToken(state) {
     if (KEYWORKS.has(token.value)) {
       token.__type = 'Keyword';
     }
-  } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
+  } else if (/^[(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
     let value = state.code[state.i];
     ++state.i;
     if (OPERATORS.has(value + state.code[state.i])) {
@@ -561,7 +575,7 @@ function readToken(state) {
     if (state.code[state.i] === '\\') {
       ++state.i;
       invariant(state.i < state.code.length);
-      value = getEscapedChar(state.code[state.i]);
+      value = get_escaped_char(state.code[state.i]);
     } else {
       value = state.code[state.i];
     }
@@ -574,18 +588,6 @@ function readToken(state) {
   }
   state.token = state.nextToken;
   state.nextToken = token;
-}
-
-function getEscapedChar(code) {
-  switch (code) {
-    case 'n':
-      return '\n';
-  }
-  invariant(false);
-}
-
-function invariant(cond) {
-  if (!cond) throw new Error('invariant failed');
 }
 
 main();

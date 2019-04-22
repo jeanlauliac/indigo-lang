@@ -43,6 +43,17 @@ module.exports.read_token = function __read_token(state, ) {
   (state.next_token = token);
 }
 
+module.exports.get_escaped_char = function __get_escaped_char(code, ) {
+  if ((code === "n")) {
+    return "\n";
+  }
+  __invariant(clone(false), );
+}
+
+module.exports.invariant = function __invariant(cond, ) {
+  if (!cond) throw new Error(clone("invariant failed"), );
+}
+
 function clone(v) {
   if (v == null) return v;
   if (typeof v === 'string') return v;
