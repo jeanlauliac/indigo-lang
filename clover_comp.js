@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
-  'false', 'set', 'dict', 'vec', 'if', 'else']);
+  'false', 'set', 'dict', 'vec', 'if', 'else', 'is', 'isnt', 'return']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -94,6 +94,12 @@ function writeStatement(statement, indent) {
     write(`${indent}}`);
     return;
   }
+  if (statement.type === 'return') {
+    write('return ');
+    writeExpression(statement.value);
+    write(';');
+    return;
+  }
   write(`UNKNOWN_STATEMENT_${statement.type};`);
 }
 
@@ -166,11 +172,17 @@ function writeExpression(expression) {
     if (expression.dataType === 'set') {
       write('new Set([');
     }
+    if (expression.dataType === 'vec') {
+      write('[');
+    }
     for (const value of expression.values) {
       writeExpression(value);
       write(', ');
     }
-    write('])');
+    write(']');
+    if (expression.dataType === 'set') {
+      write(')');
+    }
     return;
   }
   if (expression.type === 'character_literal') {
@@ -263,6 +275,7 @@ function readStatement(state) {
     readToken(state);
     return {type: 'variable_declaration', name, initialValue};
   }
+
   if (hasKeyword(state, 'while')) {
     readToken(state);
     invariant(hasOperator(state, '('));
@@ -273,6 +286,7 @@ function readStatement(state) {
     const body = readStatement(state);
     return {type: 'while_loop', condition, body};
   }
+
   if (hasKeyword(state, 'if')) {
     readToken(state);
     invariant(hasOperator(state, '('));
@@ -288,6 +302,15 @@ function readStatement(state) {
     }
     return {type: 'if', condition, consequent, alternate};
   }
+
+  if (hasKeyword(state, 'return')) {
+    readToken(state);
+    const value = readExpression(state);
+    invariant(hasOperator(state, ';'));
+    readToken(state);
+    return {type: 'return', value};
+  }
+
   if (hasOperator(state, '{')) {
     readToken(state);
     const statements = [];
@@ -297,6 +320,7 @@ function readStatement(state) {
     readToken(state);
     return {type: 'block', statements};
   }
+
   const value = readExpression(state);
   invariant(hasOperator(state, ';'));
   readToken(state);
@@ -304,7 +328,15 @@ function readStatement(state) {
 }
 
 function readExpression(state) {
-  return readLogicalAndExpression(state);
+  return readAssignmentExpression(state);
+}
+
+function readAssignmentExpression(state) {
+  const leftOperand = readLogicalAndExpression(state);
+  if (!hasOperator(state, '=')) return leftOperand;
+  readToken(state);
+  const rightOperand = readEqualityExpression(state);
+  return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
 }
 
 function readLogicalAndExpression(state) {
@@ -317,10 +349,11 @@ function readLogicalAndExpression(state) {
 
 function readEqualityExpression(state) {
   const leftOperand = readComparisonExpression(state);
-  if (!hasOperator(state, '==')) return leftOperand;
+  if (!hasOperator(state, '==') && !hasKeyword(state, 'isnt')) return leftOperand;
+  const operation = state.token.value;
   readToken(state);
   const rightOperand = readComparisonExpression(state);
-  return {type: 'binary_operation', operation: '==', leftOperand, rightOperand};
+  return {type: 'binary_operation', operation, leftOperand, rightOperand};
 }
 
 function readComparisonExpression(state) {
@@ -358,8 +391,8 @@ function readPrimaryExpression(state) {
     return {type: 'in_place_assignment', operator, target, isPrefix: true};
   }
 
-  if (hasKeyword(state, 'set')) {
-    const dataType = 'set';
+  if (hasKeyword(state, 'set') || hasKeyword(state, 'vec')) {
+    const dataType = state.token.value;
     readToken(state);
     invariant(hasOperator(state, '['));
     readToken(state);
@@ -421,8 +454,15 @@ function readPrimaryExpression(state) {
 
   if (hasOperator(state, '(')) {
     readToken(state);
-    const arguments = [readCallArgument(state)];
-    invariant(hasOperator(state, ')'));
+    const arguments = [];
+    while (!hasOperator(state, ')')) {
+      arguments.push(readCallArgument(state));
+      if (hasOperator(state, ',')) {
+        readToken(state);
+      } else {
+        invariant(hasOperator(state, ')'));
+      }
+    }
     readToken(state);
     return {type: 'function_call', functionName: qualifiedName, arguments};
   }

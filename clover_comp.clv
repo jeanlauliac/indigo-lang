@@ -16,7 +16,11 @@ fn main() {
 }
 
 fn read_module(ref state: State) {
-
+  let module = {functions: vec[]};
+  while (state.token isnt End_of_file) {
+    read_module_declaration(&state, &module);
+  }
+  return module;
 }
 
 fn read_token(ref state: State) {
@@ -26,7 +30,14 @@ fn read_token(ref state: State) {
   }
   let token = None {};
   if (state.i == state.code.length) {
+    token = End_of_file {};
+  } else if (true) {
+    token = Identifier {value: state.code[state.i]};
+    ++state.i;
+
   } else {
-    
+    token = Invalid {};
   }
+  state.token = state.next_token;
+  state.next_token = token;
 }
