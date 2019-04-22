@@ -22,7 +22,7 @@ function main() {
     }
     write(`) {\n`);
     for (const statement of func.statements) {
-      writeStatement(statement);
+      writeStatement(statement, '  ');
     }
     write(`}\n\n`);
   }
@@ -39,6 +39,10 @@ function main() {
 }
 
 function access(collection, key) {
+  if (typeof collection === 'string') {
+    if (key < 0 || key >= collection.length) throw new Error('out of bounds');
+    return collection[key];
+  }
   if (collection instanceof Set) return collection.has(key);
   throw new Error('invalid collection');
 }
@@ -47,26 +51,30 @@ function access(collection, key) {
   write('__main();\n');
 }
 
-function writeStatement(statement) {
+function writeStatement(statement, indent) {
   if (statement.type === 'variable_declaration') {
-    write(`  let ${statement.name} = `);
+    write(`${indent}let ${statement.name} = `);
     writeExpression(statement.initialValue);
     write(';\n');
     return;
   }
   if (statement.type === 'expression') {
-    write(`  `);
+    write(indent);
     writeExpression(statement.value);
     write(';\n');
     return;
   }
   if (statement.type === 'while_loop') {
-    write('  while (');
+    write(`${indent}while (`);
     writeExpression(statement.condition);
-    write(') {}\n');
+    write(') {\n');
+    for (const subStatement of statement.statements) {
+      writeStatement(subStatement, indent + '  ');
+    }
+    write(`${indent}}\n`);
     return;
   }
-  write(`  UNKNOWN_STATEMENT_${statement.type};\n`);
+  write(`${indent}UNKNOWN_STATEMENT_${statement.type};\n`);
 }
 
 function writeExpression(expression) {
@@ -153,6 +161,16 @@ function writeExpression(expression) {
     write(')');
     return;
   }
+  if (expression.type === 'in_place_assignment') {
+    if (expression.isPrefix) {
+      write(expression.operator);
+    }
+    writeExpression(expression.target);
+    if (!expression.isPrefix) {
+      write(expression.operator);
+    }
+    return;
+  }
   write(`UNKNOWN_EXPRESSION_${expression.type}`);
 }
 
@@ -232,17 +250,17 @@ function readStatement(state) {
     readToken(state);
     invariant(hasOperator(state, '{'));
     readToken(state);
-    invariant(hasOperator(state, '}'));
+    const statements = [];
+    while (!hasOperator(state, '}')) {
+      statements.push(readStatement(state));
+    }
     readToken(state);
-    return {type: 'while_loop', condition}
+    return {type: 'while_loop', condition, statements};
   }
-  if (state.token.type === 'identifier') {
-    const value = readExpression(state);
-    invariant(hasOperator(state, ';'));
-    readToken(state);
-    return {type: 'expression', value};
-  }
-  invariant(false);
+  const value = readExpression(state);
+  invariant(hasOperator(state, ';'));
+  readToken(state);
+  return {type: 'expression', value};
 }
 
 function readExpression(state) {
@@ -283,6 +301,13 @@ function readPrimaryExpression(state) {
   if (hasKeyword(state, 'false')) {
     readToken(state);
     return {type: 'bool_literal', value: false};
+  }
+
+  if (hasOperator(state, '++')) {
+    const operator = state.token.value;
+    readToken(state);
+    const target = readPrimaryExpression(state);
+    return {type: 'in_place_assignment', operator, target, isPrefix: true};
   }
 
   if (hasKeyword(state, 'set')) {
@@ -395,7 +420,10 @@ function readToken(state) {
   } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
     let value = state.code[state.i];
     ++state.i;
-    if (value === '&' && state.code[state.i] === '&') {
+    if (
+      value === '&' && state.code[state.i] === '&' ||
+      value === '+' && state.code[state.i] === '+'
+    ) {
       value += state.code[state.i];
       ++state.i;
     }
