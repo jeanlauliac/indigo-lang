@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const utils = require('./utils');
-const {has_keyword} = utils;
+const {has_keyword, has_operator} = utils;
 
 const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
   'false', 'set', 'dict', 'vec', 'if', 'else', 'is', 'isnt', 'return']);
@@ -242,11 +242,11 @@ function readModuleDeclaration(state, module) {
   invariant(hasIdentifier(state));
   const declName = state.token.value;
   readToken(state);
-  invariant(hasOperator(state, '('));
+  invariant(has_operator(state, '('));
   readToken(state);
 
   const arguments = [];
-  while (!hasOperator(state, ')')) {
+  while (!has_operator(state, ')')) {
     const isRef = has_keyword(state, 'ref');
     if (isRef) {
       readToken(state);
@@ -254,24 +254,24 @@ function readModuleDeclaration(state, module) {
     invariant(hasIdentifier(state));
     const name = state.token.value;
     readToken(state);
-    invariant(hasOperator(state, ':'));
+    invariant(has_operator(state, ':'));
     readToken(state);
     invariant(hasIdentifier(state));
     const typeName = state.token.value;
     readToken(state);
-    if (hasOperator(state, ',')) {
+    if (has_operator(state, ',')) {
       readToken(state);
     } else {
-      invariant(hasOperator(state, ')'));
+      invariant(has_operator(state, ')'));
     }
     arguments.push({name, typeName});
   }
 
   readToken(state);
-  invariant(hasOperator(state, '{'));
+  invariant(has_operator(state, '{'));
   readToken(state);
   const statements = [];
-  while (!hasOperator(state, '}')) {
+  while (!has_operator(state, '}')) {
     statements.push(readStatement(state));
   }
   readToken(state);
@@ -284,20 +284,20 @@ function readStatement(state) {
     invariant(hasIdentifier(state));
     const name = state.token.value;
     readToken(state);
-    invariant(hasOperator(state, '='));
+    invariant(has_operator(state, '='));
     readToken(state);
     const initialValue = readExpression(state);
-    invariant(hasOperator(state, ';'));
+    invariant(has_operator(state, ';'));
     readToken(state);
     return {type: 'variable_declaration', name, initialValue};
   }
 
   if (has_keyword(state, 'while')) {
     readToken(state);
-    invariant(hasOperator(state, '('));
+    invariant(has_operator(state, '('));
     readToken(state);
     const condition = readExpression(state);
-    invariant(hasOperator(state, ')'));
+    invariant(has_operator(state, ')'));
     readToken(state);
     const body = readStatement(state);
     return {type: 'while_loop', condition, body};
@@ -305,10 +305,10 @@ function readStatement(state) {
 
   if (has_keyword(state, 'if')) {
     readToken(state);
-    invariant(hasOperator(state, '('));
+    invariant(has_operator(state, '('));
     readToken(state);
     const condition = readExpression(state);
-    invariant(hasOperator(state, ')'));
+    invariant(has_operator(state, ')'));
     readToken(state);
     const consequent = readStatement(state);
     let alternate;
@@ -322,15 +322,15 @@ function readStatement(state) {
   if (has_keyword(state, 'return')) {
     readToken(state);
     const value = readExpression(state);
-    invariant(hasOperator(state, ';'));
+    invariant(has_operator(state, ';'));
     readToken(state);
     return {type: 'return', value};
   }
 
-  if (hasOperator(state, '{')) {
+  if (has_operator(state, '{')) {
     readToken(state);
     const statements = [];
-    while (!hasOperator(state, '}')) {
+    while (!has_operator(state, '}')) {
       statements.push(readStatement(state));
     }
     readToken(state);
@@ -338,7 +338,7 @@ function readStatement(state) {
   }
 
   const value = readExpression(state);
-  invariant(hasOperator(state, ';'));
+  invariant(has_operator(state, ';'));
   readToken(state);
   return {type: 'expression', value};
 }
@@ -349,7 +349,7 @@ function readExpression(state) {
 
 function readAssignmentExpression(state) {
   const leftOperand = readLogicalAndExpression(state);
-  if (!hasOperator(state, '=')) return leftOperand;
+  if (!has_operator(state, '=')) return leftOperand;
   readToken(state);
   const rightOperand = readLogicalAndExpression(state);
   return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
@@ -357,7 +357,7 @@ function readAssignmentExpression(state) {
 
 function readLogicalAndExpression(state) {
   const leftOperand = readIdentityExpression(state);
-  if (!hasOperator(state, '&&')) return leftOperand;
+  if (!has_operator(state, '&&')) return leftOperand;
   readToken(state);
   const rightOperand = readIdentityExpression(state);
   return {type: 'binary_operation', operation: '&&', leftOperand, rightOperand};
@@ -377,7 +377,7 @@ function readIdentityExpression(state) {
 
 function readEqualityExpression(state) {
   const leftOperand = readComparisonExpression(state);
-  if (!hasOperator(state, '==')) return leftOperand;
+  if (!has_operator(state, '==')) return leftOperand;
   const operation = state.token.value;
   readToken(state);
   const rightOperand = readComparisonExpression(state);
@@ -386,7 +386,7 @@ function readEqualityExpression(state) {
 
 function readComparisonExpression(state) {
   const leftOperand = readPrimaryExpression(state);
-  if (!hasOperator(state, '<')) return leftOperand;
+  if (!has_operator(state, '<')) return leftOperand;
   readToken(state);
   const rightOperand = readPrimaryExpression(state);
   return {type: 'binary_operation', operation: '<', leftOperand, rightOperand};
@@ -412,7 +412,7 @@ function readPrimaryExpression(state) {
     return {type: 'bool_literal', value: false};
   }
 
-  if (hasOperator(state, '++')) {
+  if (has_operator(state, '++')) {
     const operator = state.token.value;
     readToken(state);
     const target = readPrimaryExpression(state);
@@ -422,16 +422,16 @@ function readPrimaryExpression(state) {
   if (has_keyword(state, 'set') || has_keyword(state, 'vec')) {
     const dataType = state.token.value;
     readToken(state);
-    invariant(hasOperator(state, '['));
+    invariant(has_operator(state, '['));
     readToken(state);
     const values = [];
-    while (!hasOperator(state, ']')) {
+    while (!has_operator(state, ']')) {
       const expression = readExpression(state);
       values.push(expression);
-      if (hasOperator(state, ',')) {
+      if (has_operator(state, ',')) {
         readToken(state);
       } else {
-        invariant(hasOperator(state, ']'));
+        invariant(has_operator(state, ']'));
       }
     }
     readToken(state);
@@ -443,45 +443,45 @@ function readPrimaryExpression(state) {
     qualifiedName = readQualifiedName(state);
   }
 
-  if (hasOperator(state, '[')) {
+  if (has_operator(state, '[')) {
     readToken(state);
     const key = readExpression(state);
-    invariant(hasOperator(state, ']'));
+    invariant(has_operator(state, ']'));
     readToken(state);
     return {type: 'collection_access', collectionName: qualifiedName, key};
   }
 
-  if (hasOperator(state, '{')) {
+  if (has_operator(state, '{')) {
     readToken(state);
     const fields = [];
     while (hasIdentifier(state)) {
       const name = state.token.value;
       readToken(state);
-      invariant(hasOperator(state, ':'));
+      invariant(has_operator(state, ':'));
       readToken(state);
       const value = readExpression(state);
-      if (hasOperator(state, ',')) {
+      if (has_operator(state, ',')) {
         readToken(state);
       } else {
-        invariant(hasOperator(state, '}'));
+        invariant(has_operator(state, '}'));
       }
       fields.push({name, value});
     }
-    invariant(hasOperator(state, '}'));
+    invariant(has_operator(state, '}'));
     readToken(state);
     return {type: 'object_literal', typeName: qualifiedName, fields};
   }
   invariant(qualifiedName != null);
 
-  if (hasOperator(state, '(')) {
+  if (has_operator(state, '(')) {
     readToken(state);
     const arguments = [];
-    while (!hasOperator(state, ')')) {
+    while (!has_operator(state, ')')) {
       arguments.push(readCallArgument(state));
-      if (hasOperator(state, ',')) {
+      if (has_operator(state, ',')) {
         readToken(state);
       } else {
-        invariant(hasOperator(state, ')'));
+        invariant(has_operator(state, ')'));
       }
     }
     readToken(state);
@@ -494,7 +494,7 @@ function readQualifiedName(state) {
   invariant(hasIdentifier(state));
   const qualifiedName = [state.token.value];
   readToken(state);
-  while (hasOperator(state, '.')) {
+  while (has_operator(state, '.')) {
     readToken(state);
     invariant(hasIdentifier(state));
     qualifiedName.push(state.token.value);
@@ -504,7 +504,7 @@ function readQualifiedName(state) {
 }
 
 function readCallArgument(state) {
-  if (hasOperator(state, '&')) {
+  if (has_operator(state, '&')) {
     readToken(state);
     invariant(hasIdentifier(state));
     const name = state.token.value;
@@ -516,10 +516,6 @@ function readCallArgument(state) {
 
 function hasIdentifier(state) {
   return state.token.__type === 'Identifier';
-}
-
-function hasOperator(state, value) {
-  return state.token.__type === 'Operator' && state.token.value === value;
 }
 
 const OPERATORS = new Set(['&&', '++', '==']);

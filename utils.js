@@ -21,6 +21,10 @@ module.exports.has_keyword = function __has_keyword(state, value, ) {
   return (identity_test(state.token, "Keyword") && (state.token.value === value));
 }
 
+module.exports.has_operator = function __has_operator(state, value, ) {
+  return (identity_test(state.token, "Operator") && (state.token.value === value));
+}
+
 module.exports.read_token = function __read_token(state, ) {
   let whitespace = new Set([" ", "\n", ]);
   while (((state.i < state.code.length) && access(whitespace, access(state.code, state.i)))) {
