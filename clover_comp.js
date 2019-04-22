@@ -227,7 +227,7 @@ function writeExpression(expression) {
 
 function readModule(state) {
   const module = {functions: []};
-  while (state.token.type !== 'end_of_file') {
+  while (state.token.__type !== 'End_of_file') {
     readModuleDeclaration(state, module);
   }
   return module;
@@ -236,7 +236,7 @@ function readModule(state) {
 function readModuleDeclaration(state, module) {
   invariant(hasKeyword(state, 'fn'));
   readToken(state);
-  invariant(state.token.type === 'identifier');
+  invariant(hasIdentifier(state));
   const declName = state.token.value;
   readToken(state);
   invariant(hasOperator(state, '('));
@@ -248,12 +248,12 @@ function readModuleDeclaration(state, module) {
     if (isRef) {
       readToken(state);
     }
-    invariant(state.token.type === 'identifier');
+    invariant(hasIdentifier(state));
     const name = state.token.value;
     readToken(state);
     invariant(hasOperator(state, ':'));
     readToken(state);
-    invariant(state.token.type === 'identifier');
+    invariant(hasIdentifier(state));
     const typeName = state.token.value;
     readToken(state);
     if (hasOperator(state, ',')) {
@@ -278,7 +278,7 @@ function readModuleDeclaration(state, module) {
 function readStatement(state) {
   if (hasKeyword(state, 'let')) {
     readToken(state);
-    invariant(state.token.type === 'identifier');
+    invariant(hasIdentifier(state));
     const name = state.token.value;
     readToken(state);
     invariant(hasOperator(state, '='));
@@ -390,12 +390,12 @@ function readComparisonExpression(state) {
 }
 
 function readPrimaryExpression(state) {
-  if (state.token.type === 'string_literal') {
+  if (state.token.__type === 'String_literal') {
     const value = state.token.value;
     readToken(state);
     return {type: 'string_literal', value};
   }
-  if (state.token.type === 'character_literal') {
+  if (state.token.__type === 'Character_literal') {
     const value = state.token.value;
     readToken(state);
     return {type: 'character_literal', value};
@@ -436,7 +436,7 @@ function readPrimaryExpression(state) {
   }
 
   let qualifiedName;
-  if (state.token.type === 'identifier') {
+  if (hasIdentifier(state)) {
     qualifiedName = readQualifiedName(state);
   }
 
@@ -451,7 +451,7 @@ function readPrimaryExpression(state) {
   if (hasOperator(state, '{')) {
     readToken(state);
     const fields = [];
-    while (state.token.type === 'identifier') {
+    while (hasIdentifier(state)) {
       const name = state.token.value;
       readToken(state);
       invariant(hasOperator(state, ':'));
@@ -488,12 +488,12 @@ function readPrimaryExpression(state) {
 }
 
 function readQualifiedName(state) {
-  invariant(state.token.type === 'identifier');
+  invariant(hasIdentifier(state));
   const qualifiedName = [state.token.value];
   readToken(state);
   while (hasOperator(state, '.')) {
     readToken(state);
-    invariant(state.token.type === 'identifier');
+    invariant(hasIdentifier(state));
     qualifiedName.push(state.token.value);
     readToken(state);
   }
@@ -503,7 +503,7 @@ function readQualifiedName(state) {
 function readCallArgument(state) {
   if (hasOperator(state, '&')) {
     readToken(state);
-    invariant(state.token.type === 'identifier');
+    invariant(hasIdentifier(state));
     const name = state.token.value;
     readToken(state);
     return {type: 'reference', name};
@@ -511,12 +511,16 @@ function readCallArgument(state) {
   return {type: 'expression', value: readExpression(state)};
 }
 
+function hasIdentifier(state) {
+  return state.token.__type === 'Identifier';
+}
+
 function hasOperator(state, value) {
-  return state.token.type === 'operator' && state.token.value === value;
+  return state.token.__type === 'Operator' && state.token.value === value;
 }
 
 function hasKeyword(state, value) {
-  return state.token.type === 'keyword' && state.token.value === value;
+  return state.token.__type === 'Keyword' && state.token.value === value;
 }
 
 const OPERATORS = new Set(['&&', '++', '==']);
@@ -527,16 +531,16 @@ function readToken(state) {
   }
   let token;
   if (state.i === state.code.length) {
-    token = {type: 'end_of_file'};
+    token = {__type: 'End_of_file'};
   } else if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
-    token = {type: 'identifier', value: state.code[state.i]};
+    token = {__type: 'Identifier', value: state.code[state.i]};
     ++state.i;
     while (state.i < state.code.length && /^[_a-zA-Z0-9]$/.test(state.code[state.i])) {
       token.value += state.code[state.i];
       ++state.i;
     }
     if (KEYWORKS.has(token.value)) {
-      token.type = 'keyword';
+      token.__type = 'Keyword';
     }
   } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
     let value = state.code[state.i];
@@ -545,7 +549,7 @@ function readToken(state) {
       value += state.code[state.i];
       ++state.i;
     }
-    token = {type: 'operator', value};
+    token = {__type: 'Operator', value};
   } else if (state.code[state.i] === '"') {
     ++state.i;
     const start = state.i;
@@ -553,7 +557,7 @@ function readToken(state) {
       ++state.i;
     }
     invariant(state.i < state.code.length);
-    token = {type: 'string_literal', value: state.code.substring(start, state.i)};
+    token = {__type: 'String_literal', value: state.code.substring(start, state.i)};
     ++state.i;
   } else if (state.code[state.i] === "'") {
     ++state.i;
@@ -568,7 +572,7 @@ function readToken(state) {
     }
     ++state.i;
     invariant(state.i < state.code.length && state.code[state.i] === "'");
-    token = {type: 'character_literal', value};
+    token = {__type: 'Character_literal', value};
     ++state.i;
   } else {
     throw new Error(`unexpected character "${state.code[state.i]}"`);
