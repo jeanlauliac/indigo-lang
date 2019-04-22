@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true', 'false', 'set', 'dict', 'vec']);
+const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
+  'false', 'set', 'dict', 'vec', 'if']);
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -22,6 +23,7 @@ function main() {
     }
     write(`) {\n`);
     for (const statement of func.statements) {
+      write('  ');
       writeStatement(statement, '  ');
     }
     write(`}\n\n`);
@@ -53,28 +55,35 @@ function access(collection, key) {
 
 function writeStatement(statement, indent) {
   if (statement.type === 'variable_declaration') {
-    write(`${indent}let ${statement.name} = `);
+    write(`let ${statement.name} = `);
     writeExpression(statement.initialValue);
     write(';\n');
     return;
   }
   if (statement.type === 'expression') {
-    write(indent);
     writeExpression(statement.value);
     write(';\n');
     return;
   }
   if (statement.type === 'while_loop') {
-    write(`${indent}while (`);
+    write(`while (`);
     writeExpression(statement.condition);
     write(') {\n');
     for (const subStatement of statement.statements) {
+      write(indent + '  ');
       writeStatement(subStatement, indent + '  ');
     }
     write(`${indent}}\n`);
     return;
   }
-  write(`${indent}UNKNOWN_STATEMENT_${statement.type};\n`);
+  if (statement.type === 'if') {
+    write(`if (`);
+    writeExpression(statement.condition);
+    write(') ');
+    writeStatement(statement.consequent, indent + '  ');
+    return;
+  }
+  write(`UNKNOWN_STATEMENT_${statement.type};\n`);
 }
 
 function writeExpression(expression) {
@@ -257,6 +266,16 @@ function readStatement(state) {
     readToken(state);
     return {type: 'while_loop', condition, statements};
   }
+  if (hasKeyword(state, 'if')) {
+    readToken(state);
+    invariant(hasOperator(state, '('));
+    readToken(state);
+    const condition = readExpression(state);
+    invariant(hasOperator(state, ')'));
+    readToken(state);
+    const consequent = readStatement(state);
+    return {type: 'if', condition, consequent};
+  }
   const value = readExpression(state);
   invariant(hasOperator(state, ';'));
   readToken(state);
@@ -268,11 +287,19 @@ function readExpression(state) {
 }
 
 function readLogicalAndExpression(state) {
-  const leftOperand = readComparisonExpression(state);
+  const leftOperand = readEqualityExpression(state);
   if (!hasOperator(state, '&&')) return leftOperand;
   readToken(state);
-  const rightOperand = readComparisonExpression(state);
+  const rightOperand = readEqualityExpression(state);
   return {type: 'binary_operation', operation: '&&', leftOperand, rightOperand};
+}
+
+function readEqualityExpression(state) {
+  const leftOperand = readComparisonExpression(state);
+  if (!hasOperator(state, '==')) return leftOperand;
+  readToken(state);
+  const rightOperand = readComparisonExpression(state);
+  return {type: 'binary_operation', operation: '==', leftOperand, rightOperand};
 }
 
 function readComparisonExpression(state) {
@@ -400,6 +427,8 @@ function hasKeyword(state, value) {
   return state.token.type === 'keyword' && state.token.value === value;
 }
 
+const OPERATORS = new Set(['&&', '++', '==']);
+
 function readToken(state) {
   while (state.i < state.code.length && /^[ \n]$/.test(state.code[state.i])) {
     ++state.i;
@@ -420,10 +449,7 @@ function readToken(state) {
   } else if (/^[(){}=;:,.&<>/*+-\[\]]$/.test(state.code[state.i])) {
     let value = state.code[state.i];
     ++state.i;
-    if (
-      value === '&' && state.code[state.i] === '&' ||
-      value === '+' && state.code[state.i] === '+'
-    ) {
+    if (OPERATORS.has(value + state.code[state.i])) {
       value += state.code[state.i];
       ++state.i;
     }
