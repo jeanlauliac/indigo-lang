@@ -69,12 +69,8 @@ function writeStatement(statement, indent) {
   if (statement.type === 'while_loop') {
     write(`while (`);
     writeExpression(statement.condition);
-    write(') {\n');
-    for (const subStatement of statement.statements) {
-      write(indent + '  ');
-      writeStatement(subStatement, indent + '  ');
-    }
-    write(`${indent}}`);
+    write(') ');
+    writeStatement(statement.body, indent);
     return;
   }
   if (statement.type === 'if') {
@@ -93,6 +89,7 @@ function writeStatement(statement, indent) {
     for (const subStatement of statement.statements) {
       write(indent + '  ');
       writeStatement(subStatement, indent + '  ');
+      write('\n');
     }
     write(`${indent}}`);
     return;
@@ -271,14 +268,8 @@ function readStatement(state) {
     const condition = readExpression(state);
     invariant(hasOperator(state, ')'));
     readToken(state);
-    invariant(hasOperator(state, '{'));
-    readToken(state);
-    const statements = [];
-    while (!hasOperator(state, '}')) {
-      statements.push(readStatement(state));
-    }
-    readToken(state);
-    return {type: 'while_loop', condition, statements};
+    const body = readStatement(state);
+    return {type: 'while_loop', condition, body};
   }
   if (hasKeyword(state, 'if')) {
     readToken(state);
