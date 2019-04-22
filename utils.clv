@@ -23,6 +23,10 @@ fn read_module(ref state: State) {
   return module;
 }
 
+fn has_keyword(ref state: State, ref value: string) {
+  return state.token is Keyword && state.token.value == value;
+}
+
 fn read_token(ref state: State) {
   let whitespace = set [' ', '\n'];
   while (state.i < state.code.length && whitespace[state.code[state.i]]) {

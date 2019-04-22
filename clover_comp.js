@@ -50,6 +50,9 @@ function access(collection, key) {
   throw new Error('invalid collection');
 }
 
+function identity_test(value, type) {
+  return value.__type === type;
+}
 `);
 }
 
@@ -204,6 +207,17 @@ function writeExpression(expression) {
     }
     return;
   }
+  if (expression.type === 'identity_test') {
+    if (expression.isNegative) {
+      write('!');
+    }
+    write(`identity_test(`);
+    writeExpression(expression.operand);
+    write(', ');
+    write(JSON.stringify(expression.typeName.join('.')));
+    write(')');
+    return;
+  }
   write(`UNKNOWN_EXPRESSION_${expression.type}`);
 }
 
@@ -334,21 +348,33 @@ function readAssignmentExpression(state) {
   const leftOperand = readLogicalAndExpression(state);
   if (!hasOperator(state, '=')) return leftOperand;
   readToken(state);
-  const rightOperand = readEqualityExpression(state);
+  const rightOperand = readLogicalAndExpression(state);
   return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
 }
 
 function readLogicalAndExpression(state) {
-  const leftOperand = readEqualityExpression(state);
+  const leftOperand = readIdentityExpression(state);
   if (!hasOperator(state, '&&')) return leftOperand;
   readToken(state);
-  const rightOperand = readEqualityExpression(state);
+  const rightOperand = readIdentityExpression(state);
   return {type: 'binary_operation', operation: '&&', leftOperand, rightOperand};
+}
+
+function readIdentityExpression(state) {
+  const operand = readEqualityExpression(state);
+  if (
+    !hasKeyword(state, 'isnt') &&
+    !hasKeyword(state, 'is')
+  ) return operand;
+  const isNegative = state.token.value === 'isnt';
+  readToken(state);
+  const typeName = readQualifiedName(state);
+  return {type: 'identity_test', isNegative, operand, typeName};
 }
 
 function readEqualityExpression(state) {
   const leftOperand = readComparisonExpression(state);
-  if (!hasOperator(state, '==') && !hasKeyword(state, 'isnt')) return leftOperand;
+  if (!hasOperator(state, '==')) return leftOperand;
   const operation = state.token.value;
   readToken(state);
   const rightOperand = readComparisonExpression(state);
@@ -409,16 +435,9 @@ function readPrimaryExpression(state) {
     return {type: 'collection_literal', dataType, values};
   }
 
-  const qualifiedName = [];
+  let qualifiedName;
   if (state.token.type === 'identifier') {
-    qualifiedName.push(state.token.value);
-    readToken(state);
-    while (hasOperator(state, '.')) {
-      readToken(state);
-      invariant(state.token.type === 'identifier');
-      qualifiedName.push(state.token.value);
-      readToken(state);
-    }
+    qualifiedName = readQualifiedName(state);
   }
 
   if (hasOperator(state, '[')) {
@@ -449,7 +468,7 @@ function readPrimaryExpression(state) {
     readToken(state);
     return {type: 'object_literal', typeName: qualifiedName, fields};
   }
-  invariant(qualifiedName.length > 0);
+  invariant(qualifiedName != null);
 
   if (hasOperator(state, '(')) {
     readToken(state);
@@ -466,6 +485,19 @@ function readPrimaryExpression(state) {
     return {type: 'function_call', functionName: qualifiedName, arguments};
   }
   return {type: 'qualified_name', value: qualifiedName};
+}
+
+function readQualifiedName(state) {
+  invariant(state.token.type === 'identifier');
+  const qualifiedName = [state.token.value];
+  readToken(state);
+  while (hasOperator(state, '.')) {
+    readToken(state);
+    invariant(state.token.type === 'identifier');
+    qualifiedName.push(state.token.value);
+    readToken(state);
+  }
+  return qualifiedName;
 }
 
 function readCallArgument(state) {

@@ -11,10 +11,14 @@ module.exports.main = function __main() {
 
 module.exports.read_module = function __read_module(state, ) {
   let module = {functions: [], __type: ""};
-  while ((state.token isnt End_of_file)) {
+  while (isnt(state.token, End_of_file)) {
     __read_module_declaration(state, module, );
   }
   return module;
+}
+
+module.exports.has_keyword = function __has_keyword(state, value, ) {
+  return (is(state.token, Keyword) && (state.token.value === value));
 }
 
 module.exports.read_token = function __read_token(state, ) {
