@@ -6,7 +6,7 @@ const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
 const write = process.stdout.write.bind(process.stdout);
 
 function main() {
-  const code = require('fs').readFileSync('./clover_comp.clv', 'utf8');
+  const code = require('fs').readFileSync('./utils.clv', 'utf8');
   const state = {code, i: 0, phase: 'module',
       token: null, nextToken: null};
   readToken(state);
@@ -17,7 +17,7 @@ function main() {
   write('#!/usr/bin/env node\n\n');
 
   for (const func of module.functions) {
-    write(`function __${func.name}(`);
+    write(`module.exports.${func.name} = function __${func.name}(`);
     for (const argument of func.arguments) {
       write(`${argument.name}, `);
     }
@@ -51,7 +51,6 @@ function access(collection, key) {
 }
 
 `);
-  write('__main();\n');
 }
 
 function writeStatement(statement, indent) {
