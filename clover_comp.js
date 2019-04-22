@@ -17,7 +17,7 @@ function main() {
 
   const module = readModule(state);
 
-  write('#!/usr/bin/env node\n\n');
+  write('// GENERATED, DO NOT EDIT\n\n');
 
   for (const func of module.functions) {
     write(`module.exports.${func.name} = function __${func.name}(`);

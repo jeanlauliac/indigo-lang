@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+// GENERATED, DO NOT EDIT
 
 module.exports.main = function __main() {
   let code = (require('fs').readFileSync)(clone("./clover_comp.clv"), );
