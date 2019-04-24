@@ -31,6 +31,10 @@ fn has_operator(ref state: State, ref value: string) {
   return state.token is Operator && state.token.value == value;
 }
 
+fn has_identifier(ref state: State) {
+  return state.token is Identifier;
+}
+
 fn read_token(ref state: State) {
   read_whitespace(&state);
   let token = None {};

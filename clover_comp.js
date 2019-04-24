@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const utils = require('./utils');
-const {has_keyword, has_operator, get_escaped_char, invariant} = utils;
+const {has_keyword, has_operator, get_escaped_char, invariant, has_identifier} = utils;
 
 const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
   'false', 'set', 'dict', 'vec', 'if', 'else', 'is', 'isnt', 'return']);
@@ -254,7 +254,7 @@ function readModule(state) {
 function readModuleDeclaration(state, module) {
   invariant(has_keyword(state, 'fn'));
   readToken(state);
-  invariant(hasIdentifier(state));
+  invariant(has_identifier(state));
   const declName = state.token.value;
   readToken(state);
   invariant(has_operator(state, '('));
@@ -266,12 +266,12 @@ function readModuleDeclaration(state, module) {
     if (isRef) {
       readToken(state);
     }
-    invariant(hasIdentifier(state));
+    invariant(has_identifier(state));
     const name = state.token.value;
     readToken(state);
     invariant(has_operator(state, ':'));
     readToken(state);
-    invariant(hasIdentifier(state));
+    invariant(has_identifier(state));
     const typeName = state.token.value;
     readToken(state);
     if (has_operator(state, ',')) {
@@ -296,7 +296,7 @@ function readModuleDeclaration(state, module) {
 function readStatement(state) {
   if (has_keyword(state, 'let')) {
     readToken(state);
-    invariant(hasIdentifier(state));
+    invariant(has_identifier(state));
     const name = state.token.value;
     readToken(state);
     invariant(has_operator(state, '='));
@@ -461,7 +461,7 @@ function readPrimaryExpression(state) {
   }
 
   let qualifiedName;
-  if (hasIdentifier(state)) {
+  if (has_identifier(state)) {
     qualifiedName = readQualifiedName(state);
   }
 
@@ -476,7 +476,7 @@ function readPrimaryExpression(state) {
   if (has_operator(state, '{')) {
     readToken(state);
     const fields = [];
-    while (hasIdentifier(state)) {
+    while (has_identifier(state)) {
       const name = state.token.value;
       readToken(state);
       invariant(has_operator(state, ':'));
@@ -513,12 +513,12 @@ function readPrimaryExpression(state) {
 }
 
 function readQualifiedName(state) {
-  invariant(hasIdentifier(state));
+  invariant(has_identifier(state));
   const qualifiedName = [state.token.value];
   readToken(state);
   while (has_operator(state, '.')) {
     readToken(state);
-    invariant(hasIdentifier(state));
+    invariant(has_identifier(state));
     qualifiedName.push(state.token.value);
     readToken(state);
   }
@@ -528,16 +528,12 @@ function readQualifiedName(state) {
 function readCallArgument(state) {
   if (has_operator(state, '&')) {
     readToken(state);
-    invariant(hasIdentifier(state));
+    invariant(has_identifier(state));
     const name = state.token.value;
     readToken(state);
     return {type: 'reference', name};
   }
   return {type: 'expression', value: readExpression(state)};
-}
-
-function hasIdentifier(state) {
-  return state.token.__type === 'Identifier';
 }
 
 const OPERATORS = new Set(['&&', '++', '==']);

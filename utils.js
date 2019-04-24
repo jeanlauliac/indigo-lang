@@ -25,6 +25,10 @@ module.exports.has_operator = function __has_operator(state, value, ) {
   return (identity_test(state.token, "Operator") && (state.token.value === value));
 }
 
+module.exports.has_identifier = function __has_identifier(state, ) {
+  return identity_test(state.token, "Identifier");
+}
+
 module.exports.read_token = function __read_token(state, ) {
   __read_whitespace(state, );
   let token = {__type: "None"};
