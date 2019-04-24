@@ -1,6 +1,7 @@
 // GENERATED, DO NOT EDIT
 
-module.exports.main = function __main() {
+module.exports.main = __main;
+function __main() {
   let code = (require('fs').readFileSync)(clone("./clover_comp.clv"), );
   let state = {code: code, phase: "module", token: {__type: "None"}, next_token: {__type: "None"}, };
   __read_token(state, );
@@ -9,7 +10,8 @@ module.exports.main = function __main() {
   process.stdout.write(clone("#!/usr/bin/env node\\n\\n"), );
 }
 
-module.exports.read_module = function __read_module(state, ) {
+module.exports.read_module = __read_module;
+function __read_module(state, ) {
   let module = {functions: [], };
   while (!identity_test(state.token, "End_of_file")) {
     __read_module_declaration(state, module, );
@@ -17,19 +19,23 @@ module.exports.read_module = function __read_module(state, ) {
   return module;
 }
 
-module.exports.has_keyword = function __has_keyword(state, value, ) {
+module.exports.has_keyword = __has_keyword;
+function __has_keyword(state, value, ) {
   return (identity_test(state.token, "Keyword") && (state.token.value === value));
 }
 
-module.exports.has_operator = function __has_operator(state, value, ) {
+module.exports.has_operator = __has_operator;
+function __has_operator(state, value, ) {
   return (identity_test(state.token, "Operator") && (state.token.value === value));
 }
 
-module.exports.has_identifier = function __has_identifier(state, ) {
+module.exports.has_identifier = __has_identifier;
+function __has_identifier(state, ) {
   return identity_test(state.token, "Identifier");
 }
 
-module.exports.read_token = function __read_token(state, ) {
+module.exports.read_token = __read_token;
+function __read_token(state, ) {
   __read_whitespace(state, );
   let token = {__type: "None"};
   if ((state.i === state.code.length)) {
@@ -44,21 +50,37 @@ module.exports.read_token = function __read_token(state, ) {
   (state.next_token = token);
 }
 
-module.exports.read_whitespace = function __read_whitespace(state, ) {
+module.exports.read_whitespace = __read_whitespace;
+function __read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
   while (((state.i < state.code.length) && (whitespace.has(access(state.code, state.i))))) {
     ++state.i;
   }
 }
 
-module.exports.get_escaped_char = function __get_escaped_char(code, ) {
+module.exports.read_string_literal = __read_string_literal;
+function __read_string_literal(state, ) {
+  ++state.i;
+  let start = state.i;
+  while (((state.i < state.code.length) && (access(state.code, state.i) !== "\""))) {
+    ++state.i;
+  }
+  __invariant(clone((state.i < state.code.length)), );
+  let token = {value: (state.code.substring(start, state.i)), __type: "String_literal"};
+  ++state.i;
+  return token;
+}
+
+module.exports.get_escaped_char = __get_escaped_char;
+function __get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
   __invariant(clone(false), );
 }
 
-module.exports.invariant = function __invariant(cond, ) {
+module.exports.invariant = __invariant;
+function __invariant(cond, ) {
   if (!cond) throw new Error(clone("invariant failed"), );
 }
 

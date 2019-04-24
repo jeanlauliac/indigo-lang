@@ -20,7 +20,8 @@ function main() {
   write('// GENERATED, DO NOT EDIT\n\n');
 
   for (const func of module.functions) {
-    write(`module.exports.${func.name} = function __${func.name}(`);
+    write(`module.exports.${func.name} = __${func.name};\n`);
+    write(`function __${func.name}(`);
     for (const argument of func.arguments) {
       write(`${argument.name}, `);
     }
@@ -115,6 +116,16 @@ function writeExpression(expression) {
       writeExpression(expression.arguments[0].value);
       write('.has(');
       writeExpression(expression.arguments[1].value);
+      write('))');
+      return;
+    }
+    if (expression.functionName[0] === '__substring') {
+      write('(');
+      writeExpression(expression.arguments[0].value);
+      write('.substring(');
+      writeExpression(expression.arguments[1].value);
+      write(', ');
+      writeExpression(expression.arguments[2].value);
       write('))');
       return;
     }
@@ -556,7 +567,7 @@ function read_next_token(state) {
     return read_operator(state);
   }
   if (state.code[state.i] === '"') {
-    return read_string_literal(state);
+    return utils.read_string_literal(state);
   }
   if (state.code[state.i] === "'") {
     return read_character_literal(state);
@@ -585,18 +596,6 @@ function read_operator(state) {
     ++state.i;
   }
   return {__type: 'Operator', value};
-}
-
-function read_string_literal(state) {
-  ++state.i;
-  const start = state.i;
-  while (state.i < state.code.length && state.code[state.i] !== '"') {
-    ++state.i;
-  }
-  invariant(state.i < state.code.length);
-  const token = {__type: 'String_literal', value: state.code.substring(start, state.i)};
-  ++state.i;
-  return token;
 }
 
 function read_character_literal(state) {
