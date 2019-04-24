@@ -540,56 +540,80 @@ const OPERATORS = new Set(['&&', '++', '==']);
 
 function readToken(state) {
   utils.read_whitespace(state);
-  let token;
-  if (state.i === state.code.length) {
-    token = {__type: 'End_of_file'};
-  } else if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
-    token = {__type: 'Identifier', value: state.code[state.i]};
-    ++state.i;
-    while (state.i < state.code.length && /^[_a-zA-Z0-9]$/.test(state.code[state.i])) {
-      token.value += state.code[state.i];
-      ++state.i;
-    }
-    if (KEYWORKS.has(token.value)) {
-      token.__type = 'Keyword';
-    }
-  } else if (/^[(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
-    let value = state.code[state.i];
-    ++state.i;
-    if (OPERATORS.has(value + state.code[state.i])) {
-      value += state.code[state.i];
-      ++state.i;
-    }
-    token = {__type: 'Operator', value};
-  } else if (state.code[state.i] === '"') {
-    ++state.i;
-    const start = state.i;
-    while (state.i < state.code.length && state.code[state.i] !== '"') {
-      ++state.i;
-    }
-    invariant(state.i < state.code.length);
-    token = {__type: 'String_literal', value: state.code.substring(start, state.i)};
-    ++state.i;
-  } else if (state.code[state.i] === "'") {
-    ++state.i;
-    invariant(state.i < state.code.length);
-    let value;
-    if (state.code[state.i] === '\\') {
-      ++state.i;
-      invariant(state.i < state.code.length);
-      value = get_escaped_char(state.code[state.i]);
-    } else {
-      value = state.code[state.i];
-    }
-    ++state.i;
-    invariant(state.i < state.code.length && state.code[state.i] === "'");
-    token = {__type: 'Character_literal', value};
-    ++state.i;
-  } else {
-    throw new Error(`unexpected character "${state.code[state.i]}"`);
-  }
   state.token = state.nextToken;
-  state.nextToken = token;
+  state.nextToken = read_next_token(state);
+}
+
+function read_next_token(state) {
+  if (state.i === state.code.length) {
+    return {__type: 'End_of_file'};
+  }
+  if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
+    return read_identifier(state);
+  }
+  if (/^[(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
+    return read_operator(state);
+  }
+  if (state.code[state.i] === '"') {
+    return read_string_literal(state);
+  }
+  if (state.code[state.i] === "'") {
+    return read_character_literal(state);
+  }
+  throw new Error(`unexpected character "${state.code[state.i]}"`);
+}
+
+function read_identifier(state) {
+  const token = {__type: 'Identifier', value: state.code[state.i]};
+  ++state.i;
+  while (state.i < state.code.length && /^[_a-zA-Z0-9]$/.test(state.code[state.i])) {
+    token.value += state.code[state.i];
+    ++state.i;
+  }
+  if (KEYWORKS.has(token.value)) {
+    token.__type = 'Keyword';
+  }
+  return token;
+}
+
+function read_operator(state) {
+  let value = state.code[state.i];
+  ++state.i;
+  if (OPERATORS.has(value + state.code[state.i])) {
+    value += state.code[state.i];
+    ++state.i;
+  }
+  return {__type: 'Operator', value};
+}
+
+function read_string_literal(state) {
+  ++state.i;
+  const start = state.i;
+  while (state.i < state.code.length && state.code[state.i] !== '"') {
+    ++state.i;
+  }
+  invariant(state.i < state.code.length);
+  const token = {__type: 'String_literal', value: state.code.substring(start, state.i)};
+  ++state.i;
+  return token;
+}
+
+function read_character_literal(state) {
+  ++state.i;
+  invariant(state.i < state.code.length);
+  let value;
+  if (state.code[state.i] === '\\') {
+    ++state.i;
+    invariant(state.i < state.code.length);
+    value = get_escaped_char(state.code[state.i]);
+  } else {
+    value = state.code[state.i];
+  }
+  ++state.i;
+  invariant(state.i < state.code.length && state.code[state.i] === "'");
+  const token = {__type: 'Character_literal', value};
+  ++state.i;
+  return token;
 }
 
 main();
