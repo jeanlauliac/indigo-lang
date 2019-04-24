@@ -174,6 +174,7 @@ function writeExpression(expression) {
     writeExpression(expression.leftOperand);
     let {operation} = expression;
     if (operation === '==') operation = '===';
+    if (operation === '!=') operation = '!==';
     write(` ${operation} `);
     writeExpression(expression.rightOperand);
     write(')');
@@ -392,7 +393,7 @@ function readIdentityExpression(state) {
 
 function readEqualityExpression(state) {
   const leftOperand = readComparisonExpression(state);
-  if (!has_operator(state, '==')) return leftOperand;
+  if (!has_operator(state, '==') && !has_operator(state, '!=')) return leftOperand;
   const operation = state.token.value;
   readToken(state);
   const rightOperand = readComparisonExpression(state);
@@ -536,7 +537,7 @@ function readCallArgument(state) {
   return {type: 'expression', value: readExpression(state)};
 }
 
-const OPERATORS = new Set(['&&', '++', '==']);
+const OPERATORS = new Set(['&&', '++', '==', '!=']);
 
 function readToken(state) {
   utils.read_whitespace(state);
