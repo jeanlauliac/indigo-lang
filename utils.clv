@@ -49,7 +49,7 @@ fn read_token(ref state: State) {
 
 fn read_whitespace(ref state: State) {
   let whitespace = set [' ', '\n'];
-  while (state.i < state.code.length && whitespace[state.code[state.i]]) {
+  while (state.i < state.code.length && __has(whitespace, state.code[state.i])) {
     ++state.i;
   }
 }

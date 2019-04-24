@@ -110,6 +110,14 @@ function writeStatement(statement, indent) {
 
 function writeExpression(expression) {
   if (expression.type === 'function_call') {
+    if (expression.functionName[0] === '__has') {
+      write('(');
+      writeExpression(expression.arguments[0].value);
+      write('.has(');
+      writeExpression(expression.arguments[1].value);
+      write('))');
+      return;
+    }
     if (expression.functionName[0] === '__read_file') {
       write("(require('fs').readFileSync)(");
     } else if (expression.functionName[0] === '__write') {

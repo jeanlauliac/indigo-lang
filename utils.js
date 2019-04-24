@@ -42,7 +42,7 @@ module.exports.read_token = function __read_token(state, ) {
 
 module.exports.read_whitespace = function __read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
-  while (((state.i < state.code.length) && access(whitespace, access(state.code, state.i)))) {
+  while (((state.i < state.code.length) && (whitespace.has(access(state.code, state.i))))) {
     ++state.i;
   }
 }
