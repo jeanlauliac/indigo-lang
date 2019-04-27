@@ -106,6 +106,9 @@ fn get_escaped_char(code: char) {
   if (code == 'n') {
     return '\n';
   }
+  if (code == '\\') {
+    return '\\';
+  }
   invariant(false);
 }
 
