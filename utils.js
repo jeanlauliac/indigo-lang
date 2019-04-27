@@ -108,7 +108,7 @@ function __get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
-  if (code === '\\') {
+  if ((code === "\\")) {
     return "\\";
   }
   __invariant(clone(false), );
