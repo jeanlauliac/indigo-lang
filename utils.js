@@ -58,6 +58,17 @@ function __read_whitespace(state, ) {
   }
 }
 
+module.exports.read_operator = __read_operator;
+function __read_operator(state, ) {
+  let value = access(state.code, state.i);
+  ++state.i;
+  if ((OPERATORS.has((value + access(state.code, state.i))))) {
+    (value = (value + access(state.code, state.i)));
+    ++state.i;
+  }
+  return {value: value, __type: "Operator"};
+}
+
 module.exports.read_string_literal = __read_string_literal;
 function __read_string_literal(state, ) {
   ++state.i;

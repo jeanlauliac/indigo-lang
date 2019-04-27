@@ -412,11 +412,19 @@ function readEqualityExpression(state) {
 }
 
 function readComparisonExpression(state) {
-  const leftOperand = readPrimaryExpression(state);
+  const leftOperand = readSumExpression(state);
   if (!has_operator(state, '<')) return leftOperand;
   readToken(state);
-  const rightOperand = readPrimaryExpression(state);
+  const rightOperand = readSumExpression(state);
   return {type: 'binary_operation', operation: '<', leftOperand, rightOperand};
+}
+
+function readSumExpression(state) {
+  const leftOperand = readPrimaryExpression(state);
+  if (!has_operator(state, '+')) return leftOperand;
+  readToken(state);
+  const rightOperand = readPrimaryExpression(state);
+  return {type: 'binary_operation', operation: '+', leftOperand, rightOperand};
 }
 
 function readPrimaryExpression(state) {
