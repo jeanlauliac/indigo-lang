@@ -73,6 +73,11 @@ function __read_identifier(state, ) {
   return {value: value, __type: "Identifier"};
 }
 
+module.exports.is_alphanumeric = __is_alphanumeric;
+function __is_alphanumeric(c, ) {
+  return ((((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z"))) || ((c >= "0") && (c <= "9")));
+}
+
 module.exports.read_operator = __read_operator;
 function __read_operator(state, ) {
   let OPERATORS = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);

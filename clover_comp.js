@@ -383,11 +383,13 @@ function readAssignmentExpression(state) {
 }
 
 function readLogicalOrExpression(state) {
-  const leftOperand = readLogicalAndExpression(state);
-  if (!has_operator(state, '||')) return leftOperand;
-  readToken(state);
-  const rightOperand = readLogicalAndExpression(state);
-  return {type: 'binary_operation', operation: '||', leftOperand, rightOperand};
+  let leftOperand = readLogicalAndExpression(state);
+  while (has_operator(state, '||')) {
+    readToken(state);
+    const rightOperand = readLogicalAndExpression(state);
+    leftOperand = {type: 'binary_operation', operation: '||', leftOperand, rightOperand};
+  }
+  return leftOperand;
 }
 
 function readLogicalAndExpression(state) {
@@ -577,7 +579,7 @@ function read_next_token(state) {
     return {__type: 'End_of_file'};
   }
   if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
-    return read_identifier(state);
+    return utils.read_identifier(state);
   }
   if (/^[|(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
     return utils.read_operator(state);
@@ -589,19 +591,6 @@ function read_next_token(state) {
     return read_character_literal(state);
   }
   throw new Error(`unexpected character "${state.code[state.i]}"`);
-}
-
-function read_identifier(state) {
-  const token = {__type: 'Identifier', value: state.code[state.i]};
-  ++state.i;
-  while (state.i < state.code.length && /^[_a-zA-Z0-9]$/.test(state.code[state.i])) {
-    token.value += state.code[state.i];
-    ++state.i;
-  }
-  if (KEYWORKS.has(token.value)) {
-    token.__type = 'Keyword';
-  }
-  return token;
 }
 
 function read_character_literal(state) {

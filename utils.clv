@@ -74,6 +74,11 @@ fn read_identifier(ref state: State) {
   return Identifier {value: value};
 }
 
+fn is_alphanumeric(c: char) {
+  return c == '_' || c >= 'a' && c <= 'z' ||
+    c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
+}
+
 fn read_operator(ref state: State) {
   let OPERATORS = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = state.code[state.i];
