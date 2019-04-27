@@ -58,8 +58,24 @@ fn read_whitespace(ref state: State) {
   }
 }
 
+fn read_identifier(ref state: State) {
+  let KEYWORKS = set ["let", "fn", "ref", "while", "true",
+  "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return"];
+
+  let value = state.code[state.i];
+  ++state.i;
+  while (state.i < state.code.length && is_alphanumeric(state.code[state.i])) {
+    value = value + state.code[state.i];
+    ++state.i;
+  }
+  if (__has(KEYWORKS, value)) {
+    return Keyword {value: value};
+  }
+  return Identifier {value: value};
+}
+
 fn read_operator(ref state: State) {
-  let OPERATORS = set ["&&", "++", "==", "!=", "||"];
+  let OPERATORS = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = state.code[state.i];
   ++state.i;
   if (__has(OPERATORS, value + state.code[state.i])) {

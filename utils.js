@@ -58,9 +58,24 @@ function __read_whitespace(state, ) {
   }
 }
 
+module.exports.read_identifier = __read_identifier;
+function __read_identifier(state, ) {
+  let KEYWORKS = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", ]);
+  let value = access(state.code, state.i);
+  ++state.i;
+  while (((state.i < state.code.length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
+    (value = (value + access(state.code, state.i)));
+    ++state.i;
+  }
+  if ((KEYWORKS.has(value))) {
+    return {value: value, __type: "Keyword"};
+  }
+  return {value: value, __type: "Identifier"};
+}
+
 module.exports.read_operator = __read_operator;
 function __read_operator(state, ) {
-  let OPERATORS = new Set(["&&", "++", "==", "!=", "||", ]);
+  let OPERATORS = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
   let value = access(state.code, state.i);
   ++state.i;
   if ((OPERATORS.has((value + access(state.code, state.i))))) {

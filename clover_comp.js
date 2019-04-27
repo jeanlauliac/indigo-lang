@@ -378,7 +378,7 @@ function readAssignmentExpression(state) {
   const leftOperand = readLogicalOrExpression(state);
   if (!has_operator(state, '=')) return leftOperand;
   readToken(state);
-  const rightOperand = readLogicalOrExpression(state);
+  const rightOperand = readAssignmentExpression(state);
   return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
 }
 
@@ -421,10 +421,12 @@ function readEqualityExpression(state) {
 
 function readComparisonExpression(state) {
   const leftOperand = readSumExpression(state);
-  if (!has_operator(state, '<')) return leftOperand;
+  if (!has_operator(state, '<') && !has_operator(state, '<=') &&
+    !has_operator(state, '>') && !has_operator(state, '>=')) return leftOperand;
+  const operation = state.token.value;
   readToken(state);
   const rightOperand = readSumExpression(state);
-  return {type: 'binary_operation', operation: '<', leftOperand, rightOperand};
+  return {type: 'binary_operation', operation, leftOperand, rightOperand};
 }
 
 function readSumExpression(state) {
