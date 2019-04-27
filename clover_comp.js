@@ -379,26 +379,36 @@ function readAssignmentExpression(state) {
   return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
 }
 
-function readLogicalOrExpression(state) {
-  let leftOperand = readLogicalAndExpression(state);
-  while (has_operator(state, '||')) {
-    readToken(state);
-    const rightOperand = readLogicalAndExpression(state);
-    leftOperand = {type: 'binary_operation', operation: '||', leftOperand, rightOperand};
-  }
-  return leftOperand;
-}
+const readSumExpression =
+  makeLeftAssociativeOperatorReader(readIdentityExpression, new Set(['+', '-']));
 
-function readLogicalAndExpression(state) {
-  const leftOperand = readIdentityExpression(state);
-  if (!has_operator(state, '&&')) return leftOperand;
-  readToken(state);
-  const rightOperand = readIdentityExpression(state);
-  return {type: 'binary_operation', operation: '&&', leftOperand, rightOperand};
+const readComparisonExpression =
+  makeLeftAssociativeOperatorReader(readSumExpression, new Set(['<', '<=', '>', '>=']));
+
+const readEqualityExpression =
+  makeLeftAssociativeOperatorReader(readComparisonExpression, new Set(['==', '!=']));
+
+const readLogicalAndExpression =
+  makeLeftAssociativeOperatorReader(readEqualityExpression, new Set(['&&']));
+
+const readLogicalOrExpression =
+  makeLeftAssociativeOperatorReader(readLogicalAndExpression, new Set(['||']));
+
+function makeLeftAssociativeOperatorReader(expressionReader, operators) {
+  return state => {
+    let leftOperand = expressionReader(state);
+    while (state.token.__type === 'Operator' && operators.has(state.token.value)) {
+      const operation = state.token.value;
+      readToken(state);
+      const rightOperand = expressionReader(state);
+      leftOperand = {type: 'binary_operation', operation, leftOperand, rightOperand};
+    }
+    return leftOperand;
+  }
 }
 
 function readIdentityExpression(state) {
-  const operand = readEqualityExpression(state);
+  const operand = readPrimaryExpression(state);
   if (
     !has_keyword(state, 'isnt') &&
     !has_keyword(state, 'is')
@@ -407,33 +417,6 @@ function readIdentityExpression(state) {
   readToken(state);
   const typeName = readQualifiedName(state);
   return {type: 'identity_test', isNegative, operand, typeName};
-}
-
-function readEqualityExpression(state) {
-  const leftOperand = readComparisonExpression(state);
-  if (!has_operator(state, '==') && !has_operator(state, '!=')) return leftOperand;
-  const operation = state.token.value;
-  readToken(state);
-  const rightOperand = readComparisonExpression(state);
-  return {type: 'binary_operation', operation, leftOperand, rightOperand};
-}
-
-function readComparisonExpression(state) {
-  const leftOperand = readSumExpression(state);
-  if (!has_operator(state, '<') && !has_operator(state, '<=') &&
-    !has_operator(state, '>') && !has_operator(state, '>=')) return leftOperand;
-  const operation = state.token.value;
-  readToken(state);
-  const rightOperand = readSumExpression(state);
-  return {type: 'binary_operation', operation, leftOperand, rightOperand};
-}
-
-function readSumExpression(state) {
-  const leftOperand = readPrimaryExpression(state);
-  if (!has_operator(state, '+')) return leftOperand;
-  readToken(state);
-  const rightOperand = readPrimaryExpression(state);
-  return {type: 'binary_operation', operation: '+', leftOperand, rightOperand};
 }
 
 function readPrimaryExpression(state) {
