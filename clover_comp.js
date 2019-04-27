@@ -3,9 +3,6 @@
 const utils = require('./utils');
 const {has_keyword, has_operator, get_escaped_char, invariant, has_identifier} = utils;
 
-const KEYWORKS = new Set(['let', 'fn', 'ref', 'while', 'true',
-  'false', 'set', 'dict', 'vec', 'if', 'else', 'is', 'isnt', 'return']);
-
 const write = process.stdout.write.bind(process.stdout);
 
 function main() {
