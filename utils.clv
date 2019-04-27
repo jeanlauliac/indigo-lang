@@ -102,6 +102,23 @@ fn read_string_literal(ref state: State) {
   return token;
 }
 
+fn read_character_literal(ref state: State) {
+  ++state.i;
+  invariant(state.i < state.code.length);
+  let value = "";
+  if (state.code[state.i] == '\\') {
+    ++state.i;
+    invariant(state.i < state.code.length);
+    value = get_escaped_char(state.code[state.i]);
+  } else {
+    value = state.code[state.i];
+  }
+  ++state.i;
+  invariant(state.i < state.code.length && state.code[state.i] == "'");
+  ++state.i;
+  return Character_literal {value: value};
+}
+
 fn get_escaped_char(code: char) {
   if (code == 'n') {
     return '\n';

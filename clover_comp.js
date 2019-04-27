@@ -585,27 +585,9 @@ function read_next_token(state) {
     return utils.read_string_literal(state);
   }
   if (state.code[state.i] === "'") {
-    return read_character_literal(state);
+    return utils.read_character_literal(state);
   }
   throw new Error(`unexpected character "${state.code[state.i]}"`);
-}
-
-function read_character_literal(state) {
-  ++state.i;
-  invariant(state.i < state.code.length);
-  let value;
-  if (state.code[state.i] === '\\') {
-    ++state.i;
-    invariant(state.i < state.code.length);
-    value = get_escaped_char(state.code[state.i]);
-  } else {
-    value = state.code[state.i];
-  }
-  ++state.i;
-  invariant(state.i < state.code.length && state.code[state.i] === "'");
-  const token = {__type: 'Character_literal', value};
-  ++state.i;
-  return token;
 }
 
 main();

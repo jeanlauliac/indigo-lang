@@ -103,6 +103,24 @@ function __read_string_literal(state, ) {
   return token;
 }
 
+module.exports.read_character_literal = __read_character_literal;
+function __read_character_literal(state, ) {
+  ++state.i;
+  __invariant(clone((state.i < state.code.length)), );
+  let value = "";
+  if ((access(state.code, state.i) === "\\")) {
+    ++state.i;
+    __invariant(clone((state.i < state.code.length)), );
+    (value = __get_escaped_char(clone(access(state.code, state.i)), ));
+  } else {
+    (value = access(state.code, state.i));
+  }
+  ++state.i;
+  __invariant(clone(((state.i < state.code.length) && (access(state.code, state.i) === "'"))), );
+  ++state.i;
+  return {value: value, __type: "Character_literal"};
+}
+
 module.exports.get_escaped_char = __get_escaped_char;
 function __get_escaped_char(code, ) {
   if ((code === "n")) {
