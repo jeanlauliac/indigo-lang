@@ -375,11 +375,19 @@ function readExpression(state) {
 }
 
 function readAssignmentExpression(state) {
-  const leftOperand = readLogicalAndExpression(state);
+  const leftOperand = readLogicalOrExpression(state);
   if (!has_operator(state, '=')) return leftOperand;
   readToken(state);
-  const rightOperand = readLogicalAndExpression(state);
+  const rightOperand = readLogicalOrExpression(state);
   return {type: 'binary_operation', operation: '=', leftOperand, rightOperand};
+}
+
+function readLogicalOrExpression(state) {
+  const leftOperand = readLogicalAndExpression(state);
+  if (!has_operator(state, '||')) return leftOperand;
+  readToken(state);
+  const rightOperand = readLogicalAndExpression(state);
+  return {type: 'binary_operation', operation: '||', leftOperand, rightOperand};
 }
 
 function readLogicalAndExpression(state) {
@@ -569,7 +577,7 @@ function read_next_token(state) {
   if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
     return read_identifier(state);
   }
-  if (/^[(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
+  if (/^[|(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
     return utils.read_operator(state);
   }
   if (state.code[state.i] === '"') {
