@@ -60,6 +60,7 @@ function __read_whitespace(state, ) {
 
 module.exports.read_operator = __read_operator;
 function __read_operator(state, ) {
+  let OPERATORS = new Set(["&&", "++", "==", "!=", ]);
   let value = access(state.code, state.i);
   ++state.i;
   if ((OPERATORS.has((value + access(state.code, state.i))))) {

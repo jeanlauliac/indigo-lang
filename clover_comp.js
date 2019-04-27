@@ -556,8 +556,6 @@ function readCallArgument(state) {
   return {type: 'expression', value: readExpression(state)};
 }
 
-const OPERATORS = new Set(['&&', '++', '==', '!=']);
-
 function readToken(state) {
   utils.read_whitespace(state);
   state.token = state.nextToken;
@@ -572,7 +570,7 @@ function read_next_token(state) {
     return read_identifier(state);
   }
   if (/^[(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
-    return read_operator(state);
+    return utils.read_operator(state);
   }
   if (state.code[state.i] === '"') {
     return utils.read_string_literal(state);
@@ -594,16 +592,6 @@ function read_identifier(state) {
     token.__type = 'Keyword';
   }
   return token;
-}
-
-function read_operator(state) {
-  let value = state.code[state.i];
-  ++state.i;
-  if (OPERATORS.has(value + state.code[state.i])) {
-    value += state.code[state.i];
-    ++state.i;
-  }
-  return {__type: 'Operator', value};
 }
 
 function read_character_literal(state) {
