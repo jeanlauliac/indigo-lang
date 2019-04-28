@@ -106,12 +106,18 @@ fn read_operator(ref state: State) {
 
 fn read_string_literal(ref state: State) {
   ++state.i;
-  let start = state.i;
+  let value = "";
   while (state.i < state.code.length && state.code[state.i] != '"') {
+    if (state.code[state.i] == '\\')  {
+      ++state.i;
+      value = value + get_escaped_char(state.code[state.i]);
+    } else {
+      value = value + state.code[state.i];
+    }
     ++state.i;
   }
   invariant(state.i < state.code.length);
-  let token = String_literal {value: __substring(state.code, start, state.i)};
+  let token = String_literal {value: value};
   ++state.i;
   return token;
 }

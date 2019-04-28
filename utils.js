@@ -117,12 +117,18 @@ function __read_operator(state, ) {
 module.exports.read_string_literal = __read_string_literal;
 function __read_string_literal(state, ) {
   ++state.i;
-  let start = state.i;
+  let value = "";
   while (((state.i < state.code.length) && (access(state.code, state.i) !== "\""))) {
+    if ((access(state.code, state.i) === "\\")) {
+      ++state.i;
+      (value = (value + __get_escaped_char(clone(access(state.code, state.i)), )));
+    } else {
+      (value = (value + access(state.code, state.i)));
+    }
     ++state.i;
   }
   __invariant(clone((state.i < state.code.length)), );
-  let token = {value: (state.code.substring(start, state.i)), __type: "String_literal"};
+  let token = {value: value, __type: "String_literal"};
   ++state.i;
   return token;
 }
