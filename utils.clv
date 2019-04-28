@@ -1,18 +1,15 @@
-fn main() {
-  let code = __read_file("./clover_comp.clv");
-  let state = {
-    code: code,
-    phase: "module",
-    token: None {},
-    next_token: None {},
-  };
 
+fn read_qualified_name(ref state: State) {
+  invariant(has_identifier(state));
+  let qualifiedName = vec [state.token.value];
   read_token(&state);
-  read_token(&state);
-
-  let module = read_module(&state);
-
-  __write("#!/usr/bin/env node\n\n");
+  while (has_operator(state, '.')) {
+    read_token(&state);
+    invariant(has_identifier(state));
+    __push(qualifiedName, state.token.value);
+    read_token(&state);
+  }
+  return qualifiedName;
 }
 
 fn read_call_argument(ref state: State, __read_expression: Function) {

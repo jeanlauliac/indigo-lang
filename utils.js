@@ -1,13 +1,17 @@
 // GENERATED, DO NOT EDIT
 
-module.exports.main = __main;
-function __main() {
-  let code = (require('fs').readFileSync)(clone("./clover_comp.clv"), );
-  let state = {code: code, phase: "module", token: {__type: "None"}, next_token: {__type: "None"}, };
+module.exports.read_qualified_name = __read_qualified_name;
+function __read_qualified_name(state, ) {
+  __invariant(clone(__has_identifier(clone(state), )), );
+  let qualifiedName = [state.token.value, ];
   __read_token(state, );
-  __read_token(state, );
-  let module = __read_module(state, );
-  process.stdout.write(clone("#!/usr/bin/env node\\n\\n"), );
+  while (__has_operator(clone(state), clone("."), )) {
+    __read_token(state, );
+    __invariant(clone(__has_identifier(clone(state), )), );
+    (qualifiedName.push(state.token.value));
+    __read_token(state, );
+  }
+  return qualifiedName;
 }
 
 module.exports.read_call_argument = __read_call_argument;

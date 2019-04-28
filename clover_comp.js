@@ -117,6 +117,14 @@ function writeExpression(expression) {
       write('))');
       return;
     }
+    if (expression.functionName[0] === '__push') {
+      write('(');
+      writeExpression(expression.arguments[0].value);
+      write('.push(');
+      writeExpression(expression.arguments[1].value);
+      write('))');
+      return;
+    }
     if (expression.functionName[0] === '__substring') {
       write('(');
       writeExpression(expression.arguments[0].value);
@@ -416,7 +424,7 @@ function readIdentityExpression(state) {
   ) return operand;
   const isNegative = state.token.value === 'isnt';
   read_token(state);
-  const typeName = readQualifiedName(state);
+  const typeName = utils.read_qualified_name(state);
   return {__type: 'Identity_test', isNegative, operand, typeName};
 }
 
@@ -475,7 +483,7 @@ function readPrimaryExpression(state) {
 
   let qualifiedName;
   if (has_identifier(state)) {
-    qualifiedName = readQualifiedName(state);
+    qualifiedName = utils.read_qualified_name(state);
   }
 
   if (has_operator(state, '[')) {
@@ -523,19 +531,6 @@ function readPrimaryExpression(state) {
     return {__type: 'Function_call', functionName: qualifiedName, arguments};
   }
   return {__type: 'Qualified_name', value: qualifiedName};
-}
-
-function readQualifiedName(state) {
-  invariant(has_identifier(state));
-  const qualifiedName = [state.token.value];
-  read_token(state);
-  while (has_operator(state, '.')) {
-    read_token(state);
-    invariant(has_identifier(state));
-    qualifiedName.push(state.token.value);
-    read_token(state);
-  }
-  return qualifiedName;
 }
 
 main();
