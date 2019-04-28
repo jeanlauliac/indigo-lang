@@ -10,13 +10,16 @@ function __main() {
   process.stdout.write(clone("#!/usr/bin/env node\\n\\n"), );
 }
 
-module.exports.read_module = __read_module;
-function __read_module(state, ) {
-  let module = {functions: [], };
-  while (!identity_test(state.token, "End_of_file")) {
-    __read_module_declaration(state, module, );
+module.exports.read_call_argument = __read_call_argument;
+function __read_call_argument(state, __read_expression, ) {
+  if (__has_operator(clone(state), clone("&"), )) {
+    __read_token(state, );
+    __invariant(clone(__has_identifier(state, )), );
+    let name = state.token.value;
+    __read_token(state, );
+    return {name: name, __type: "Reference"};
   }
-  return module;
+  return {value: __read_expression(state, ), __type: "Expression"};
 }
 
 module.exports.has_keyword = __has_keyword;
