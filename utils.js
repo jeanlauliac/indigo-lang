@@ -150,8 +150,8 @@ function __get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
-  if ((code === "\\")) {
-    return "\\";
+  if ((((code === "\\") || (code === "'")) || (code === "\""))) {
+    return code;
   }
   __invariant(clone(false), );
 }

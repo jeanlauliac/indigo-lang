@@ -137,8 +137,8 @@ fn get_escaped_char(code: char) {
   if (code == 'n') {
     return '\n';
   }
-  if (code == '\\') {
-    return '\\';
+  if (code == '\\' || code == '\'' || code == '"') {
+    return code;
   }
   invariant(false);
 }
