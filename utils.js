@@ -37,17 +37,8 @@ function __has_identifier(state, ) {
 module.exports.read_token = __read_token;
 function __read_token(state, ) {
   __read_whitespace(state, );
-  let token = {__type: "None"};
-  if ((state.i === state.code.length)) {
-    (token = {__type: "End_of_file"});
-  } else if (true) {
-    (token = {value: access(state.code, state.i), __type: "Identifier"});
-    ++state.i;
-  } else {
-    (token = {__type: "Invalid"});
-  }
-  (state.token = state.next_token);
-  (state.next_token = token);
+  (state.token = state.nextToken);
+  (state.nextToken = __read_next_token(state, ));
 }
 
 module.exports.read_next_token = __read_next_token;

@@ -37,18 +37,8 @@ fn has_identifier(ref state: State) {
 
 fn read_token(ref state: State) {
   read_whitespace(&state);
-  let token = None {};
-  if (state.i == state.code.length) {
-    token = End_of_file {};
-  } else if (true) {
-    token = Identifier {value: state.code[state.i]};
-    ++state.i;
-
-  } else {
-    token = Invalid {};
-  }
-  state.token = state.next_token;
-  state.next_token = token;
+  state.token = state.nextToken;
+  state.nextToken = read_next_token(&state);
 }
 
 fn read_next_token(ref state: State) {
