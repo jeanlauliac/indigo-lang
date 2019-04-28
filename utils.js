@@ -50,6 +50,27 @@ function __read_token(state, ) {
   (state.next_token = token);
 }
 
+module.exports.read_next_token = __read_next_token;
+function __read_next_token(state, ) {
+  if ((state.i === state.code.length)) {
+    return {__type: "End_of_file"};
+  }
+  if (__is_alpha(clone(access(state.code, state.i)), )) {
+    return __read_identifier(state, );
+  }
+  let OPERATOR_PREFIXES = new Set(["|", "(", ")", "{", "}", "=", ";", ":", ",", ".", "&", "<", ">", "/", "*", "+", "[", "]", "!", "-", ]);
+  if ((OPERATOR_PREFIXES.has(access(state.code, state.i)))) {
+    return __read_operator(state, );
+  }
+  if ((access(state.code, state.i) === "\"")) {
+    return __read_string_literal(state, );
+  }
+  if ((access(state.code, state.i) === "'")) {
+    return __read_character_literal(state, );
+  }
+  throw new Error(clone((("unexpected character '" + access(state.code, state.i)) + "'")), );
+}
+
 module.exports.read_whitespace = __read_whitespace;
 function __read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
@@ -75,7 +96,12 @@ function __read_identifier(state, ) {
 
 module.exports.is_alphanumeric = __is_alphanumeric;
 function __is_alphanumeric(c, ) {
-  return ((((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z"))) || ((c >= "0") && (c <= "9")));
+  return (__is_alpha(clone(c), ) || ((c >= "0") && (c <= "9")));
+}
+
+module.exports.is_alpha = __is_alpha;
+function __is_alpha(c, ) {
+  return (((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z")));
 }
 
 module.exports.read_operator = __read_operator;

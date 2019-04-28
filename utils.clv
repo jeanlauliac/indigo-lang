@@ -51,6 +51,27 @@ fn read_token(ref state: State) {
   state.next_token = token;
 }
 
+fn read_next_token(ref state: State) {
+  if (state.i == state.code.length) {
+    return End_of_file {};
+  }
+  if (is_alpha(state.code[state.i])) {
+    return read_identifier(&state);
+  }
+  let OPERATOR_PREFIXES = set ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
+    '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
+  if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
+    return read_operator(&state);
+  }
+  if (state.code[state.i] == '"') {
+    return read_string_literal(&state);
+  }
+  if (state.code[state.i] == "'") {
+    return read_character_literal(&state);
+  }
+  __die("unexpected character '" + state.code[state.i] + "'");
+}
+
 fn read_whitespace(ref state: State) {
   let whitespace = set [' ', '\n'];
   while (state.i < state.code.length && __has(whitespace, state.code[state.i])) {
@@ -75,8 +96,11 @@ fn read_identifier(ref state: State) {
 }
 
 fn is_alphanumeric(c: char) {
-  return c == '_' || c >= 'a' && c <= 'z' ||
-    c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
+  return is_alpha(c) || c >= '0' && c <= '9';
+}
+
+fn is_alpha(c: char) {
+  return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
 }
 
 fn read_operator(ref state: State) {

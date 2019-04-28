@@ -551,26 +551,7 @@ function readCallArgument(state) {
 function readToken(state) {
   utils.read_whitespace(state);
   state.token = state.nextToken;
-  state.nextToken = read_next_token(state);
-}
-
-function read_next_token(state) {
-  if (state.i === state.code.length) {
-    return {__type: 'End_of_file'};
-  }
-  if (/^[_a-zA-Z]$/.test(state.code[state.i])) {
-    return utils.read_identifier(state);
-  }
-  if (/^[|(){}=;:,.&<>/*+\[\]!-]$/.test(state.code[state.i])) {
-    return utils.read_operator(state);
-  }
-  if (state.code[state.i] === '"') {
-    return utils.read_string_literal(state);
-  }
-  if (state.code[state.i] === "'") {
-    return utils.read_character_literal(state);
-  }
-  throw new Error(`unexpected character "${state.code[state.i]}"`);
+  state.nextToken = utils.read_next_token(state);
 }
 
 main();
