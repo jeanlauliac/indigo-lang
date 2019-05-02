@@ -1,5 +1,104 @@
 // GENERATED, DO NOT EDIT
 
+module.exports.read_primary_expression = __read_primary_expression;
+function __read_primary_expression(state, __read_expression, ) {
+  if (identity_test(state.token, "String_literal")) {
+    let value = state.token.value;
+    __read_token(state, );
+    return {value: value, __type: "String_literal"};
+  }
+  if (identity_test(state.token, "Character_literal")) {
+    let value = state.token.value;
+    __read_token(state, );
+    return {value: value, __type: "Character_literal"};
+  }
+  if (__has_keyword(clone(state), clone("true"), )) {
+    __read_token(state, );
+    return {value: true, __type: "Bool_literal"};
+  }
+  if (__has_keyword(clone(state), clone("false"), )) {
+    __read_token(state, );
+    return {value: false, __type: "Bool_literal"};
+  }
+  if (__has_operator(clone(state), clone("++"), )) {
+    let operator = state.token.value;
+    __read_token(state, );
+    let target = __read_primary_expression(state, clone(__read_expression), );
+    return {operator: operator, target: target, isPrefix: true, __type: "In_place_assignment"};
+  }
+  if (__has_operator(clone(state), clone("!"), )) {
+    let operator = state.token.value;
+    __read_token(state, );
+    let operand = __read_primary_expression(state, clone(__read_expression), );
+    return {operator: operator, operand: operand, __type: "Unary_operation"};
+  }
+  if ((__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), ))) {
+    let dataType = state.token.value;
+    __read_token(state, );
+    __invariant(clone(__has_operator(clone(state), clone("["), )), );
+    __read_token(state, );
+    let values = [];
+    while (!__has_operator(clone(state), clone("]"), )) {
+      let expression = __read_expression(state, );
+      (values.push(expression));
+      if (__has_operator(clone(state), clone(","), )) {
+        __read_token(state, );
+      } else {
+        __invariant(clone(__has_operator(clone(state), clone("]"), )), );
+      }
+    }
+    __read_token(state, );
+    return {dataType: dataType, values: values, __type: "Collection_literal"};
+  }
+  let qualifiedName = {__type: "None"};
+  if (__has_identifier(clone(state), )) {
+    (qualifiedName = __read_qualified_name(state, ));
+  }
+  if (__has_operator(clone(state), clone("["), )) {
+    __read_token(state, );
+    let key = __read_expression(state, );
+    __invariant(clone(__has_operator(clone(state), clone("]"), )), );
+    __read_token(state, );
+    return {collectionName: qualifiedName, key: key, __type: "Collection_access"};
+  }
+  if (__has_operator(clone(state), clone("{"), )) {
+    __read_token(state, );
+    let fields = [];
+    while (__has_identifier(clone(state), )) {
+      let name = state.token.value;
+      __read_token(state, );
+      __invariant(clone(__has_operator(clone(state), clone(":"), )), );
+      __read_token(state, );
+      let value = __read_expression(state, );
+      if (__has_operator(clone(state), clone(","), )) {
+        __read_token(state, );
+      } else {
+        __invariant(clone(__has_operator(clone(state), clone("}"), )), );
+      }
+      (fields.push({name: name, value: value, }));
+    }
+    __invariant(clone(__has_operator(clone(state), clone("}"), )), );
+    __read_token(state, );
+    return {typeName: qualifiedName, fields: fields, __type: "Object_literal"};
+  }
+  __invariant(clone(!identity_test(qualifiedName, "None")), );
+  if (__has_operator(clone(state), clone("("), )) {
+    __read_token(state, );
+    let arguments = [];
+    while (!__has_operator(clone(state), clone(")"), )) {
+      (arguments.push(__read_call_argument(state, clone(__read_expression), )));
+      if (__has_operator(clone(state), clone(","), )) {
+        __read_token(state, );
+      } else {
+        __invariant(clone(__has_operator(clone(state), clone(")"), )), );
+      }
+    }
+    __read_token(state, );
+    return {functionName: qualifiedName, arguments: arguments, __type: "Function_call"};
+  }
+  return {value: qualifiedName, __type: "Qualified_name"};
+}
+
 module.exports.read_qualified_name = __read_qualified_name;
 function __read_qualified_name(state, ) {
   __invariant(clone(__has_identifier(clone(state), )), );
@@ -171,6 +270,7 @@ function clone(v) {
   if (v == null) return v;
   if (typeof v === 'string') return v;
   if (typeof v === 'number') return v;
+  if (typeof v === 'function') return v;
   if (Array.isArray(v)) return v.map(a => clone(a));
   const o = {};
   for (const k in v) {

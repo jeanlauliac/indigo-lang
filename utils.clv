@@ -1,4 +1,109 @@
 
+fn read_primary_expression(ref state: State, __read_expression: Function) {
+  if (state.token is String_literal) {
+    let value = state.token.value;
+    read_token(&state);
+    return String_literal {value: value};
+  }
+  if (state.token is Character_literal) {
+    let value = state.token.value;
+    read_token(&state);
+    return Character_literal {value: value};
+  }
+  if (has_keyword(state, "true")) {
+    read_token(&state);
+    return Bool_literal {value: true};
+  }
+  if (has_keyword(state, "false")) {
+    read_token(&state);
+    return Bool_literal {value: false};
+  }
+
+  if (has_operator(state, "++")) {
+    let operator = state.token.value;
+    read_token(&state);
+    let target = read_primary_expression(&state, __read_expression);
+    return In_place_assignment {operator: operator, target: target, isPrefix: true};
+  }
+
+  if (has_operator(state, "!")) {
+    let operator = state.token.value;
+    read_token(&state);
+    let operand = read_primary_expression(&state, __read_expression);
+    return Unary_operation {operator: operator, operand: operand};
+  }
+
+  if (has_keyword(state, "set") || has_keyword(state, "vec")) {
+    let dataType = state.token.value;
+    read_token(&state);
+    invariant(has_operator(state, "["));
+    read_token(&state);
+    let values = vec [];
+    while (!has_operator(state, "]")) {
+      let expression = read_expression(&state);
+      __push(values, expression);
+      if (has_operator(state, ",")) {
+        read_token(&state);
+      } else {
+        invariant(has_operator(state, "]"));
+      }
+    }
+    read_token(&state);
+    return Collection_literal {dataType: dataType, values: values};
+  }
+
+  let qualifiedName = None {};
+  if (has_identifier(state)) {
+    qualifiedName = read_qualified_name(&state);
+  }
+
+  if (has_operator(state, '[')) {
+    read_token(&state);
+    let key = read_expression(&state);
+    invariant(has_operator(state, ']'));
+    read_token(&state);
+    return Collection_access {collectionName: qualifiedName, key: key};
+  }
+
+  if (has_operator(state, '{')) {
+    read_token(&state);
+    let fields = vec [];
+    while (has_identifier(state)) {
+      let name = state.token.value;
+      read_token(&state);
+      invariant(has_operator(state, ':'));
+      read_token(&state);
+      let value = read_expression(&state);
+      if (has_operator(state, ',')) {
+        read_token(&state);
+      } else {
+        invariant(has_operator(state, '}'));
+      }
+      __push(fields, {name: name, value: value});
+    }
+    invariant(has_operator(state, '}'));
+    read_token(&state);
+    return Object_literal {typeName: qualifiedName, fields: fields};
+  }
+  invariant(qualifiedName isnt None);
+
+  if (has_operator(state, '(')) {
+    read_token(&state);
+    let arguments = vec [];
+    while (!has_operator(state, ')')) {
+      __push(arguments, read_call_argument(&state, __read_expression));
+      if (has_operator(state, ',')) {
+        read_token(&state);
+      } else {
+        invariant(has_operator(state, ')'));
+      }
+    }
+    read_token(&state);
+    return Function_call {functionName: qualifiedName, arguments: arguments};
+  }
+  return Qualified_name {value: qualifiedName};
+}
+
 fn read_qualified_name(ref state: State) {
   invariant(has_identifier(state));
   let qualifiedName = vec [state.token.value];
@@ -23,11 +128,11 @@ fn read_call_argument(ref state: State, __read_expression: Function) {
   return Expression {value: read_expression(&state)};
 }
 
-fn has_keyword(ref state: State, ref value: string) {
+fn has_keyword(state: State, value: string) {
   return state.token is Keyword && state.token.value == value;
 }
 
-fn has_operator(ref state: State, ref value: string) {
+fn has_operator(state: State, value: string) {
   return state.token is Operator && state.token.value == value;
 }
 

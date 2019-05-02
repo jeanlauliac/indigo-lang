@@ -35,6 +35,7 @@ function main() {
   if (v == null) return v;
   if (typeof v === 'string') return v;
   if (typeof v === 'number') return v;
+  if (typeof v === 'function') return v;
   if (Array.isArray(v)) return v.map(a => clone(a));
   const o = {};
   for (const k in v) {
@@ -180,7 +181,7 @@ function writeExpression(expression) {
       writeExpression(field.value);
       write(', ');
     }
-    if (expression.typeName != null) {
+    if (expression.typeName.__type !== 'None') {
       write(`__type: ${JSON.stringify(expression.typeName.join('.'))}`);
     }
     write('}');
@@ -417,7 +418,7 @@ function makeLeftAssociativeOperatorReader(expressionReader, operators) {
 }
 
 function readIdentityExpression(state) {
-  const operand = readPrimaryExpression(state);
+  const operand = utils.read_primary_expression(state, readExpression);
   if (
     !has_keyword(state, 'isnt') &&
     !has_keyword(state, 'is')
@@ -426,111 +427,6 @@ function readIdentityExpression(state) {
   read_token(state);
   const typeName = utils.read_qualified_name(state);
   return {__type: 'Identity_test', isNegative, operand, typeName};
-}
-
-function readPrimaryExpression(state) {
-  if (state.token.__type === 'String_literal') {
-    const value = state.token.value;
-    read_token(state);
-    return {__type: 'String_literal', value};
-  }
-  if (state.token.__type === 'Character_literal') {
-    const value = state.token.value;
-    read_token(state);
-    return {__type: 'Character_literal', value};
-  }
-  if (has_keyword(state, 'true')) {
-    read_token(state);
-    return {__type: 'Bool_literal', value: true};
-  }
-  if (has_keyword(state, 'false')) {
-    read_token(state);
-    return {__type: 'Bool_literal', value: false};
-  }
-
-  if (has_operator(state, '++')) {
-    const operator = state.token.value;
-    read_token(state);
-    const target = readPrimaryExpression(state);
-    return {__type: 'In_place_assignment', operator, target, isPrefix: true};
-  }
-
-  if (has_operator(state, '!')) {
-    const operator = state.token.value;
-    read_token(state);
-    const operand = readPrimaryExpression(state);
-    return {__type: 'Unary_operation', operator, operand};
-  }
-
-  if (has_keyword(state, 'set') || has_keyword(state, 'vec')) {
-    const dataType = state.token.value;
-    read_token(state);
-    invariant(has_operator(state, '['));
-    read_token(state);
-    const values = [];
-    while (!has_operator(state, ']')) {
-      const expression = readExpression(state);
-      values.push(expression);
-      if (has_operator(state, ',')) {
-        read_token(state);
-      } else {
-        invariant(has_operator(state, ']'));
-      }
-    }
-    read_token(state);
-    return {__type: 'Collection_literal', dataType, values};
-  }
-
-  let qualifiedName;
-  if (has_identifier(state)) {
-    qualifiedName = utils.read_qualified_name(state);
-  }
-
-  if (has_operator(state, '[')) {
-    read_token(state);
-    const key = readExpression(state);
-    invariant(has_operator(state, ']'));
-    read_token(state);
-    return {__type: 'Collection_access', collectionName: qualifiedName, key};
-  }
-
-  if (has_operator(state, '{')) {
-    read_token(state);
-    const fields = [];
-    while (has_identifier(state)) {
-      const name = state.token.value;
-      read_token(state);
-      invariant(has_operator(state, ':'));
-      read_token(state);
-      const value = readExpression(state);
-      if (has_operator(state, ',')) {
-        read_token(state);
-      } else {
-        invariant(has_operator(state, '}'));
-      }
-      fields.push({name, value});
-    }
-    invariant(has_operator(state, '}'));
-    read_token(state);
-    return {__type: 'Object_literal', typeName: qualifiedName, fields};
-  }
-  invariant(qualifiedName != null);
-
-  if (has_operator(state, '(')) {
-    read_token(state);
-    const arguments = [];
-    while (!has_operator(state, ')')) {
-      arguments.push(utils.read_call_argument(state, readExpression));
-      if (has_operator(state, ',')) {
-        read_token(state);
-      } else {
-        invariant(has_operator(state, ')'));
-      }
-    }
-    read_token(state);
-    return {__type: 'Function_call', functionName: qualifiedName, arguments};
-  }
-  return {__type: 'Qualified_name', value: qualifiedName};
 }
 
 main();
