@@ -131,11 +131,11 @@ fn read_call_argument(ref state: State, __read_expression: Function) {
   return Expression {value: read_expression(&state)};
 }
 
-fn has_keyword(state: State, value: string) {
+fn has_keyword(state: State, value: str) {
   return state.token is Keyword && state.token.value == value;
 }
 
-fn has_operator(state: State, value: string) {
+fn has_operator(state: State, value: str) {
   return state.token is Operator && state.token.value == value;
 }
 
