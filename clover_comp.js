@@ -230,11 +230,11 @@ function writeExpression(expression) {
     return;
   }
   if (expression.__type === 'In_place_assignment') {
-    if (expression.isPrefix) {
+    if (expression.is_prefix) {
       write(expression.operator);
     }
     writeExpression(expression.target);
-    if (!expression.isPrefix) {
+    if (!expression.is_prefix) {
       write(expression.operator);
     }
     return;
