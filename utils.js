@@ -50,9 +50,9 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     return {dataType: dataType, values: values, __type: "Collection_literal"};
   }
-  let qualifiedName = {__type: "None"};
+  let qualified_name = {__type: "None"};
   if (__has_identifier(clone(state), )) {
-    (qualifiedName = __read_qualified_name(state, ));
+    (qualified_name = __read_qualified_name(state, ));
   }
   if (__has_operator(clone(state), clone("{"), )) {
     __read_token(state, );
@@ -75,15 +75,15 @@ function __read_primary_expression(state, __read_expression, ) {
     }
     __invariant(clone(__has_operator(clone(state), clone("}"), )), );
     __read_token(state, );
-    return {typeName: qualifiedName, fields: fields, __type: "Object_literal"};
+    return {typeName: qualified_name, fields: fields, __type: "Object_literal"};
   }
-  __invariant(clone(!identity_test(qualifiedName, "None")), );
+  __invariant(clone(!identity_test(qualified_name, "None")), );
   if (__has_operator(clone(state), clone("["), )) {
     __read_token(state, );
     let key = __read_expression(state, );
     __invariant(clone(__has_operator(clone(state), clone("]"), )), );
     __read_token(state, );
-    return {collectionName: qualifiedName, key: key, __type: "Collection_access"};
+    return {collectionName: qualified_name, key: key, __type: "Collection_access"};
   }
   if (__has_operator(clone(state), clone("("), )) {
     __read_token(state, );
@@ -97,9 +97,9 @@ function __read_primary_expression(state, __read_expression, ) {
       }
     }
     __read_token(state, );
-    return {functionName: qualifiedName, arguments: arguments, __type: "Function_call"};
+    return {functionName: qualified_name, arguments: arguments, __type: "Function_call"};
   }
-  return {value: qualifiedName, __type: "Qualified_name"};
+  return {value: qualified_name, __type: "Qualified_name"};
 }
 
 module.exports.read_qualified_name = __read_qualified_name;

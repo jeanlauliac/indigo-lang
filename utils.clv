@@ -56,9 +56,9 @@ fn read_primary_expression(
     return Collection_literal {dataType, values};
   }
 
-  let qualifiedName = None {};
+  let qualified_name = None {};
   if (has_identifier(state)) {
-    qualifiedName = read_qualified_name(&state);
+    qualified_name = read_qualified_name(&state);
   }
 
   if (has_operator(state, '{')) {
@@ -82,16 +82,16 @@ fn read_primary_expression(
     }
     invariant(has_operator(state, '}'));
     read_token(&state);
-    return Object_literal {typeName: qualifiedName, fields};
+    return Object_literal {typeName: qualified_name, fields};
   }
-  invariant(qualifiedName isnt None);
+  invariant(qualified_name isnt None);
 
   if (has_operator(state, '[')) {
     read_token(&state);
     let key = read_expression(&state);
     invariant(has_operator(state, ']'));
     read_token(&state);
-    return Collection_access {collectionName: qualifiedName, key};
+    return Collection_access {collectionName: qualified_name, key};
   }
 
   if (has_operator(state, '(')) {
@@ -106,9 +106,9 @@ fn read_primary_expression(
       }
     }
     read_token(&state);
-    return Function_call {functionName: qualifiedName, arguments};
+    return Function_call {functionName: qualified_name, arguments};
   }
-  return Qualified_name {value: qualifiedName};
+  return Qualified_name {value: qualified_name};
 }
 
 fn read_qualified_name(ref state: State) {
