@@ -54,13 +54,6 @@ function __read_primary_expression(state, __read_expression, ) {
   if (__has_identifier(clone(state), )) {
     (qualifiedName = __read_qualified_name(state, ));
   }
-  if (__has_operator(clone(state), clone("["), )) {
-    __read_token(state, );
-    let key = __read_expression(state, );
-    __invariant(clone(__has_operator(clone(state), clone("]"), )), );
-    __read_token(state, );
-    return {collectionName: qualifiedName, key: key, __type: "Collection_access"};
-  }
   if (__has_operator(clone(state), clone("{"), )) {
     __read_token(state, );
     let fields = [];
@@ -85,6 +78,13 @@ function __read_primary_expression(state, __read_expression, ) {
     return {typeName: qualifiedName, fields: fields, __type: "Object_literal"};
   }
   __invariant(clone(!identity_test(qualifiedName, "None")), );
+  if (__has_operator(clone(state), clone("["), )) {
+    __read_token(state, );
+    let key = __read_expression(state, );
+    __invariant(clone(__has_operator(clone(state), clone("]"), )), );
+    __read_token(state, );
+    return {collectionName: qualifiedName, key: key, __type: "Collection_access"};
+  }
   if (__has_operator(clone(state), clone("("), )) {
     __read_token(state, );
     let arguments = [];

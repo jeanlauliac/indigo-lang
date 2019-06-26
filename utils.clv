@@ -57,14 +57,6 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
     qualifiedName = read_qualified_name(&state);
   }
 
-  if (has_operator(state, '[')) {
-    read_token(&state);
-    let key = read_expression(&state);
-    invariant(has_operator(state, ']'));
-    read_token(&state);
-    return Collection_access {collectionName: qualifiedName, key};
-  }
-
   if (has_operator(state, '{')) {
     read_token(&state);
     let fields = vec [];
@@ -89,6 +81,14 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
     return Object_literal {typeName: qualifiedName, fields};
   }
   invariant(qualifiedName isnt None);
+
+  if (has_operator(state, '[')) {
+    read_token(&state);
+    let key = read_expression(&state);
+    invariant(has_operator(state, ']'));
+    read_token(&state);
+    return Collection_access {collectionName: qualifiedName, key};
+  }
 
   if (has_operator(state, '(')) {
     read_token(&state);
