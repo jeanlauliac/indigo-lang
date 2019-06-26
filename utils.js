@@ -67,15 +67,18 @@ function __read_primary_expression(state, __read_expression, ) {
     while (__has_identifier(clone(state), )) {
       let name = state.token.value;
       __read_token(state, );
-      __invariant(clone(__has_operator(clone(state), clone(":"), )), );
-      __read_token(state, );
-      let value = __read_expression(state, );
+      let is_shorthand = !__has_operator(clone(state), clone(":"), );
+      let value = {__type: "None"};
+      if (!is_shorthand) {
+        __read_token(state, );
+        (value = __read_expression(state, ));
+      }
       if (__has_operator(clone(state), clone(","), )) {
         __read_token(state, );
       } else {
         __invariant(clone(__has_operator(clone(state), clone("}"), )), );
       }
-      (fields.push({name: name, value: value, }));
+      (fields.push({name: name, value: value, is_shorthand: is_shorthand, }));
     }
     __invariant(clone(__has_operator(clone(state), clone("}"), )), );
     __read_token(state, );

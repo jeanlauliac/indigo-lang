@@ -71,15 +71,18 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
     while (has_identifier(state)) {
       let name = state.token.value;
       read_token(&state);
-      invariant(has_operator(state, ':'));
-      read_token(&state);
-      let value = read_expression(&state);
+      let is_shorthand = !has_operator(state, ':');
+      let value = None {};
+      if (!is_shorthand) {
+        read_token(&state);
+        value = read_expression(&state);
+      }
       if (has_operator(state, ',')) {
         read_token(&state);
       } else {
         invariant(has_operator(state, '}'));
       }
-      __push(fields, {name: name, value: value});
+      __push(fields, {name: name, value: value, is_shorthand: is_shorthand});
     }
     invariant(has_operator(state, '}'));
     read_token(&state);
