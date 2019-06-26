@@ -169,16 +169,16 @@ function writeExpression(expression) {
     write(JSON.stringify(expression.value));
     return;
   }
-  if (expression.__type === 'identifier') {
-    write(expression.name);
-    return;
-  }
   if (expression.__type === 'Object_literal') {
     write('{');
     for (const field of expression.fields) {
       write(field.name);
       write(': ');
-      writeExpression(field.value);
+      if (field.is_shorthand) {
+        writeExpression({__type: 'Qualified_name', value: [field.name]});
+      } else {
+        writeExpression(field.value);
+      }
       write(', ');
     }
     if (expression.typeName.__type !== 'None') {

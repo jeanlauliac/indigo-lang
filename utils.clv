@@ -3,12 +3,12 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
   if (state.token is String_literal) {
     let value = state.token.value;
     read_token(&state);
-    return String_literal {value: value};
+    return String_literal {value};
   }
   if (state.token is Character_literal) {
     let value = state.token.value;
     read_token(&state);
-    return Character_literal {value: value};
+    return Character_literal {value};
   }
   if (has_keyword(state, "true")) {
     read_token(&state);
@@ -23,14 +23,14 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
     let operator = state.token.value;
     read_token(&state);
     let target = read_primary_expression(&state, __read_expression);
-    return In_place_assignment {operator: operator, target: target, isPrefix: true};
+    return In_place_assignment {operator, target, isPrefix: true};
   }
 
   if (has_operator(state, "!")) {
     let operator = state.token.value;
     read_token(&state);
     let operand = read_primary_expression(&state, __read_expression);
-    return Unary_operation {operator: operator, operand: operand};
+    return Unary_operation {operator, operand};
   }
 
   if (has_keyword(state, "set") || has_keyword(state, "vec")) {
@@ -49,7 +49,7 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
       }
     }
     read_token(&state);
-    return Collection_literal {dataType: dataType, values: values};
+    return Collection_literal {dataType, values};
   }
 
   let qualifiedName = None {};
@@ -62,7 +62,7 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
     let key = read_expression(&state);
     invariant(has_operator(state, ']'));
     read_token(&state);
-    return Collection_access {collectionName: qualifiedName, key: key};
+    return Collection_access {collectionName: qualifiedName, key};
   }
 
   if (has_operator(state, '{')) {
@@ -82,11 +82,11 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
       } else {
         invariant(has_operator(state, '}'));
       }
-      __push(fields, {name: name, value: value, is_shorthand: is_shorthand});
+      __push(fields, {name, value, is_shorthand});
     }
     invariant(has_operator(state, '}'));
     read_token(&state);
-    return Object_literal {typeName: qualifiedName, fields: fields};
+    return Object_literal {typeName: qualifiedName, fields};
   }
   invariant(qualifiedName isnt None);
 
@@ -102,7 +102,7 @@ fn read_primary_expression(ref state: State, __read_expression: Function) {
       }
     }
     read_token(&state);
-    return Function_call {functionName: qualifiedName, arguments: arguments};
+    return Function_call {functionName: qualifiedName, arguments};
   }
   return Qualified_name {value: qualifiedName};
 }
