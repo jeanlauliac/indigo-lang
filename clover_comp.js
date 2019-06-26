@@ -2,7 +2,7 @@
 
 const utils = require('./utils');
 const {has_keyword, has_operator, get_escaped_char,
-  invariant, has_identifier, read_token} = utils;
+  invariant, has_identifier, read_token, read_qualified_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -300,10 +300,16 @@ function readModuleDeclaration(state, module) {
     }
     arguments.push({name, typeName});
   }
-
   read_token(state);
+
+  let return_type = null;
+  if (has_operator(state, ':')) {
+    return_type = read_qualified_name(state);
+    read_token(state);
+  }
   invariant(has_operator(state, '{'));
   read_token(state);
+
   const statements = [];
   while (!has_operator(state, '}')) {
     statements.push(readStatement(state));

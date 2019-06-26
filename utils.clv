@@ -1,5 +1,9 @@
 
-fn read_primary_expression(ref state: State, __read_expression: Function) {
+fn read_primary_expression(
+  ref state: State,
+  __read_expression: Function,
+): Expression {
+
   if (state.token is String_literal) {
     let value = state.token.value;
     read_token(&state);
@@ -120,7 +124,11 @@ fn read_qualified_name(ref state: State) {
   return qualifiedName;
 }
 
-fn read_call_argument(ref state: State, __read_expression: Function) {
+fn read_call_argument(
+  ref state: State,
+  __read_expression: Function,
+): Expression {
+
   if (has_operator(state, '&')) {
     read_token(&state);
     invariant(has_identifier(&state));
@@ -131,15 +139,15 @@ fn read_call_argument(ref state: State, __read_expression: Function) {
   return Expression {value: read_expression(&state)};
 }
 
-fn has_keyword(state: State, value: str) {
+fn has_keyword(state: State, value: str): bool {
   return state.token is Keyword && state.token.value == value;
 }
 
-fn has_operator(state: State, value: str) {
+fn has_operator(state: State, value: str): bool {
   return state.token is Operator && state.token.value == value;
 }
 
-fn has_identifier(ref state: State) {
+fn has_identifier(ref state: State): bool {
   return state.token is Identifier;
 }
 
@@ -149,7 +157,7 @@ fn read_token(ref state: State) {
   state.nextToken = read_next_token(&state);
 }
 
-fn read_next_token(ref state: State) {
+fn read_next_token(ref state: State): Token {
   if (state.i == state.code.length) {
     return End_of_file {};
   }
@@ -177,7 +185,7 @@ fn read_whitespace(ref state: State) {
   }
 }
 
-fn read_identifier(ref state: State) {
+fn read_identifier(ref state: State): Identifier {
   let KEYWORKS = set ["let", "fn", "ref", "while", "true",
   "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return"];
 
@@ -193,15 +201,15 @@ fn read_identifier(ref state: State) {
   return Identifier {value: value};
 }
 
-fn is_alphanumeric(c: char) {
+fn is_alphanumeric(c: char): bool {
   return is_alpha(c) || c >= '0' && c <= '9';
 }
 
-fn is_alpha(c: char) {
+fn is_alpha(c: char): bool {
   return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
 }
 
-fn read_operator(ref state: State) {
+fn read_operator(ref state: State): Operator {
   let OPERATORS = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = state.code[state.i];
   ++state.i;
@@ -212,7 +220,7 @@ fn read_operator(ref state: State) {
   return Operator {value: value};
 }
 
-fn read_string_literal(ref state: State) {
+fn read_string_literal(ref state: State): String_literal {
   ++state.i;
   let value = "";
   while (state.i < state.code.length && state.code[state.i] != '"') {
@@ -230,7 +238,7 @@ fn read_string_literal(ref state: State) {
   return token;
 }
 
-fn read_character_literal(ref state: State) {
+fn read_character_literal(ref state: State): Character_literal {
   ++state.i;
   invariant(state.i < state.code.length);
   let value = "";
@@ -247,14 +255,12 @@ fn read_character_literal(ref state: State) {
   return Character_literal {value: value};
 }
 
-fn get_escaped_char(code: char) {
+fn get_escaped_char(code: char): char {
   if (code == 'n') {
     return '\n';
   }
-  if (code == '\\' || code == '\'' || code == '"') {
-    return code;
-  }
-  invariant(false);
+  invariant (code == '\\' || code == '\'' || code == '"');
+  return code;
 }
 
 fn invariant(cond: bool) {

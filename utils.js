@@ -258,10 +258,8 @@ function __get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
-  if ((((code === "\\") || (code === "'")) || (code === "\""))) {
-    return code;
-  }
-  __invariant(clone(false), );
+  __invariant(clone((((code === "\\") || (code === "'")) || (code === "\""))), );
+  return code;
 }
 
 module.exports.invariant = __invariant;
