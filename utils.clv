@@ -1,6 +1,11 @@
+
 enum Expression {
   Bool_literal {value: bool},
   Character_literal {value: char},
+  In_place_assignment {operator: str, target: Expression, is_prefix: bool},
+  Qualified_name {value: vec},
+  String_literal {value: str},
+  Unary_operation {operator: str, operand: Expression},
 }
 
 fn read_primary_expression(
