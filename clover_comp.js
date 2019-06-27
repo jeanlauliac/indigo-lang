@@ -504,6 +504,7 @@ function read_type_name(state) {
   if (has_keyword(state, 'set') || has_keyword(state, 'vec')
       || has_keyword(state, 'dict')) {
     name = state.token.value;
+    read_token(state);
   } else {
     name = read_qualified_name(state);
   }
