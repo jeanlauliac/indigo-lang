@@ -519,7 +519,6 @@ function read_type_name(state) {
     }
     invariant(has_operator(state, '>'));
     read_token(state);
-    console.error({name, parameters});
   }
   return {name, parameters};
 }

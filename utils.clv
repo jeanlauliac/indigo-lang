@@ -3,7 +3,7 @@ enum Expression {
   Bool_literal {value: bool},
   Character_literal {value: char},
   In_place_assignment {operator: str, target: Expression, is_prefix: bool},
-  Qualified_name {value: vec},
+  Qualified_name {value: vec<str>},
   String_literal {value: str},
   Unary_operation {operator: str, operand: Expression},
 }
@@ -120,7 +120,7 @@ fn read_primary_expression(
   return Qualified_name {value: qualified_name};
 }
 
-fn read_qualified_name(ref state: State): vec {
+fn read_qualified_name(ref state: State): vec<str> {
   invariant(has_identifier(state));
   let qualifiedName = vec [state.token.value];
   read_token(&state);
