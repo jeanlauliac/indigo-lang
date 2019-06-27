@@ -36,7 +36,9 @@ function main() {
   if (typeof v === 'string') return v;
   if (typeof v === 'number') return v;
   if (typeof v === 'function') return v;
+  if (typeof v === 'boolean') return v;
   if (Array.isArray(v)) return v.map(a => clone(a));
+  if (typeof v !== 'object') throw new Error('failed to clone: ' + typeof v);
   const o = {};
   for (const k in v) {
     o[k] = clone(v[k]);
@@ -498,8 +500,27 @@ function readIdentityExpression(state) {
 }
 
 function read_type_name(state) {
-  const qual_name = read_qualified_name(state);
-  return qual_name;
+  let name;
+  if (has_keyword(state, 'set') || has_keyword(state, 'vec')
+      || has_keyword(state, 'dict')) {
+    name = state.token.value;
+  } else {
+    name = read_qualified_name(state);
+  }
+  const parameters = [];
+  if (has_operator(state, '<')) {
+    read_token(state);
+    while (!has_operator(state, '>')) {
+      parameters.push(read_type_name(state));
+      if (has_operator(state, ',')) {
+        read_token(state);
+      }
+    }
+    invariant(has_operator(state, '>'));
+    read_token(state);
+    console.error({name, parameters});
+  }
+  return {name, parameters};
 }
 
 main();
