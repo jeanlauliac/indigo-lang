@@ -304,8 +304,8 @@ function readModuleDeclaration(state, module) {
 
   let return_type = null;
   if (has_operator(state, ':')) {
-    return_type = read_qualified_name(state);
     read_token(state);
+    return_type = read_type_name(state);
   }
   invariant(has_operator(state, '{'));
   read_token(state);
@@ -431,8 +431,13 @@ function readIdentityExpression(state) {
   ) return operand;
   const isNegative = state.token.value === 'isnt';
   read_token(state);
-  const typeName = utils.read_qualified_name(state);
+  const typeName = read_qualified_name(state);
   return {__type: 'Identity_test', isNegative, operand, typeName};
+}
+
+function read_type_name(state) {
+  const qual_name = read_qualified_name(state);
+  return qual_name;
 }
 
 main();

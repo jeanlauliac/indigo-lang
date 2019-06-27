@@ -111,7 +111,7 @@ fn read_primary_expression(
   return Qualified_name {value: qualified_name};
 }
 
-fn read_qualified_name(ref state: State) {
+fn read_qualified_name(ref state: State): vec {
   invariant(has_identifier(state));
   let qualifiedName = vec [state.token.value];
   read_token(&state);
@@ -185,9 +185,9 @@ fn read_whitespace(ref state: State) {
   }
 }
 
-fn read_identifier(ref state: State): Identifier {
+fn read_identifier(ref state: State): Token {
   let KEYWORKS = set ["let", "fn", "ref", "while", "true",
-  "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return"];
+    "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return"];
 
   let value = state.code[state.i];
   ++state.i;
@@ -196,9 +196,9 @@ fn read_identifier(ref state: State): Identifier {
     ++state.i;
   }
   if (__has(KEYWORKS, value)) {
-    return Keyword {value: value};
+    return Keyword {value};
   }
-  return Identifier {value: value};
+  return Identifier {value};
 }
 
 fn is_alphanumeric(c: char): bool {
