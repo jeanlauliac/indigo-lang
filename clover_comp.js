@@ -17,7 +17,9 @@ function main() {
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const func of module.functions) {
+  for (const decl of module.declarations) {
+    if (decl.__type !== 'Function') continue;
+    const func = decl;
     write(`module.exports.${func.name} = __${func.name};\n`);
     write(`function __${func.name}(`);
     for (const argument of func.arguments) {
@@ -265,19 +267,19 @@ function writeExpression(expression) {
  */
 
 function readModule(state) {
-  const module = {functions: [], enums: []};
+  const declarations = [];
   while (state.token.__type !== 'End_of_file') {
-    readModuleDeclaration(state, module);
+    declarations.push(readModuleDeclaration(state));
   }
-  return module;
+  return {declarations};
 }
 
-function readModuleDeclaration(state, module) {
+function readModuleDeclaration(state) {
   if (has_keyword(state, 'fn')) {
-    module.functions.push(read_function_declaration(state));
+    return read_function_declaration(state);
     return;
   }
-  module.enums.push(read_enum_declaration(state));
+  return read_enum_declaration(state);
 }
 
 function read_function_declaration(state) {
@@ -325,7 +327,7 @@ function read_function_declaration(state) {
     statements.push(readStatement(state));
   }
   read_token(state);
-  return {name: declName, statements, arguments};
+  return {__type: 'Function', name: declName, statements, arguments};
 }
 
 function read_enum_declaration(state) {
@@ -345,7 +347,7 @@ function read_enum_declaration(state) {
   invariant(has_operator(state, '}'));
   read_token(state);
 
-  return {name, variants};
+  return {__type: 'Enum', name, variants};
 }
 
 function read_enum_variant(state) {
