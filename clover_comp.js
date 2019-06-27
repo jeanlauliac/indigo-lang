@@ -263,7 +263,7 @@ function writeExpression(expression) {
  */
 
 function readModule(state) {
-  const module = {functions: []};
+  const module = {functions: [], enums: []};
   while (state.token.__type !== 'End_of_file') {
     readModuleDeclaration(state, module);
   }
@@ -271,6 +271,14 @@ function readModule(state) {
 }
 
 function readModuleDeclaration(state, module) {
+  if (has_keyword(state, 'fn')) {
+    module.functions.push(readFunctionDeclaration(state));
+    return;
+  }
+  module.enums.push(readEnumDeclaration(state));
+}
+
+function readFunctionDeclaration(state) {
   invariant(has_keyword(state, 'fn'));
   read_token(state);
   invariant(has_identifier(state));
@@ -315,7 +323,22 @@ function readModuleDeclaration(state, module) {
     statements.push(readStatement(state));
   }
   read_token(state);
-  module.functions.push({name: declName, statements, arguments});
+  return {name: declName, statements, arguments};
+}
+
+function readEnumDeclaration(state) {
+  invariant(has_keyword(state, 'enum'));
+  read_token(state);
+  invariant(has_identifier(state));
+  const name = state.token.value;
+  read_token(state);
+  invariant(has_operator(state, '{'));
+  read_token(state);
+
+  invariant(has_operator(state, '}'));
+  read_token(state);
+
+  return {name};
 }
 
 function readStatement(state) {

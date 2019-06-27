@@ -181,14 +181,14 @@ function __read_whitespace(state, ) {
 
 module.exports.read_identifier = __read_identifier;
 function __read_identifier(state, ) {
-  let KEYWORKS = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", ]);
+  let KEYWORDS = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
   let value = access(state.code, state.i);
   ++state.i;
   while (((state.i < state.code.length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
     (value = (value + access(state.code, state.i)));
     ++state.i;
   }
-  if ((KEYWORKS.has(value))) {
+  if ((KEYWORDS.has(value))) {
     return {value: value, __type: "Keyword"};
   }
   return {value: value, __type: "Identifier"};

@@ -1,3 +1,4 @@
+enum Expression {}
 
 fn read_primary_expression(
   ref state: State,
@@ -186,8 +187,9 @@ fn read_whitespace(ref state: State) {
 }
 
 fn read_identifier(ref state: State): Token {
-  let KEYWORKS = set ["let", "fn", "ref", "while", "true",
-    "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return"];
+  let KEYWORDS = set ["let", "fn", "ref", "while", "true",
+    "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
+    "enum", "struct"];
 
   let value = state.code[state.i];
   ++state.i;
@@ -195,7 +197,7 @@ fn read_identifier(ref state: State): Token {
     value = value + state.code[state.i];
     ++state.i;
   }
-  if (__has(KEYWORKS, value)) {
+  if (__has(KEYWORDS, value)) {
     return Keyword {value};
   }
   return Identifier {value};
