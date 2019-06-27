@@ -272,7 +272,9 @@ function clone(v) {
   if (typeof v === 'string') return v;
   if (typeof v === 'number') return v;
   if (typeof v === 'function') return v;
+  if (typeof v === 'boolean') return v;
   if (Array.isArray(v)) return v.map(a => clone(a));
+  if (typeof v !== 'object') throw new Error('failed to clone: ' + typeof v);
   const o = {};
   for (const k in v) {
     o[k] = clone(v[k]);
