@@ -335,24 +335,49 @@ function read_enum_declaration(state) {
   invariant(has_operator(state, '{'));
   read_token(state);
 
+  let variants = [];
   while (has_identifier(state)) {
-    const variant_name = state.token.value;
-    read_token(state);
-    if (has_operator(state, ',')) {
-      read_token(state);
-      continue;
-    }
-    // if (has_operator(state, '{')) {
-    //   read_token(state);
-    //   continue;
-    // }
-    invariant(has_operator(state, '}'));
+    variants.push(read_enum_variant(state));
   }
 
   invariant(has_operator(state, '}'));
   read_token(state);
 
-  return {name};
+  return {name, variants};
+}
+
+function read_enum_variant(state) {
+  const name = state.token.value;
+  const fields = [];
+  read_token(state);
+  if (has_operator(state, '{')) {
+    read_token(state);
+    while (has_identifier(state)) {
+      fields.push(read_variant_field(state));
+    }
+    invariant(has_operator(state, '}'));
+    read_token(state);
+  }
+  if (has_operator(state, ',')) {
+    read_token(state);
+  } else {
+    invariant(has_operator(state, '}'));
+  }
+  return {name, fields};
+}
+
+function read_variant_field(state) {
+  const name = state.token.value;
+  read_token(state);
+  invariant(has_operator(state, ':'));
+  read_token(state);
+  const type = read_type_name(state);
+  if (has_operator(state, ',')) {
+    read_token(state);
+  } else {
+    invariant(has_operator(state, '}'));
+  }
+  return {name, type};
 }
 
 function readStatement(state) {

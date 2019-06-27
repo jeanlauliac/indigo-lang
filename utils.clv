@@ -1,6 +1,6 @@
 enum Expression {
-  Bool_literal,
-  Character_literal,
+  Bool_literal {value: bool},
+  Character_literal {value: char},
 }
 
 fn read_primary_expression(
