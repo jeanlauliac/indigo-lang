@@ -1,4 +1,7 @@
-enum Expression {}
+enum Expression {
+  Bool_literal,
+  Character_literal,
+}
 
 fn read_primary_expression(
   ref state: State,

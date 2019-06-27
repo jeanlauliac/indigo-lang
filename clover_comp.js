@@ -272,13 +272,13 @@ function readModule(state) {
 
 function readModuleDeclaration(state, module) {
   if (has_keyword(state, 'fn')) {
-    module.functions.push(readFunctionDeclaration(state));
+    module.functions.push(read_function_declaration(state));
     return;
   }
-  module.enums.push(readEnumDeclaration(state));
+  module.enums.push(read_enum_declaration(state));
 }
 
-function readFunctionDeclaration(state) {
+function read_function_declaration(state) {
   invariant(has_keyword(state, 'fn'));
   read_token(state);
   invariant(has_identifier(state));
@@ -326,7 +326,7 @@ function readFunctionDeclaration(state) {
   return {name: declName, statements, arguments};
 }
 
-function readEnumDeclaration(state) {
+function read_enum_declaration(state) {
   invariant(has_keyword(state, 'enum'));
   read_token(state);
   invariant(has_identifier(state));
@@ -334,6 +334,20 @@ function readEnumDeclaration(state) {
   read_token(state);
   invariant(has_operator(state, '{'));
   read_token(state);
+
+  while (has_identifier(state)) {
+    const variant_name = state.token.value;
+    read_token(state);
+    if (has_operator(state, ',')) {
+      read_token(state);
+      continue;
+    }
+    // if (has_operator(state, '{')) {
+    //   read_token(state);
+    //   continue;
+    // }
+    invariant(has_operator(state, '}'));
+  }
 
   invariant(has_operator(state, '}'));
   read_token(state);
