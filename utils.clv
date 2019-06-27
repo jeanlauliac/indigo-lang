@@ -195,7 +195,7 @@ fn read_whitespace(ref state: State) {
 }
 
 fn read_identifier(ref state: State): Token {
-  let KEYWORDS = set ["let", "fn", "ref", "while", "true",
+  let keywords = set ["let", "fn", "ref", "while", "true",
     "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
     "enum", "struct"];
 
@@ -205,7 +205,7 @@ fn read_identifier(ref state: State): Token {
     value = value + state.code[state.i];
     ++state.i;
   }
-  if (__has(KEYWORDS, value)) {
+  if (__has(keywords, value)) {
     return Keyword {value};
   }
   return Identifier {value};
@@ -220,10 +220,10 @@ fn is_alpha(c: char): bool {
 }
 
 fn read_operator(ref state: State): Operator {
-  let OPERATORS = set ["&&", "++", "==", "!=", "||", ">=", "<="];
+  let operators = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = state.code[state.i];
   ++state.i;
-  if (__has(OPERATORS, value + state.code[state.i])) {
+  if (__has(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
