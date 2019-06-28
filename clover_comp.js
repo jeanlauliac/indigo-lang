@@ -14,6 +14,7 @@ function main() {
   read_token(state);
 
   const module = readModule(state);
+  const namespace = resolveNames(module);
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
@@ -61,6 +62,28 @@ function identity_test(value, type) {
   return value.__type === type;
 }
 `);
+}
+
+function resolveNames(module) {
+  const namespace = new Map();
+  for (const [i, decl] of module.declarations.entries()) {
+    if (namespace.has(decl.name)) {
+      throw new Error(`duplicate name "${decl.name}"`);
+    }
+    namespace.set(decl.name, {__type: 'Declaration', index: i});
+  }
+
+  for (const [i, decl] of module.declarations.entries()) {
+    if (decl.__type !== 'Enum') continue;
+
+    for (const [j, variant] of decl.variants.entries()) {
+      if (namespace.has(variant.name)) {
+        throw new Error(`duplicate name "${variant.name}"`);
+      }
+      namespace.set(variant.name, {__type: 'Enum_variant', enum_index: i, index: j});
+    }
+  }
+  return namespace;
 }
 
 function writeStatement(statement, indent) {
