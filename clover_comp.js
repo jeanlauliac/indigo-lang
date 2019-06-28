@@ -14,7 +14,7 @@ function main() {
   read_token(state);
 
   const module = readModule(state);
-  const namespace = resolveNames(module);
+  const namespace = resolveModule(module);
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
@@ -64,7 +64,26 @@ function identity_test(value, type) {
 `);
 }
 
-function resolveNames(module) {
+function resolveModule(module) {
+  const namespace = resolveNamespace(module);
+  for (const decl of module.declarations) {
+    if (decl.__type !== 'Enum') continue;
+    for (const variant of decl.variants) {
+      const names = new Map();
+      for (const [index, field] of variant.fields.entries()) {
+        if (names.has(field.name)) {
+          throw new Error(`duplicate field name "${field.name}" in ` +
+            `enum variant "${variant.name}"`);
+        }
+        names.set(field.name, {index});
+      }
+    }
+  }
+
+  return namespace;
+}
+
+function resolveNamespace(module) {
   const namespace = new Map();
   for (const [i, decl] of module.declarations.entries()) {
     if (namespace.has(decl.name)) {
@@ -85,6 +104,8 @@ function resolveNames(module) {
   }
   return namespace;
 }
+
+
 
 function writeStatement(statement, indent) {
   if (statement.__type === 'Variable_declaration') {
