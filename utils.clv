@@ -1,4 +1,7 @@
 
+enum State {}
+enum Function {}
+
 enum Expression {
   Bool_literal {value: bool},
   Character_literal {value: char},

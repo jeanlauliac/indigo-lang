@@ -67,18 +67,27 @@ function identity_test(value, type) {
 function resolveModule(module) {
   const namespace = resolveNamespace(module);
   for (const decl of module.declarations) {
-    if (decl.__type !== 'Enum') continue;
-    for (const variant of decl.variants) {
-      const names = new Map();
-      for (const [index, field] of variant.fields.entries()) {
-        if (names.has(field.name)) {
-          throw new Error(`duplicate field name "${field.name}" in ` +
-            `enum variant "${variant.name}"`);
+    if (decl.__type === 'Enum') {
+      for (const variant of decl.variants) {
+        const names = new Map();
+        for (const [index, field] of variant.fields.entries()) {
+          if (names.has(field.name)) {
+            throw new Error(`duplicate field name "${field.name}" in ` +
+              `enum variant "${variant.name}"`);
+          }
+          names.set(field.name, {index});
+          resolveType(namespace, field.type);
         }
-        names.set(field.name, {index});
-        resolveType(namespace, field.type);
       }
+      continue;
     }
+    if (decl.__type === 'Function') {
+      for (const arg of decl.arguments) {
+        resolveType(namespace, arg.type);
+      }
+      continue;
+    }
+    invariant(false);
   }
 
   return namespace;
@@ -373,15 +382,13 @@ function read_function_declaration(state) {
     read_token(state);
     invariant(has_operator(state, ':'));
     read_token(state);
-    invariant(has_identifier(state));
-    const typeName = state.token.value;
-    read_token(state);
+    const type = read_type_name(state);
     if (has_operator(state, ',')) {
       read_token(state);
     } else {
       invariant(has_operator(state, ')'));
     }
-    arguments.push({name, typeName});
+    arguments.push({name, type});
   }
   read_token(state);
 
