@@ -66,6 +66,8 @@ function identity_test(value, type) {
 
 function resolveModule(module) {
   const namespace = resolve_namespace(module);
+
+  // Resolve types in all interfaces
   for (const decl of module.declarations) {
     if (decl.__type === 'Enum') {
       for (const variant of decl.variants) {
@@ -85,9 +87,18 @@ function resolveModule(module) {
       for (const arg of decl.arguments) {
         resolve_type(namespace, arg.type);
       }
+      if (decl.return_type != null) {
+        resolve_type(namespace, decl.return_type);
+      }
       continue;
     }
     invariant(false);
+  }
+
+  // Analyse functions
+  for (const decl of module.declarations) {
+    if (decl.__type !== 'Function') continue;
+
   }
 
   return namespace;
@@ -363,7 +374,7 @@ function read_function_declaration(state) {
   invariant(has_keyword(state, 'fn'));
   read_token(state);
   invariant(has_identifier(state));
-  const declName = state.token.value;
+  const name = state.token.value;
   read_token(state);
   invariant(has_operator(state, '('));
   read_token(state);
@@ -375,7 +386,7 @@ function read_function_declaration(state) {
       read_token(state);
     }
     invariant(has_identifier(state));
-    const name = state.token.value;
+    const arg_name = state.token.value;
     read_token(state);
     invariant(has_operator(state, ':'));
     read_token(state);
@@ -385,7 +396,7 @@ function read_function_declaration(state) {
     } else {
       invariant(has_operator(state, ')'));
     }
-    arguments.push({name, type});
+    arguments.push({name: arg_name, type});
   }
   read_token(state);
 
@@ -402,7 +413,8 @@ function read_function_declaration(state) {
     statements.push(readStatement(state));
   }
   read_token(state);
-  return {__type: 'Function', name: declName, statements, arguments};
+  return {__type: 'Function', name,
+    statements, arguments, return_type};
 }
 
 function read_enum_declaration(state) {

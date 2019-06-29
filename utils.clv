@@ -2,6 +2,10 @@
 enum State {}
 enum Function {}
 
+enum Token {
+  Operator,
+}
+
 enum Expression {
   Bool_literal {value: bool},
   Character_literal {value: char},
