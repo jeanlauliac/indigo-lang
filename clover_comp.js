@@ -76,11 +76,38 @@ function resolveModule(module) {
             `enum variant "${variant.name}"`);
         }
         names.set(field.name, {index});
+        resolveType(namespace, field.type);
       }
     }
   }
 
   return namespace;
+}
+
+const globalNamespace = new Map([
+  ['bool', {__type: 'BuiltinType'}],
+  ['vec', {__type: 'BuiltinType', parameter_count: 1}],
+  ['str', {__type: 'BuiltinType'}],
+  ['char', {__type: 'BuiltinType'}],
+]);
+
+function resolveType(namespace, type) {
+  if (type.name.length !== 1) {
+    console.error(type.name)
+  }
+  const name = type.name[0];
+  let def = globalNamespace.get(name);
+  if (def == null) def = namespace.get(name);
+  if (def == null) throw new Error(`unknown type name "${type.name.join('.')}"`);
+  const parameter_count = def.parameter_count || 0;
+  if (type.parameters.length != parameter_count) {
+    throw new Error(`expected ${parameter_count} type parameter(s) ` +
+      `for "${type.name.join('.')}"`);
+  }
+
+  for (const param of type.parameters) {
+    resolveType(namespace, param);
+  }
 }
 
 function resolveNamespace(module) {
@@ -549,7 +576,7 @@ function read_type_name(state) {
   let name;
   if (has_keyword(state, 'set') || has_keyword(state, 'vec')
       || has_keyword(state, 'dict')) {
-    name = state.token.value;
+    name = [state.token.value];
     read_token(state);
   } else {
     name = read_qualified_name(state);

@@ -227,7 +227,7 @@ fn read_operator(ref state: State): Operator {
     value = value + state.code[state.i];
     ++state.i;
   }
-  return Operator {value: value};
+  return Operator {value};
 }
 
 fn read_string_literal(ref state: State): String_literal {
