@@ -65,7 +65,7 @@ function identity_test(value, type) {
 }
 
 function resolveModule(module) {
-  const namespace = resolveNamespace(module);
+  const namespace = resolve_namespace(module);
   for (const decl of module.declarations) {
     if (decl.__type === 'Enum') {
       for (const variant of decl.variants) {
@@ -76,14 +76,14 @@ function resolveModule(module) {
               `enum variant "${variant.name}"`);
           }
           names.set(field.name, {index});
-          resolveType(namespace, field.type);
+          resolve_type(namespace, field.type);
         }
       }
       continue;
     }
     if (decl.__type === 'Function') {
       for (const arg of decl.arguments) {
-        resolveType(namespace, arg.type);
+        resolve_type(namespace, arg.type);
       }
       continue;
     }
@@ -100,26 +100,23 @@ const globalNamespace = new Map([
   ['char', {__type: 'BuiltinType'}],
 ]);
 
-function resolveType(namespace, type) {
-  if (type.name.length !== 1) {
-    console.error(type.name)
-  }
+function resolve_type(namespace, type) {
   const name = type.name[0];
   let def = globalNamespace.get(name);
   if (def == null) def = namespace.get(name);
   if (def == null) throw new Error(`unknown type name "${type.name.join('.')}"`);
+
   const parameter_count = def.parameter_count || 0;
   if (type.parameters.length != parameter_count) {
     throw new Error(`expected ${parameter_count} type parameter(s) ` +
       `for "${type.name.join('.')}"`);
   }
-
   for (const param of type.parameters) {
-    resolveType(namespace, param);
+    resolve_type(namespace, param);
   }
 }
 
-function resolveNamespace(module) {
+function resolve_namespace(module) {
   const namespace = new Map();
   for (const [i, decl] of module.declarations.entries()) {
     if (namespace.has(decl.name)) {
