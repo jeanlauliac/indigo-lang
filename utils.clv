@@ -13,6 +13,7 @@ enum Expression {
   Qualified_name {value: vec<str>},
   String_literal {value: str},
   Unary_operation {operator: str, operand: Expression},
+  Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
 }
 
 fn read_primary_expression(

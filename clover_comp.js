@@ -98,10 +98,59 @@ function resolveModule(module) {
   // Analyse functions
   for (const decl of module.declarations) {
     if (decl.__type !== 'Function') continue;
-
+    for (const st of decl.statements) {
+      analyse_statement(st);
+    }
   }
 
   return namespace;
+}
+
+function analyse_statement(statement) {
+  if (statement.__type === 'If') {
+    const exp = analyse_expression(statement.condition,
+        globalNamespace.get('bool'));
+
+    return;
+  }
+
+}
+
+function analyse_expression(exp, type_hint) {
+  if (exp.__type === 'Bool_literal') {
+    return {type: globalNamespace.get('bool')};
+  }
+  if (exp.__type === 'Character_literal') {
+    return {type: globalNamespace.get('char')};
+  }
+  if (exp.__type === 'In_place_assignment') {
+    const sub = analyse_expression(exp.target);
+    return {type: sub.type};
+  }
+  if (exp.__type === 'String_literal') {
+    return {type: globalNamespace.get('str')};
+  }
+  if (exp.__type === 'Unary_operation') {
+    return analyse_expression(exp.operand);
+  }
+  if (exp.__type === 'Identity_test') {
+    const operand = analyse_expression(exp.operand);
+    // TODO: check 'variant'
+    return globalNamespace.get('bool');
+  }
+  if (exp.__type === 'Qualified_name') {
+    // TODO: resolve name
+    return {type: null};
+  }
+  if (exp.__type === 'Function_call') {
+    // TODO: resolve function
+    return {type: null};
+  }
+  if (exp.__type === 'Binary_operation') {
+    // TODO: resolve operands
+    return {type: null};
+  }
+  throw new Error(`unknown "${exp.__type}"`);
 }
 
 const globalNamespace = new Map([
@@ -332,13 +381,13 @@ function writeExpression(expression) {
     return;
   }
   if (expression.__type === 'Identity_test') {
-    if (expression.isNegative) {
+    if (expression.is_negative) {
       write('!');
     }
     write(`identity_test(`);
     writeExpression(expression.operand);
     write(', ');
-    write(JSON.stringify(expression.typeName.join('.')));
+    write(JSON.stringify(expression.variant.join('.')));
     write(')');
     return;
   }
@@ -582,10 +631,10 @@ function readIdentityExpression(state) {
     !has_keyword(state, 'isnt') &&
     !has_keyword(state, 'is')
   ) return operand;
-  const isNegative = state.token.value === 'isnt';
+  const is_negative = state.token.value === 'isnt';
   read_token(state);
-  const typeName = read_qualified_name(state);
-  return {__type: 'Identity_test', isNegative, operand, typeName};
+  const variant = read_qualified_name(state);
+  return {__type: 'Identity_test', is_negative, operand, variant};
 }
 
 function read_type_name(state) {
