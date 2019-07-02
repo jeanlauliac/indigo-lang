@@ -64,59 +64,146 @@ function identity_test(value, type) {
 `);
 }
 
-function resolveModule(module) {
-  const namespace = resolve_namespace(module);
+const builtin_types = [
+  {__type: 'BuiltinType', name: 'bool'},
+  {__type: 'BuiltinType', parameter_count: 1, name: 'vec'},
+  {__type: 'BuiltinType', name: 'str'},
+  {__type: 'BuiltinType', name: 'char'},
+];
 
-  // Resolve types in all interfaces
-  for (const decl of module.declarations) {
+function resolveModule(module) {
+  const state = {next_id: 1, types: new Map()};
+
+  const global_scope = {parent: null, names: new Map()};
+
+  for (const type of builtin_types) {
+    const id = get_unique_id(state);
+    state.types.set(id, type);
+    global_scope.names.set(type.name, id);
+  }
+
+  const {type_names, declaration_ids} = build_module_type_names(state, module);
+  const module_scope = {parent: global_scope, names: type_names};
+
+  build_module_types(state, module, declaration_ids, module_scope);
+
+  // console.error(require('util').inspect(state, {depth: 10}));
+
+  // const scope = {
+  //   parent: {parent: null, names: globalNamespace},
+  //   names: namespace,
+  // };
+  // // Analyse functions
+  // for (const decl of module.declarations) {
+  //   if (decl.__type !== 'Function') continue;
+  //   const func_scope = {parent: scope, names: new Map()};
+  //   for (const arg of decl.arguments) {
+  //     func_scope.names.set(arg.name, {});
+  //   }
+  //   for (const st of decl.statements) {
+  //     analyse_statement(st, func_scope);
+  //   }
+  // }
+
+}
+
+/**
+ * We build a map of all the top-level names that represent types (struct,
+ * enums...) and assign a unique ID to each one. This will allow us to resolve
+ * types within types (ex. struct fields) as the next step. Having unique IDs
+ * means we can later resolve types in any order, even recursive ones.
+ */
+function build_module_type_names(state, module) {
+  const type_names = new Map();
+  const declaration_ids = new Map();
+
+  for (const [declaration_index, decl] of module.declarations.entries()) {
+    if (decl.__type !== 'Enum') continue;
+
+    if (type_names.has(decl.name)) {
+      throw new Error(`duplicate name "${decl.name}"`);
+    }
+    const id = get_unique_id(state);
+    type_names.set(decl.name, id);
+    const variant_ids = new Map();
+    declaration_ids.set(declaration_index, {id, variant_ids});
+
+    for (const [variant_index, variant] of decl.variants.entries()) {
+      if (type_names.has(variant.name)) {
+        throw new Error(`duplicate name "${variant.name}"`);
+      }
+      const vid = get_unique_id(state);
+      type_names.set(variant.name, vid);
+      variant_ids.set(variant_index, vid);
+    }
+  }
+  return {type_names, declaration_ids};
+}
+
+/**
+ * For each type (struct, enum...) declaration, resolve all the fields types.
+ * For each function, resolve the argument and return types. A resolved type is
+ * represented by an ID, which can then be used to look up its properties in the
+ * state's type map.
+ */
+function build_module_types(state, module, declaration_ids, scope) {
+
+  for (const [decl_index, decl] of module.declarations.entries()) {
+
     if (decl.__type === 'Enum') {
-      for (const variant of decl.variants) {
-        const names = new Map();
-        for (const [index, field] of variant.fields.entries()) {
-          if (names.has(field.name)) {
+      const variants = [];
+      const {id, variant_ids} = declaration_ids.get(decl_index);
+
+      for (const [variant_index, variant] of decl.variants.entries()) {
+        const fields = new Map();
+        for (const [field_index, field] of variant.fields.entries()) {
+          if (fields.has(field.name)) {
             throw new Error(`duplicate field name "${field.name}" in ` +
               `enum variant "${variant.name}"`);
           }
-          names.set(field.name, {index});
-          resolve_type(namespace, field.type);
+          fields.set(field.name, {
+            type: resolve_type(scope, field.type),
+          });
         }
+        const variant_id = variant_ids.get(variant_index);
+        state.types.set(variant_id, {__type: 'Enum_variant', fields});
+        variants.push(variant_id);
       }
+
+      state.types.set(id, {__type: 'Enum', variants});
+
       continue;
     }
+
     if (decl.__type === 'Function') {
-      for (const arg of decl.arguments) {
-        resolve_type(namespace, arg.type);
-      }
-      if (decl.return_type != null) {
-        resolve_type(namespace, decl.return_type);
-      }
+    //   for (const arg of decl.arguments) {
+    //     resolve_type(namespace, arg.type);
+    //   }
+    //   if (decl.return_type != null) {
+    //     resolve_type(namespace, decl.return_type);
+    //   }
       continue;
     }
+
     invariant(false);
   }
-
-  // Analyse functions
-  for (const decl of module.declarations) {
-    if (decl.__type !== 'Function') continue;
-    for (const st of decl.statements) {
-      analyse_statement(st);
-    }
-  }
-
-  return namespace;
 }
 
-function analyse_statement(statement) {
+function get_unique_id(state) {
+  return state.next_id++;
+}
+
+function analyse_statement(statement, scope) {
   if (statement.__type === 'If') {
     const exp = analyse_expression(statement.condition,
-        globalNamespace.get('bool'));
+        globalNamespace.get('bool'), scope);
 
     return;
   }
 
 }
 
-function analyse_expression(exp, type_hint) {
+function analyse_expression(exp, type_hint, scope) {
   if (exp.__type === 'Bool_literal') {
     return {type: globalNamespace.get('bool')};
   }
@@ -131,15 +218,15 @@ function analyse_expression(exp, type_hint) {
     return {type: globalNamespace.get('str')};
   }
   if (exp.__type === 'Unary_operation') {
-    return analyse_expression(exp.operand);
+    return analyse_expression(exp.operand, type_hint, scope);
   }
   if (exp.__type === 'Identity_test') {
-    const operand = analyse_expression(exp.operand);
+    const operand = analyse_expression(exp.operand, null, scope);
     // TODO: check 'variant'
     return globalNamespace.get('bool');
   }
   if (exp.__type === 'Qualified_name') {
-    // TODO: resolve name
+    resolve_qualified_name(scope, exp.value);
     return {type: null};
   }
   if (exp.__type === 'Function_call') {
@@ -153,51 +240,46 @@ function analyse_expression(exp, type_hint) {
   throw new Error(`unknown "${exp.__type}"`);
 }
 
-const globalNamespace = new Map([
-  ['bool', {__type: 'BuiltinType'}],
-  ['vec', {__type: 'BuiltinType', parameter_count: 1}],
-  ['str', {__type: 'BuiltinType'}],
-  ['char', {__type: 'BuiltinType'}],
-]);
+function resolve_qualified_name(scope, name) {
+  invariant(name.length >= 1);
+  const ref = scope.names.get(name[0]);
+  if (ref == null) {
+    throw new Error(`cannot find "${name[0]}" in scope`);
+  }
+  for (let i = 1; i < name.length; ++i) {
+    if (ref.__type === 'BuiltinType') {
+      throw new Error('cannot access member of built-in type');
+    }
+    throw new Error(`unknown "${ref.__type}"`);
+  }
+  return ref;
+}
 
-function resolve_type(namespace, type) {
+function resolve_type(scope, type) {
   const name = type.name[0];
-  let def = globalNamespace.get(name);
-  if (def == null) def = namespace.get(name);
-  if (def == null) throw new Error(`unknown type name "${type.name.join('.')}"`);
-
-  const parameter_count = def.parameter_count || 0;
-  if (type.parameters.length != parameter_count) {
-    throw new Error(`expected ${parameter_count} type parameter(s) ` +
-      `for "${type.name.join('.')}"`);
+  let id = scope.names.get(name);
+  while (id == null && scope.parent != null) {
+    scope = scope.parent;
+    id = scope.names.get(name);
   }
+  if (id == null) {
+    throw new Error(`unknown type name "${type.name.join('.')}"`);
+  }
+
+  // const parameter_count =
+  //     def.__type === 'BuiltinType' && def.parameter_count || 0;
+
+  // if (type.parameters.length != parameter_count) {
+  //   throw new Error(`expected ${parameter_count} type parameter(s) ` +
+  //     `for "${type.name.join('.')}"`);
+  // }
+
+  const parameters = [];
   for (const param of type.parameters) {
-    resolve_type(namespace, param);
+    parameters.push(resolve_type(scope, param));
   }
+  return {id, parameters};
 }
-
-function resolve_namespace(module) {
-  const namespace = new Map();
-  for (const [i, decl] of module.declarations.entries()) {
-    if (namespace.has(decl.name)) {
-      throw new Error(`duplicate name "${decl.name}"`);
-    }
-    namespace.set(decl.name, {__type: 'Declaration', index: i});
-  }
-
-  for (const [i, decl] of module.declarations.entries()) {
-    if (decl.__type !== 'Enum') continue;
-
-    for (const [j, variant] of decl.variants.entries()) {
-      if (namespace.has(variant.name)) {
-        throw new Error(`duplicate name "${variant.name}"`);
-      }
-      namespace.set(variant.name, {__type: 'Enum_variant', enum_index: i, index: j});
-    }
-  }
-  return namespace;
-}
-
 
 
 function writeStatement(statement, indent) {
