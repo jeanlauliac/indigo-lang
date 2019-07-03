@@ -494,15 +494,17 @@ function readModule(state) {
 }
 
 function readModuleDeclaration(state) {
-  if (has_keyword(state, 'fn')) {
-    return read_function_declaration(state);
-    return;
-  }
-  return read_enum_declaration(state);
+  let maybe = read_function_declaration(state);
+  if (maybe.__type === 'Value') return maybe.value;
+  maybe = read_enum_declaration(state);
+  if (maybe.__type === 'Value') return maybe.value;
+  invariant(false);
 }
 
 function read_function_declaration(state) {
-  invariant(has_keyword(state, 'fn'));
+  if (!has_keyword(state, 'fn')) {
+    return {__type: 'None'};
+  }
   read_token(state);
   invariant(has_identifier(state));
   const name = state.token.value;
@@ -544,12 +546,14 @@ function read_function_declaration(state) {
     statements.push(readStatement(state));
   }
   read_token(state);
-  return {__type: 'Function', name,
-    statements, arguments, return_type};
+  return {__type: 'Value',
+    value: {__type: 'Function', name, statements, arguments, return_type}};
 }
 
 function read_enum_declaration(state) {
-  invariant(has_keyword(state, 'enum'));
+  if (!has_keyword(state, 'enum')) {
+    return {__type: 'None'};
+  }
   read_token(state);
   invariant(has_identifier(state));
   const name = state.token.value;
@@ -565,7 +569,7 @@ function read_enum_declaration(state) {
   invariant(has_operator(state, '}'));
   read_token(state);
 
-  return {__type: 'Enum', name, variants};
+  return {__type: 'Value', value: {__type: 'Enum', name, variants}};
 }
 
 function read_enum_variant(state) {
