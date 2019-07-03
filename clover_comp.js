@@ -118,23 +118,34 @@ function build_module_type_names(state, module) {
   const declaration_ids = new Map();
 
   for (const [declaration_index, decl] of module.declarations.entries()) {
-    if (decl.__type !== 'Enum') continue;
-
-    if (type_names.has(decl.name)) {
-      throw new Error(`duplicate name "${decl.name}"`);
-    }
-    const id = get_unique_id(state);
-    type_names.set(decl.name, id);
-    const variant_ids = new Map();
-    declaration_ids.set(declaration_index, {id, variant_ids});
-
-    for (const [variant_index, variant] of decl.variants.entries()) {
-      if (type_names.has(variant.name)) {
-        throw new Error(`duplicate name "${variant.name}"`);
+    if (decl.__type === 'Enum') {
+      if (type_names.has(decl.name)) {
+        throw new Error(`duplicate name "${decl.name}"`);
       }
-      const vid = get_unique_id(state);
-      type_names.set(variant.name, vid);
-      variant_ids.set(variant_index, vid);
+
+      const id = get_unique_id(state);
+      type_names.set(decl.name, id);
+      const variant_ids = new Map();
+      declaration_ids.set(declaration_index, {id, variant_ids});
+
+      for (const [variant_index, variant] of decl.variants.entries()) {
+        if (type_names.has(variant.name)) {
+          throw new Error(`duplicate name "${variant.name}"`);
+        }
+        const vid = get_unique_id(state);
+        type_names.set(variant.name, vid);
+        variant_ids.set(variant_index, vid);
+      }
+    }
+
+    if (decl.__type === 'Struct') {
+      if (type_names.has(decl.name)) {
+        throw new Error(`duplicate name "${decl.name}"`);
+      }
+
+      const id = get_unique_id(state);
+      type_names.set(decl.name, id);
+      declaration_ids.set(declaration_index, {id, variant_ids: []});
     }
   }
   return {type_names, declaration_ids};
@@ -175,7 +186,7 @@ function build_module_types(state, module, declaration_ids, scope) {
       continue;
     }
 
-    if (decl.__type === 'Function') {
+    if (decl.__type === 'Function' || decl.__type === 'Struct') {
     //   for (const arg of decl.arguments) {
     //     resolve_type(namespace, arg.type);
     //   }
@@ -498,6 +509,8 @@ function readModuleDeclaration(state) {
   if (maybe.__type === 'Value') return maybe.value;
   maybe = read_enum_declaration(state);
   if (maybe.__type === 'Value') return maybe.value;
+  maybe = read_struct_declaration(state);
+  if (maybe.__type === 'Value') return maybe.value;
   invariant(false);
 }
 
@@ -579,7 +592,7 @@ function read_enum_variant(state) {
   if (has_operator(state, '{')) {
     read_token(state);
     while (has_identifier(state)) {
-      fields.push(read_variant_field(state));
+      fields.push(read_struct_field(state));
     }
     invariant(has_operator(state, '}'));
     read_token(state);
@@ -592,7 +605,29 @@ function read_enum_variant(state) {
   return {name, fields};
 }
 
-function read_variant_field(state) {
+function read_struct_declaration(state) {
+  if (!has_keyword(state, 'struct')) {
+    return {__type: 'None'};
+  }
+  read_token(state);
+  invariant(has_identifier(state));
+  const name = state.token.value;
+  read_token(state);
+  invariant(has_operator(state, '{'));
+  read_token(state);
+
+  const fields = [];
+  while (has_identifier(state)) {
+    fields.push(read_struct_field(state));
+  }
+
+  invariant(has_operator(state, '}'));
+  read_token(state);
+
+  return {__type: 'Value', value: {__type: 'Struct', name, fields}};
+}
+
+function read_struct_field(state) {
   const name = state.token.value;
   read_token(state);
   invariant(has_operator(state, ':'));

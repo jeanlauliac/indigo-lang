@@ -1,9 +1,14 @@
 
-enum State {}
 enum Function {}
 
 enum Token {
   Operator,
+}
+
+struct State {
+  token: Token,
+  nextToken: Token,
+  code: str,
 }
 
 enum Expression {
