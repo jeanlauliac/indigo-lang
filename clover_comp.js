@@ -177,7 +177,7 @@ function build_module_types(state, module, declaration_ids, scope) {
           });
         }
         const variant_id = variant_ids.get(variant_index);
-        state.types.set(variant_id, {__type: 'Enum_variant', fields});
+        state.types.set(variant_id, {__type: 'Enum_variant', fields, enum_id: id});
         variants.push(variant_id);
       }
 
@@ -186,7 +186,23 @@ function build_module_types(state, module, declaration_ids, scope) {
       continue;
     }
 
-    if (decl.__type === 'Function' || decl.__type === 'Struct') {
+    if (decl.__type === 'Struct') {
+      const {id} = declaration_ids.get(decl_index);
+      const fields = new Map();
+      for (const [field_index, field] of decl.fields.entries()) {
+        if (fields.has(field.name)) {
+          throw new Error(`duplicate field name "${field.name}" in ` +
+            `struct "${decl.name}"`);
+        }
+        fields.set(field.name, {
+          type: resolve_type(scope, field.type),
+        });
+      }
+      state.types.set(id, {__type: 'Struct', fields});
+      continue;
+    }
+
+    if (decl.__type === 'Function') {
     //   for (const arg of decl.arguments) {
     //     resolve_type(namespace, arg.type);
     //   }
