@@ -79,7 +79,8 @@ function resolveModule(module) {
   for (const type of builtin_types) {
     const id = get_unique_id(state);
     state.types.set(id, type);
-    global_scope.names.set(type.name, id);
+    global_scope.names.set(type.name,
+        {id, parameter_count: type.parameter_count});
   }
 
   const {type_names, declaration_ids} = build_module_type_names(state, module);
@@ -124,7 +125,7 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, id);
+      type_names.set(decl.name, {id});
       const variant_ids = new Map();
       declaration_ids.set(declaration_index, {id, variant_ids});
 
@@ -133,7 +134,7 @@ function build_module_type_names(state, module) {
           throw new Error(`duplicate name "${variant.name}"`);
         }
         const vid = get_unique_id(state);
-        type_names.set(variant.name, vid);
+        type_names.set(variant.name, {id: vid});
         variant_ids.set(variant_index, vid);
       }
     }
@@ -144,7 +145,7 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, id);
+      type_names.set(decl.name, {id});
       declaration_ids.set(declaration_index, {id, variant_ids: []});
     }
   }
@@ -284,22 +285,20 @@ function resolve_qualified_name(scope, name) {
 
 function resolve_type(scope, type) {
   const name = type.name[0];
-  let id = scope.names.get(name);
-  while (id == null && scope.parent != null) {
+  let spec = scope.names.get(name);
+  while (spec == null && scope.parent != null) {
     scope = scope.parent;
-    id = scope.names.get(name);
+    spec = scope.names.get(name);
   }
-  if (id == null) {
+  if (spec == null) {
     throw new Error(`unknown type name "${type.name.join('.')}"`);
   }
+  const {id, parameter_count = 0} = spec;
 
-  // const parameter_count =
-  //     def.__type === 'BuiltinType' && def.parameter_count || 0;
-
-  // if (type.parameters.length != parameter_count) {
-  //   throw new Error(`expected ${parameter_count} type parameter(s) ` +
-  //     `for "${type.name.join('.')}"`);
-  // }
+  if (type.parameters.length !== parameter_count) {
+    throw new Error(`expected ${parameter_count} type parameter(s) ` +
+      `for "${type.name.join('.')}"`);
+  }
 
   const parameters = [];
   for (const param of type.parameters) {
