@@ -88,7 +88,7 @@ function resolveModule(module) {
 
   build_module_types(state, module, declaration_ids, module_scope);
 
-  // console.error(require('util').inspect(state, {depth: 10}));
+  console.error(require('util').inspect(state, {depth: 10}));
 
   // const scope = {
   //   parent: {parent: null, names: globalNamespace},
@@ -137,17 +137,21 @@ function build_module_type_names(state, module) {
         type_names.set(variant.name, {id: vid});
         variant_ids.set(variant_index, vid);
       }
+      continue;
     }
 
-    if (decl.__type === 'Struct') {
+    if (decl.__type === 'Struct' || decl.__type === 'Function') {
       if (type_names.has(decl.name)) {
         throw new Error(`duplicate name "${decl.name}"`);
       }
 
       const id = get_unique_id(state);
       type_names.set(decl.name, {id});
-      declaration_ids.set(declaration_index, {id, variant_ids: []});
+      declaration_ids.set(declaration_index, {id});
+      continue;
     }
+
+    invariant(false);
   }
   return {type_names, declaration_ids};
 }
@@ -162,9 +166,9 @@ function build_module_types(state, module, declaration_ids, scope) {
 
   for (const [decl_index, decl] of module.declarations.entries()) {
 
+    const {id, variant_ids} = declaration_ids.get(decl_index);
     if (decl.__type === 'Enum') {
       const variants = [];
-      const {id, variant_ids} = declaration_ids.get(decl_index);
 
       for (const [variant_index, variant] of decl.variants.entries()) {
         const fields = new Map();
@@ -188,7 +192,6 @@ function build_module_types(state, module, declaration_ids, scope) {
     }
 
     if (decl.__type === 'Struct') {
-      const {id} = declaration_ids.get(decl_index);
       const fields = new Map();
       for (const [field_index, field] of decl.fields.entries()) {
         if (fields.has(field.name)) {
@@ -204,12 +207,16 @@ function build_module_types(state, module, declaration_ids, scope) {
     }
 
     if (decl.__type === 'Function') {
-    //   for (const arg of decl.arguments) {
-    //     resolve_type(namespace, arg.type);
-    //   }
-    //   if (decl.return_type != null) {
-    //     resolve_type(namespace, decl.return_type);
-    //   }
+      const arguments = [];
+      for (const arg of decl.arguments) {
+        arguments.push({type: resolve_type(scope, arg.type),
+            is_by_reference: arg.is_by_reference});
+      }
+      let return_type;
+      if (decl.return_type != null) {
+        return_type = resolve_type(scope, decl.return_type);
+      }
+      state.types.set(id, {__type: 'Function', arguments, return_type})
       continue;
     }
 
@@ -542,8 +549,8 @@ function read_function_declaration(state) {
 
   const arguments = [];
   while (!has_operator(state, ')')) {
-    const isRef = has_keyword(state, 'ref');
-    if (isRef) {
+    const is_by_reference = has_keyword(state, 'ref');
+    if (is_by_reference) {
       read_token(state);
     }
     invariant(has_identifier(state));
@@ -557,7 +564,7 @@ function read_function_declaration(state) {
     } else {
       invariant(has_operator(state, ')'));
     }
-    arguments.push({name: arg_name, type});
+    arguments.push({name: arg_name, type, is_by_reference});
   }
   read_token(state);
 
