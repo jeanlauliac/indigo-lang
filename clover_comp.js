@@ -88,23 +88,22 @@ function resolveModule(module) {
 
   build_module_types(state, module, declaration_ids, module_scope);
 
-  console.error(require('util').inspect(state, {depth: 10}));
+  // console.error(require('util').inspect(state, {depth: 10}));
 
-  // const scope = {
-  //   parent: {parent: null, names: globalNamespace},
-  //   names: namespace,
-  // };
-  // // Analyse functions
-  // for (const decl of module.declarations) {
-  //   if (decl.__type !== 'Function') continue;
-  //   const func_scope = {parent: scope, names: new Map()};
-  //   for (const arg of decl.arguments) {
-  //     func_scope.names.set(arg.name, {});
-  //   }
+  // Analyse functions
+  for (const [index, decl] of module.declarations.entries()) {
+    if (decl.__type !== 'Function') continue;
+    const {id} = declaration_ids.get(index);
+    const func_type = state.types.get(id);
+    const func_scope = {parent: module_scope, names: new Map()};
+    for (const arg_id of func_type.argument_ids) {
+      const arg = state.types.get(arg_id);
+      func_scope.names.set(arg.name, arg_id);
+    }
   //   for (const st of decl.statements) {
   //     analyse_statement(st, func_scope);
   //   }
-  // }
+  }
 
 }
 
@@ -207,16 +206,20 @@ function build_module_types(state, module, declaration_ids, scope) {
     }
 
     if (decl.__type === 'Function') {
-      const arguments = [];
+      const argument_ids = [];
       for (const arg of decl.arguments) {
-        arguments.push({type: resolve_type(scope, arg.type),
+        const arg_id = get_unique_id(state);
+        argument_ids.push(arg_id);
+        state.types.set(arg_id, {__type: 'Function_argument',
+            name: arg.name,
+            type: resolve_type(scope, arg.type),
             is_by_reference: arg.is_by_reference});
       }
       let return_type;
       if (decl.return_type != null) {
         return_type = resolve_type(scope, decl.return_type);
       }
-      state.types.set(id, {__type: 'Function', arguments, return_type})
+      state.types.set(id, {__type: 'Function', argument_ids, return_type})
       continue;
     }
 
