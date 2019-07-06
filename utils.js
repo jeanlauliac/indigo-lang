@@ -2,12 +2,12 @@
 
 module.exports.read_primary_expression = __read_primary_expression;
 function __read_primary_expression(state, __read_expression, ) {
-  if (identity_test(state.token, "String_literal")) {
+  if (identity_test(state.token, "String")) {
     let value = state.token.value;
     __read_token(state, );
     return {value: value, __type: "String_literal"};
   }
-  if (identity_test(state.token, "Character_literal")) {
+  if (identity_test(state.token, "Character")) {
     let value = state.token.value;
     __read_token(state, );
     return {value: value, __type: "Character_literal"};
@@ -230,7 +230,7 @@ function __read_string_literal(state, ) {
     ++state.i;
   }
   __invariant(clone((state.i < state.code.length)), );
-  let token = {value: value, __type: "String_literal"};
+  let token = {value: value, __type: "String"};
   ++state.i;
   return token;
 }
@@ -250,7 +250,7 @@ function __read_character_literal(state, ) {
   ++state.i;
   __invariant(clone(((state.i < state.code.length) && (access(state.code, state.i) === "'"))), );
   ++state.i;
-  return {value: value, __type: "Character_literal"};
+  return {value: value, __type: "Character"};
 }
 
 module.exports.get_escaped_char = __get_escaped_char;

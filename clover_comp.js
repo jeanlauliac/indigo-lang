@@ -80,15 +80,15 @@ function resolveModule(module) {
     const id = get_unique_id(state);
     state.types.set(id, type);
     global_scope.names.set(type.name,
-        {id, parameter_count: type.parameter_count});
+        {__type: 'Type', id, parameter_count: type.parameter_count});
   }
 
   const {type_names, declaration_ids} = build_module_type_names(state, module);
   const module_scope = {parent: global_scope, names: type_names};
 
+  // console.error(require('util').inspect(module_scope, {depth: 10}));
   build_module_types(state, module, declaration_ids, module_scope);
 
-  // console.error(require('util').inspect(state, {depth: 10}));
 
   // Analyse functions
   for (const [index, decl] of module.declarations.entries()) {
@@ -98,11 +98,12 @@ function resolveModule(module) {
     const func_scope = {parent: module_scope, names: new Map()};
     for (const arg_id of func_type.argument_ids) {
       const arg = state.types.get(arg_id);
-      func_scope.names.set(arg.name, arg_id);
+      func_scope.names.set(arg.name,
+          {__type: 'Value_reference', id: arg_id, type: arg.type});
     }
-  //   for (const st of decl.statements) {
-  //     analyse_statement(st, func_scope);
-  //   }
+    for (const st of decl.statements) {
+      analyse_statement(state, st, func_scope);
+    }
   }
 
 }
@@ -124,7 +125,7 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {id});
+      type_names.set(decl.name, {__type: 'Type', id});
       const variant_ids = new Map();
       declaration_ids.set(declaration_index, {id, variant_ids});
 
@@ -133,7 +134,7 @@ function build_module_type_names(state, module) {
           throw new Error(`duplicate name "${variant.name}"`);
         }
         const vid = get_unique_id(state);
-        type_names.set(variant.name, {id: vid});
+        type_names.set(variant.name, {__type: 'Type', id: vid});
         variant_ids.set(variant_index, vid);
       }
       continue;
@@ -145,7 +146,8 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {id});
+      type_names.set(decl.name, {
+        __type: decl.__type === 'Struct' ? 'Type' : 'Function', id});
       declaration_ids.set(declaration_index, {id});
       continue;
     }
@@ -177,7 +179,7 @@ function build_module_types(state, module, declaration_ids, scope) {
               `enum variant "${variant.name}"`);
           }
           fields.set(field.name, {
-            type: resolve_type(scope, field.type),
+            type: resolve_type(state, scope, field.type),
           });
         }
         const variant_id = variant_ids.get(variant_index);
@@ -198,7 +200,7 @@ function build_module_types(state, module, declaration_ids, scope) {
             `struct "${decl.name}"`);
         }
         fields.set(field.name, {
-          type: resolve_type(scope, field.type),
+          type: resolve_type(state, scope, field.type),
         });
       }
       state.types.set(id, {__type: 'Struct', fields});
@@ -212,12 +214,12 @@ function build_module_types(state, module, declaration_ids, scope) {
         argument_ids.push(arg_id);
         state.types.set(arg_id, {__type: 'Function_argument',
             name: arg.name,
-            type: resolve_type(scope, arg.type),
+            type: resolve_type(state, scope, arg.type),
             is_by_reference: arg.is_by_reference});
       }
       let return_type;
       if (decl.return_type != null) {
-        return_type = resolve_type(scope, decl.return_type);
+        return_type = resolve_type(state, scope, decl.return_type);
       }
       state.types.set(id, {__type: 'Function', argument_ids, return_type})
       continue;
@@ -231,78 +233,62 @@ function get_unique_id(state) {
   return state.next_id++;
 }
 
-function analyse_statement(statement, scope) {
+function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
-    const exp = analyse_expression(statement.condition,
-        globalNamespace.get('bool'), scope);
+    const cond = analyse_expression(state, statement.condition, scope);
 
     return;
   }
 
 }
 
-function analyse_expression(exp, type_hint, scope) {
-  if (exp.__type === 'Bool_literal') {
-    return {type: globalNamespace.get('bool')};
-  }
-  if (exp.__type === 'Character_literal') {
-    return {type: globalNamespace.get('char')};
-  }
-  if (exp.__type === 'In_place_assignment') {
-    const sub = analyse_expression(exp.target);
-    return {type: sub.type};
-  }
-  if (exp.__type === 'String_literal') {
-    return {type: globalNamespace.get('str')};
-  }
-  if (exp.__type === 'Unary_operation') {
-    return analyse_expression(exp.operand, type_hint, scope);
-  }
+function analyse_expression(state, exp, scope) {
+  // if (exp.__type === 'Bool_literal') {
+  //   return {type: globalNamespace.get('bool')};
+  // }
+  // if (exp.__type === 'Character_literal') {
+  //   return {type: globalNamespace.get('char')};
+  // }
+  // if (exp.__type === 'In_place_assignment') {
+  //   const sub = analyse_expression(exp.target);
+  //   return {type: sub.type};
+  // }
+  // if (exp.__type === 'String_literal') {
+  //   return {type: globalNamespace.get('str')};
+  // }
+  // if (exp.__type === 'Unary_operation') {
+  //   return analyse_expression(exp.operand, type_hint, scope);
+  // }
   if (exp.__type === 'Identity_test') {
-    const operand = analyse_expression(exp.operand, null, scope);
-    // TODO: check 'variant'
-    return globalNamespace.get('bool');
+    const operand = analyse_expression(state, exp.operand, scope);
+    const {id: variant_id} =
+        resolve_type(state, scope, {name: exp.variant, parameters: []});
+    const variant = state.types.get(variant_id);
+    invariant(variant.__type === 'Enum_variant');
+    invariant(variant.enum_id === operand.type.id);
+    return {type: resolve_name(scope, 'bool')};
   }
   if (exp.__type === 'Qualified_name') {
-    resolve_qualified_name(scope, exp.value);
-    return {type: null};
+    const ref = resolve_qualified_name(state, scope, exp.value);
+    invariant(ref.__type === 'Value_reference');
+    return {type: ref.type};
   }
-  if (exp.__type === 'Function_call') {
-    // TODO: resolve function
-    return {type: null};
-  }
-  if (exp.__type === 'Binary_operation') {
-    // TODO: resolve operands
-    return {type: null};
-  }
-  throw new Error(`unknown "${exp.__type}"`);
+  // if (exp.__type === 'Function_call') {
+  //   // TODO: resolve function
+  //   return {type: null};
+  // }
+  // if (exp.__type === 'Binary_operation') {
+  //   // TODO: resolve operands
+  //   return {type: null};
+  // }
+  // throw new Error(`unknown "${exp.__type}"`);
 }
 
-function resolve_qualified_name(scope, name) {
-  invariant(name.length >= 1);
-  const ref = scope.names.get(name[0]);
-  if (ref == null) {
-    throw new Error(`cannot find "${name[0]}" in scope`);
-  }
-  for (let i = 1; i < name.length; ++i) {
-    if (ref.__type === 'BuiltinType') {
-      throw new Error('cannot access member of built-in type');
-    }
-    throw new Error(`unknown "${ref.__type}"`);
-  }
-  return ref;
-}
-
-function resolve_type(scope, type) {
+function resolve_type(state, scope, type) {
   const name = type.name[0];
-  let spec = scope.names.get(name);
-  while (spec == null && scope.parent != null) {
-    scope = scope.parent;
-    spec = scope.names.get(name);
-  }
-  if (spec == null) {
-    throw new Error(`unknown type name "${type.name.join('.')}"`);
-  }
+  const spec = resolve_qualified_name(state, scope, type.name);
+
+  invariant(spec.__type === 'Type');
   const {id, parameter_count = 0} = spec;
 
   if (type.parameters.length !== parameter_count) {
@@ -312,9 +298,36 @@ function resolve_type(scope, type) {
 
   const parameters = [];
   for (const param of type.parameters) {
-    parameters.push(resolve_type(scope, param));
+    parameters.push(resolve_type(state, scope, param));
   }
   return {id, parameters};
+}
+
+function resolve_qualified_name(state, scope, name) {
+  invariant(name.length >= 1);
+  let ref = resolve_name(scope, name[0]);
+  for (let i = 1; i < name.length; ++i) {
+    invariant(ref.__type === 'Value_reference');
+    const type = state.types.get(ref.type.id);
+    if (type.__type === 'Struct') {
+      const field = type.fields.get(name[i]);
+      invariant(field != null);
+      ref = {__type: 'Value_reference', type: field.type};
+      continue;
+    }
+    invariant(false);
+  }
+  return ref;
+}
+
+function resolve_name(scope, name) {
+  let spec = scope.names.get(name);
+  while (spec == null && scope.parent != null) {
+    scope = scope.parent;
+    spec = scope.names.get(name);
+  }
+  if (spec != null) return spec;
+  throw new Error(`unknown name "${name}"`);
 }
 
 

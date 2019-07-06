@@ -2,7 +2,10 @@
 enum Function {}
 
 enum Token {
-  Operator,
+  Keyword {value: str},
+  Operator {value: str},
+  String {value: str},
+  Character {value: char},
 }
 
 struct State {
@@ -26,12 +29,12 @@ fn read_primary_expression(
   __read_expression: Function,
 ): Expression {
 
-  if (state.token is String_literal) {
+  if (state.token is String) {
     let value = state.token.value;
     read_token(&state);
     return String_literal {value};
   }
-  if (state.token is Character_literal) {
+  if (state.token is Character) {
     let value = state.token.value;
     read_token(&state);
     return Character_literal {value};
@@ -243,7 +246,7 @@ fn read_operator(ref state: State): Operator {
   return Operator {value};
 }
 
-fn read_string_literal(ref state: State): String_literal {
+fn read_string_literal(ref state: State): String {
   ++state.i;
   let value = "";
   while (state.i < state.code.length && state.code[state.i] != '"') {
@@ -256,12 +259,12 @@ fn read_string_literal(ref state: State): String_literal {
     ++state.i;
   }
   invariant(state.i < state.code.length);
-  let token = String_literal {value: value};
+  let token = String {value: value};
   ++state.i;
   return token;
 }
 
-fn read_character_literal(ref state: State): Character_literal {
+fn read_character_literal(ref state: State): Character {
   ++state.i;
   invariant(state.i < state.code.length);
   let value = "";
@@ -275,7 +278,7 @@ fn read_character_literal(ref state: State): Character_literal {
   ++state.i;
   invariant(state.i < state.code.length && state.code[state.i] == "'");
   ++state.i;
-  return Character_literal {value: value};
+  return Character {value: value};
 }
 
 fn get_escaped_char(code: char): char {
