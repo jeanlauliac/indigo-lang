@@ -240,11 +240,21 @@ function get_unique_id(state) {
 function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
     const cond = analyse_expression(state, statement.condition, scope);
-    invariant(cond == null || cond.type.id === state.builtins.bool.id);
+    invariant(cond.type == null || cond.type.id === state.builtins.bool.id);
     analyse_statement(state, statement.consequent, scope);
     if (statement.alternate != null) {
       analyse_statement(state, statement.alternate, scope);
     }
+    return;
+  }
+  if (statement.__type === 'Variable_declaration') {
+    console.error(statement);
+    const init_value = analyse_expression(state, statement.initialValue, scope);
+    const id = get_unique_id(state);
+    scope.names.set(statement.name, {__type: 'Value_reference',
+        id, type: init_value.type});
+    state.types.set(id, {__type: 'Variable',
+        type: init_value.type});
     return;
   }
 
@@ -299,24 +309,36 @@ function analyse_expression(state, exp, scope) {
     invariant(func.__type === 'Function');
     invariant(func.argument_ids.length === exp.arguments.length);
     for (let i = 0; i < func.argument_ids.length; ++i) {
-      const arg = analyse_expression(state, scope, exp.arguments[i]);
+      const arg = analyse_expression(state, exp.arguments[i].value, scope);
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 
+      console.error(arg, exp.arguments[i].value);
       // FIXME: remove!
       if (arg == null) continue;
 
-      invariant(arg.type.id === arg_def.type.id);
+      console.error(arg);
+      // invariant(arg.type.id === arg_def.type.id);
     }
 
     const func_def = state.types.get(spec.id);
     return {type: func_def.return_type};
+  }
+  if (exp.__type === 'Collection_literal') {
+    if (exp.dataType === 'set') {
+      return state.builtins.set;
+    }
+    if (exp.dataType === 'vec') {
+      return state.builtins.vec;
+    }
+    invariant(false);
   }
   // if (exp.__type === 'Binary_operation') {
   //   // TODO: resolve operands
   //   return {type: null};
   // }
   // throw new Error(`unknown "${exp.__type}"`);
+  return {type: null};
 }
 
 function resolve_type(state, scope, type) {
