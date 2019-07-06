@@ -67,6 +67,7 @@ function identity_test(value, type) {
 const builtin_types = [
   {__type: 'BuiltinType', name: 'bool'},
   {__type: 'BuiltinType', parameter_count: 1, name: 'vec'},
+  {__type: 'BuiltinType', parameter_count: 0, name: 'set'},
   {__type: 'BuiltinType', name: 'str'},
   {__type: 'BuiltinType', name: 'char'},
   {__type: 'BuiltinType', name: 'i32', is_number: true, is_signed: true},
@@ -294,6 +295,20 @@ function analyse_expression(state, exp, scope) {
   if (exp.__type === 'Function_call') {
     const spec = resolve_qualified_name(state, scope, exp.functionName);
     invariant(spec.__type === 'Function');
+    const func = state.types.get(spec.id);
+    invariant(func.__type === 'Function');
+    invariant(func.argument_ids.length === exp.arguments.length);
+    for (let i = 0; i < func.argument_ids.length; ++i) {
+      const arg = analyse_expression(state, scope, exp.arguments[i]);
+      const arg_def = state.types.get(func.argument_ids[i]);
+      invariant(arg_def.__type === 'Function_argument');
+
+      // FIXME: remove!
+      if (arg == null) continue;
+
+      invariant(arg.type.id === arg_def.type.id);
+    }
+
     const func_def = state.types.get(spec.id);
     return {type: func_def.return_type};
   }
@@ -438,12 +453,12 @@ function writeExpression(expression) {
       write(`__${expression.functionName.join('.')}(`);
     }
     for (const argument of expression.arguments) {
-      if (argument.__type === 'Expression') {
+      if (!argument.is_by_reference) {
         write('clone(');
         writeExpression(argument.value);
         write(')');
-      } else if (argument.__type === 'Reference') {
-        write(argument.name);
+      } else {
+        writeExpression(argument.value);
       }
       write(', ');
     }

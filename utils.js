@@ -1,5 +1,9 @@
 // GENERATED, DO NOT EDIT
 
+module.exports.__has = ____has;
+function ____has(collection, key, ) {
+}
+
 module.exports.read_primary_expression = __read_primary_expression;
 function __read_primary_expression(state, __read_expression, ) {
   if (identity_test(state.token, "String")) {
@@ -118,14 +122,12 @@ function __read_qualified_name(state, ) {
 
 module.exports.read_call_argument = __read_call_argument;
 function __read_call_argument(state, __read_expression, ) {
+  let is_by_reference = false;
   if (__has_operator(clone(state), clone("&"), )) {
     __read_token(state, );
-    __invariant(clone(__has_identifier(state, )), );
-    let name = state.token.value;
-    __read_token(state, );
-    return {name: name, __type: "Reference"};
+    (is_by_reference = true);
   }
-  return {value: __read_expression(state, ), __type: "Expression"};
+  return {value: __read_expression(state, ), is_by_reference: is_by_reference, __type: "Call_argument"};
 }
 
 module.exports.has_keyword = __has_keyword;
