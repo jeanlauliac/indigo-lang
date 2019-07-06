@@ -72,7 +72,7 @@ const builtin_types = [
 ];
 
 function resolveModule(module) {
-  const state = {next_id: 1, types: new Map()};
+  const state = {next_id: 1, types: new Map(), builtins: {}};
 
   const global_scope = {parent: null, names: new Map()};
 
@@ -81,6 +81,7 @@ function resolveModule(module) {
     state.types.set(id, type);
     global_scope.names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
+    state.builtins[type.name] = id;
   }
 
   const {type_names, declaration_ids} = build_module_type_names(state, module);
@@ -236,7 +237,7 @@ function get_unique_id(state) {
 function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
     const cond = analyse_expression(state, statement.condition, scope);
-
+    invariant(cond == null || cond.type.id === state.builtins.bool);
     return;
   }
 
