@@ -81,7 +81,7 @@ function resolveModule(module) {
     state.types.set(id, type);
     global_scope.names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
-    state.builtins[type.name] = id;
+    state.builtins[type.name] = {id};
   }
 
   const {type_names, declaration_ids} = build_module_type_names(state, module);
@@ -237,7 +237,7 @@ function get_unique_id(state) {
 function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
     const cond = analyse_expression(state, statement.condition, scope);
-    invariant(cond == null || cond.type.id === state.builtins.bool);
+    invariant(cond == null || cond.type.id === state.builtins.bool.id);
     return;
   }
 
@@ -267,7 +267,7 @@ function analyse_expression(state, exp, scope) {
     const variant = state.types.get(variant_id);
     invariant(variant.__type === 'Enum_variant');
     invariant(variant.enum_id === operand.type.id);
-    return {type: resolve_name(scope, 'bool')};
+    return {type: state.builtins.bool};
   }
   if (exp.__type === 'Qualified_name') {
     const ref = resolve_qualified_name(state, scope, exp.value);
