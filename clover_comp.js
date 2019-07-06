@@ -69,6 +69,8 @@ const builtin_types = [
   {__type: 'BuiltinType', parameter_count: 1, name: 'vec'},
   {__type: 'BuiltinType', name: 'str'},
   {__type: 'BuiltinType', name: 'char'},
+  {__type: 'BuiltinType', name: 'i32', is_number: true, is_signed: true},
+  {__type: 'BuiltinType', name: 'u32', is_number: true},
 ];
 
 function resolveModule(module) {
@@ -244,22 +246,33 @@ function analyse_statement(state, statement, scope) {
 }
 
 function analyse_expression(state, exp, scope) {
-  // if (exp.__type === 'Bool_literal') {
-  //   return {type: globalNamespace.get('bool')};
-  // }
-  // if (exp.__type === 'Character_literal') {
-  //   return {type: globalNamespace.get('char')};
-  // }
+  if (exp.__type === 'Bool_literal') {
+    return {type: state.builtins.bool};
+  }
+  if (exp.__type === 'Character_literal') {
+    return {type: state.builtins.char};
+  }
   // if (exp.__type === 'In_place_assignment') {
   //   const sub = analyse_expression(exp.target);
   //   return {type: sub.type};
   // }
-  // if (exp.__type === 'String_literal') {
-  //   return {type: globalNamespace.get('str')};
-  // }
-  // if (exp.__type === 'Unary_operation') {
-  //   return analyse_expression(exp.operand, type_hint, scope);
-  // }
+  if (exp.__type === 'String_literal') {
+    return {type: state.builtins.str};
+  }
+  if (exp.__type === 'Unary_operation') {
+    const operand = analyse_expression(state, exp.operand, scope);
+    if (exp.operator === '-') {
+      const type_def = state.types.get(operand.type.id);
+      invariant(type_def.__type === 'BuiltinType');
+      invariant(type_def.is_number && type_def.is_signed);
+      return operand;
+    }
+    if (exp.operator === '!') {
+      invariant(operand.type.id === state.builtins.bool.id);
+      return operand;
+    }
+    throw new Error(`invalid op "${exp.operator}"`);
+  }
   if (exp.__type === 'Identity_test') {
     const operand = analyse_expression(state, exp.operand, scope);
     const {id: variant_id} =
