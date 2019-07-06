@@ -291,10 +291,12 @@ function analyse_expression(state, exp, scope) {
     invariant(ref.__type === 'Value_reference');
     return {type: ref.type};
   }
-  // if (exp.__type === 'Function_call') {
-  //   // TODO: resolve function
-  //   return {type: null};
-  // }
+  if (exp.__type === 'Function_call') {
+    const spec = resolve_qualified_name(state, scope, exp.functionName);
+    invariant(spec.__type === 'Function');
+    const func_def = state.types.get(spec.id);
+    return {type: func_def.return_type};
+  }
   // if (exp.__type === 'Binary_operation') {
   //   // TODO: resolve operands
   //   return {type: null};

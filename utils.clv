@@ -24,6 +24,8 @@ enum Expression {
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
 }
 
+fn __has(): bool {}
+
 fn read_primary_expression(
   ref state: State,
   __read_expression: Function,
