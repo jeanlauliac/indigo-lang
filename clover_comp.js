@@ -240,6 +240,10 @@ function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
     const cond = analyse_expression(state, statement.condition, scope);
     invariant(cond == null || cond.type.id === state.builtins.bool.id);
+    analyse_statement(state, statement.consequent, scope);
+    if (statement.alternate != null) {
+      analyse_statement(state, statement.alternate, scope);
+    }
     return;
   }
 
