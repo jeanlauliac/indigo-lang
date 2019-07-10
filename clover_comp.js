@@ -331,10 +331,10 @@ function analyse_expression(state, exp, scope) {
     }
     invariant(false);
   }
-  // if (exp.__type === 'Binary_operation') {
-  //   // TODO: resolve operands
-  //   return {type: null};
-  // }
+  if (exp.__type === 'Binary_operation') {
+    // TODO: resolve operands
+    return {type: null};
+  }
   // throw new Error(`unknown "${exp.__type}"`);
   return {type: null};
 }
@@ -516,12 +516,12 @@ function writeExpression(expression) {
   }
   if (expression.__type === 'Binary_operation') {
     write('(');
-    writeExpression(expression.leftOperand);
+    writeExpression(expression.left_operand);
     let {operation} = expression;
     if (operation === '==') operation = '===';
     if (operation === '!=') operation = '!==';
     write(` ${operation} `);
-    writeExpression(expression.rightOperand);
+    writeExpression(expression.right_operand);
     write(')');
     return;
   }
@@ -804,11 +804,11 @@ function readExpression(state) {
 }
 
 function readAssignmentExpression(state) {
-  const leftOperand = readLogicalOrExpression(state);
-  if (!has_operator(state, '=')) return leftOperand;
+  const left_operand = readLogicalOrExpression(state);
+  if (!has_operator(state, '=')) return left_operand;
   read_token(state);
-  const rightOperand = readAssignmentExpression(state);
-  return {__type: 'Binary_operation', operation: '=', leftOperand, rightOperand};
+  const right_operand = readAssignmentExpression(state);
+  return {__type: 'Binary_operation', operation: '=', left_operand, right_operand};
 }
 
 const readSumExpression =
@@ -828,14 +828,14 @@ const readLogicalOrExpression =
 
 function makeLeftAssociativeOperatorReader(expressionReader, operators) {
   return state => {
-    let leftOperand = expressionReader(state);
+    let left_operand = expressionReader(state);
     while (state.token.__type === 'Operator' && operators.has(state.token.value)) {
       const operation = state.token.value;
       read_token(state);
-      const rightOperand = expressionReader(state);
-      leftOperand = {__type: 'Binary_operation', operation, leftOperand, rightOperand};
+      const right_operand = expressionReader(state);
+      left_operand = {__type: 'Binary_operation', operation, left_operand, right_operand};
     }
-    return leftOperand;
+    return left_operand;
   }
 }
 
