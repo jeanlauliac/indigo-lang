@@ -4,6 +4,10 @@ module.exports.__has = ____has;
 function ____has(collection, key, ) {
 }
 
+module.exports.__size = ____size;
+function ____size(collection, ) {
+}
+
 module.exports.read_primary_expression = __read_primary_expression;
 function __read_primary_expression(state, __read_expression, ) {
   if (identity_test(state.token, "String")) {
@@ -154,7 +158,7 @@ function __read_token(state, ) {
 
 module.exports.read_next_token = __read_next_token;
 function __read_next_token(state, ) {
-  if ((state.i === state.code.length)) {
+  if ((state.i === (state.code).length)) {
     return {__type: "End_of_file"};
   }
   if (__is_alpha(clone(access(state.code, state.i)), )) {
@@ -176,7 +180,7 @@ function __read_next_token(state, ) {
 module.exports.read_whitespace = __read_whitespace;
 function __read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
-  while (((state.i < state.code.length) && (whitespace.has(access(state.code, state.i))))) {
+  while (((state.i < (state.code).length) && (whitespace.has(access(state.code, state.i))))) {
     ++state.i;
   }
 }
@@ -186,7 +190,7 @@ function __read_identifier(state, ) {
   let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
   let value = access(state.code, state.i);
   ++state.i;
-  while (((state.i < state.code.length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
+  while (((state.i < (state.code).length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
     (value = (value + access(state.code, state.i)));
     ++state.i;
   }
@@ -222,7 +226,7 @@ module.exports.read_string_literal = __read_string_literal;
 function __read_string_literal(state, ) {
   ++state.i;
   let value = "";
-  while (((state.i < state.code.length) && (access(state.code, state.i) !== "\""))) {
+  while (((state.i < (state.code).length) && (access(state.code, state.i) !== "\""))) {
     if ((access(state.code, state.i) === "\\")) {
       ++state.i;
       (value = (value + __get_escaped_char(clone(access(state.code, state.i)), )));
@@ -231,7 +235,7 @@ function __read_string_literal(state, ) {
     }
     ++state.i;
   }
-  __invariant(clone((state.i < state.code.length)), );
+  __invariant(clone((state.i < (state.code).length)), );
   let token = {value: value, __type: "String"};
   ++state.i;
   return token;
@@ -240,17 +244,17 @@ function __read_string_literal(state, ) {
 module.exports.read_character_literal = __read_character_literal;
 function __read_character_literal(state, ) {
   ++state.i;
-  __invariant(clone((state.i < state.code.length)), );
+  __invariant(clone((state.i < (state.code).length)), );
   let value = "";
   if ((access(state.code, state.i) === "\\")) {
     ++state.i;
-    __invariant(clone((state.i < state.code.length)), );
+    __invariant(clone((state.i < (state.code).length)), );
     (value = __get_escaped_char(clone(access(state.code, state.i)), ));
   } else {
     (value = access(state.code, state.i));
   }
   ++state.i;
-  __invariant(clone(((state.i < state.code.length) && (access(state.code, state.i) === "'"))), );
+  __invariant(clone(((state.i < (state.code).length) && (access(state.code, state.i) === "'"))), );
   ++state.i;
   return {value: value, __type: "Character"};
 }

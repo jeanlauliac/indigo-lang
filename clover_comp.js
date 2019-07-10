@@ -332,8 +332,47 @@ function analyse_expression(state, exp, scope) {
     invariant(false);
   }
   if (exp.__type === 'Binary_operation') {
-    // TODO: resolve operands
-    return {type: null};
+    const left_op = analyse_expression(state, exp.left_operand, scope);
+    const right_op = analyse_expression(state, exp.right_operand, scope);
+    // invariant(left_op.type != null);
+    // invariant(right_op.type != null);
+    switch (exp.operation) {
+    case '&&':
+    case '||': {
+      invariant(left_op.type.id == state.builtins.bool.id);
+      invariant(right_op.type.id == state.builtins.bool.id);
+      return {type: state.builtins.bool};
+    }
+
+    case '+':
+    case '-': {
+      if (left_op.type != null) {
+        invariant(left_op.type.id === right_op.type.id);
+        const spec = state.types.get(left_op.type.id);
+        invariant(spec.__type === 'BuiltinType' && spec.is_number);
+      }
+      return {type: left_op.type};
+    }
+
+    case '<':
+    case '<=':
+    case '>':
+    case '>=':
+    case '==':
+    case '!=': {
+      if (left_op.type != null)
+        invariant(left_op.type.id === right_op.type.id);
+      return {type: state.builtins.bool};
+    }
+
+    case '=': {
+      invariant(left_op.type.id === right_op.type.id);
+      return {type: left_op.type.id};
+    }
+
+    default:
+      throw new Error(`unknown bin op "${exp.operation}"`);
+    }
   }
   // throw new Error(`unknown "${exp.__type}"`);
   return {type: null};
@@ -366,11 +405,11 @@ function resolve_qualified_name(state, scope, name) {
     const type = state.types.get(ref.type.id);
     if (type.__type === 'Struct') {
       const field = type.fields.get(name[i]);
-      invariant(field != null);
+      if (field == null) throw new Error(`cannot find field "${name[i]}"`);
       ref = {__type: 'Value_reference', type: field.type};
       continue;
     }
-    invariant(false);
+    throw new Error(`invalid access of "${name[i]}" on type "${type.__type}"`);
   }
   return ref;
 }
@@ -443,6 +482,12 @@ function writeExpression(expression) {
       write('.has(');
       writeExpression(expression.arguments[1].value);
       write('))');
+      return;
+    }
+    if (expression.functionName[0] === '__size') {
+      write('(');
+      writeExpression(expression.arguments[0].value);
+      write(').length');
       return;
     }
     if (expression.functionName[0] === '__push') {
