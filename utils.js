@@ -4,6 +4,10 @@ module.exports.__has = ____has;
 function ____has(collection, key, ) {
 }
 
+module.exports.__has_str = ____has_str;
+function ____has_str(collection, key, ) {
+}
+
 module.exports.__size = ____size;
 function ____size(collection, ) {
 }
@@ -196,7 +200,7 @@ function __read_whitespace(state, ) {
 module.exports.read_identifier = __read_identifier;
 function __read_identifier(state, ) {
   let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
-  let value = access(state.code, state.i);
+  let value = ("" + access(state.code, state.i));
   ++state.i;
   while (((state.i < (state.code).length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
     (value = (value + access(state.code, state.i)));

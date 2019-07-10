@@ -323,7 +323,6 @@ function analyse_expression(state, exp, scope) {
       // FIXME: remove!
       if (arg.type == null) continue;
 
-      // console.error("\n", arg, '>>>>>>', arg_def);
       invariant(arg.type.id === arg_def.type.id);
     }
 
@@ -355,6 +354,13 @@ function analyse_expression(state, exp, scope) {
     case '+':
     case '-': {
       if (left_op.type != null) {
+        if (
+          exp.operation === '+' &&
+          (left_op.type.id === state.builtins.str.id || left_op.type.id === state.builtins.char.id) &&
+          (right_op.type.id === state.builtins.str.id || right_op.type.id === state.builtins.char.id)
+        ) {
+          return {type: state.builtins.str};
+        }
         invariant(left_op.type.id === right_op.type.id);
         const spec = state.types.get(left_op.type.id);
         invariant(spec.__type === 'BuiltinType' && spec.is_number);
@@ -393,6 +399,21 @@ function analyse_expression(state, exp, scope) {
       return {type: {id: spec.id}};
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
+  }
+  if (exp.__type === 'Collection_access') {
+    const spec = resolve_qualified_name(state, scope, exp.collectionName);
+    const key = analyse_expression(state, exp.key, scope);
+    invariant(spec.__type === 'Value_reference');
+    if (spec.type.id === state.builtins.vec.id) {
+      invariant(key.type.id === state.builtins.u32.id);
+      return {type: spec.type.parameters[0]};
+    }
+    if (spec.type.id === state.builtins.str.id) {
+      invariant(key.type.id === state.builtins.u32.id);
+      return {type: state.builtins.char};
+    }
+    console.error(spec);
+    throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
   // throw new Error(`unknown "${exp.__type}"`);
   return {type: null};
@@ -495,7 +516,7 @@ function writeStatement(statement, indent) {
 
 function writeExpression(expression) {
   if (expression.__type === 'Function_call') {
-    if (expression.functionName[0] === '__has') {
+    if (expression.functionName[0].startsWith('__has')) {
       write('(');
       writeExpression(expression.arguments[0].value);
       write('.has(');

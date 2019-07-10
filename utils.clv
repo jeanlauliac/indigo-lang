@@ -26,6 +26,7 @@ enum Expression {
 }
 
 fn __has(collection: set, key: char): bool {}
+fn __has_str(collection: set, key: str): bool {}
 fn __size(collection: str): u32 {}
 fn __size_vec(collection: vec<u32>): u32 {}
 fn __zero(): u32 {}
@@ -206,7 +207,7 @@ fn read_next_token(ref state: State): Token {
   if (state.code[state.i] == '"') {
     return read_string_literal(&state);
   }
-  if (state.code[state.i] == "'") {
+  if (state.code[state.i] == '\'') {
     return read_character_literal(&state);
   }
   __die("unexpected character '" + state.code[state.i] + "'");
@@ -224,13 +225,13 @@ fn read_identifier(ref state: State): Token {
     "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
     "enum", "struct"];
 
-  let value = state.code[state.i];
+  let value = "" + state.code[state.i];
   ++state.i;
   while (state.i < __size(state.code) && is_alphanumeric(state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
-  if (__has(keywords, value)) {
+  if (__has_str(keywords, value)) {
     return Keyword {value};
   }
   return Identifier {value};
@@ -248,7 +249,7 @@ fn read_operator(ref state: State): Operator {
   let operators = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = state.code[state.i];
   ++state.i;
-  if (__has(operators, value + state.code[state.i])) {
+  if (__has_str(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
@@ -285,7 +286,7 @@ fn read_character_literal(ref state: State): Character {
     value = state.code[state.i];
   }
   ++state.i;
-  invariant(state.i < __size(state.code) && state.code[state.i] == "'");
+  invariant(state.i < __size(state.code) && state.code[state.i] == '\'');
   ++state.i;
   return Character {value: value};
 }
