@@ -27,6 +27,8 @@ enum Expression {
 
 fn __has(collection: set, key: char): bool {}
 fn __size(collection: str): u32 {}
+fn __size_vec(collection: vec<u32>): u32 {}
+fn __zero(): u32 {}
 
 fn read_primary_expression(
   ref state: State,
@@ -85,7 +87,7 @@ fn read_primary_expression(
     return Collection_literal {dataType, values};
   }
 
-  let qualified_name = None {};
+  let qualified_name = vec [];
   if (has_identifier(state)) {
     qualified_name = read_qualified_name(&state);
   }
@@ -113,7 +115,7 @@ fn read_primary_expression(
     read_token(&state);
     return Object_literal {typeName: qualified_name, fields};
   }
-  invariant(qualified_name isnt None);
+  invariant(__size_vec(qualified_name) > __zero());
 
   if (has_operator(state, "[")) {
     read_token(&state);

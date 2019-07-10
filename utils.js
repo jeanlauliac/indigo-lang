@@ -8,6 +8,14 @@ module.exports.__size = ____size;
 function ____size(collection, ) {
 }
 
+module.exports.__size_vec = ____size_vec;
+function ____size_vec(collection, ) {
+}
+
+module.exports.__zero = ____zero;
+function ____zero() {
+}
+
 module.exports.read_primary_expression = __read_primary_expression;
 function __read_primary_expression(state, __read_expression, ) {
   if (identity_test(state.token, "String")) {
@@ -58,7 +66,7 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     return {dataType: dataType, values: values, __type: "Collection_literal"};
   }
-  let qualified_name = {__type: "None"};
+  let qualified_name = [];
   if (__has_identifier(clone(state), )) {
     (qualified_name = __read_qualified_name(state, ));
   }
@@ -85,7 +93,7 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     return {typeName: qualified_name, fields: fields, __type: "Object_literal"};
   }
-  __invariant(clone(!identity_test(qualified_name, "None")), );
+  __invariant(clone(((qualified_name).length > 0)), );
   if (__has_operator(clone(state), clone("["), )) {
     __read_token(state, );
     let key = __read_expression(state, );

@@ -382,12 +382,23 @@ function analyse_expression(state, exp, scope) {
       throw new Error(`unknown bin op "${exp.operation}"`);
     }
   }
+  if (exp.__type === 'Object_literal') {
+    const spec = resolve_qualified_name(state, scope, exp.typeName);
+    invariant(spec.__type === 'Type');
+    const type = state.types.get(spec.id);
+    if (type.__type === 'Enum_variant') {
+      return {type: {id: type.enum_id}};
+    }
+    if (type.__type === 'Struct') {
+      return {type: {id: spec.id}};
+    }
+    throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
+  }
   // throw new Error(`unknown "${exp.__type}"`);
   return {type: null};
 }
 
 function resolve_type(state, scope, type) {
-  const name = type.name[0];
   const spec = resolve_qualified_name(state, scope, type.name);
 
   invariant(spec.__type === 'Type');
@@ -492,7 +503,11 @@ function writeExpression(expression) {
       write('))');
       return;
     }
-    if (expression.functionName[0] === '__size') {
+    if (expression.functionName[0] === '__zero') {
+      write('0');
+      return;
+    }
+    if (expression.functionName[0].startsWith('__size')) {
       write('(');
       writeExpression(expression.arguments[0].value);
       write(').length');
@@ -561,7 +576,7 @@ function writeExpression(expression) {
       }
       write(', ');
     }
-    if (expression.typeName.__type !== 'None') {
+    if (expression.typeName.length > 0) {
       write(`__type: ${JSON.stringify(expression.typeName.join('.'))}`);
     }
     write('}');
