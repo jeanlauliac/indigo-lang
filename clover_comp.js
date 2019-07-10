@@ -266,10 +266,18 @@ function analyse_expression(state, exp, scope) {
   if (exp.__type === 'Character_literal') {
     return {type: state.builtins.char};
   }
-  // if (exp.__type === 'In_place_assignment') {
-  //   const sub = analyse_expression(exp.target);
-  //   return {type: sub.type};
-  // }
+  if (exp.__type === 'In_place_assignment') {
+    const operand = analyse_expression(exp.target);
+    switch (exp.operation) {
+      case '++': {
+        const type = state.types.get(operand.type.id);
+        invariant(type.__type === 'BuiltinType' && type.is_number);
+        return operand;
+      }
+      default:
+        invariant(false);
+    }
+  }
   if (exp.__type === 'String_literal') {
     return {type: state.builtins.str};
   }
