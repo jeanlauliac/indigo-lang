@@ -248,7 +248,6 @@ function analyse_statement(state, statement, scope) {
     return;
   }
   if (statement.__type === 'Variable_declaration') {
-    console.error(statement);
     const init_value = analyse_expression(state, statement.initialValue, scope);
     const id = get_unique_id(state);
     scope.names.set(statement.name, {__type: 'Value_reference',
@@ -313,12 +312,11 @@ function analyse_expression(state, exp, scope) {
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 
-      console.error(arg, exp.arguments[i].value);
       // FIXME: remove!
-      if (arg == null) continue;
+      if (arg.type == null) continue;
 
-      console.error(arg);
-      // invariant(arg.type.id === arg_def.type.id);
+      // console.error("\n", arg, '>>>>>>', arg_def);
+      invariant(arg.type.id === arg_def.type.id);
     }
 
     const func_def = state.types.get(spec.id);
