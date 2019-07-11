@@ -240,13 +240,14 @@ function get_unique_id(state) {
 function analyse_statement(state, statement, scope) {
   if (statement.__type === 'If') {
     const cond = analyse_expression(state, statement.condition, scope);
-    invariant(cond.type == null || cond.type.id === state.builtins.bool.id);
+    invariant(cond.type.id === state.builtins.bool.id);
     analyse_statement(state, statement.consequent, scope);
     if (statement.alternate != null) {
       analyse_statement(state, statement.alternate, scope);
     }
     return;
   }
+
   if (statement.__type === 'Variable_declaration') {
     const init_value = analyse_expression(state, statement.initialValue, scope);
     const id = get_unique_id(state);
@@ -263,9 +264,11 @@ function analyse_expression(state, exp, scope) {
   if (exp.__type === 'Bool_literal') {
     return {type: state.builtins.bool};
   }
+
   if (exp.__type === 'Character_literal') {
     return {type: state.builtins.char};
   }
+
   if (exp.__type === 'In_place_assignment') {
     const operand = analyse_expression(exp.target);
     switch (exp.operation) {
@@ -278,9 +281,11 @@ function analyse_expression(state, exp, scope) {
         invariant(false);
     }
   }
+
   if (exp.__type === 'String_literal') {
     return {type: state.builtins.str};
   }
+
   if (exp.__type === 'Unary_operation') {
     const operand = analyse_expression(state, exp.operand, scope);
     if (exp.operator === '-') {
@@ -295,6 +300,7 @@ function analyse_expression(state, exp, scope) {
     }
     throw new Error(`invalid op "${exp.operator}"`);
   }
+
   if (exp.__type === 'Identity_test') {
     const operand = analyse_expression(state, exp.operand, scope);
     const {id: variant_id} =
@@ -304,11 +310,13 @@ function analyse_expression(state, exp, scope) {
     invariant(variant.enum_id === operand.type.id);
     return {type: state.builtins.bool};
   }
+
   if (exp.__type === 'Qualified_name') {
     const ref = resolve_qualified_name(state, scope, exp.value);
     invariant(ref.__type === 'Value_reference');
     return {type: ref.type};
   }
+
   if (exp.__type === 'Function_call') {
     const spec = resolve_qualified_name(state, scope, exp.functionName);
     invariant(spec.__type === 'Function');
@@ -329,6 +337,7 @@ function analyse_expression(state, exp, scope) {
     const func_def = state.types.get(spec.id);
     return {type: func_def.return_type};
   }
+
   if (exp.__type === 'Collection_literal') {
     if (exp.dataType === 'set') {
       return state.builtins.set;
@@ -338,11 +347,10 @@ function analyse_expression(state, exp, scope) {
     }
     invariant(false);
   }
+
   if (exp.__type === 'Binary_operation') {
     const left_op = analyse_expression(state, exp.left_operand, scope);
     const right_op = analyse_expression(state, exp.right_operand, scope);
-    // invariant(left_op.type != null);
-    // invariant(right_op.type != null);
     switch (exp.operation) {
     case '&&':
     case '||': {
@@ -353,18 +361,16 @@ function analyse_expression(state, exp, scope) {
 
     case '+':
     case '-': {
-      if (left_op.type != null) {
-        if (
-          exp.operation === '+' &&
-          (left_op.type.id === state.builtins.str.id || left_op.type.id === state.builtins.char.id) &&
-          (right_op.type.id === state.builtins.str.id || right_op.type.id === state.builtins.char.id)
-        ) {
-          return {type: state.builtins.str};
-        }
-        invariant(left_op.type.id === right_op.type.id);
-        const spec = state.types.get(left_op.type.id);
-        invariant(spec.__type === 'BuiltinType' && spec.is_number);
+      if (
+        exp.operation === '+' &&
+        (left_op.type.id === state.builtins.str.id || left_op.type.id === state.builtins.char.id) &&
+        (right_op.type.id === state.builtins.str.id || right_op.type.id === state.builtins.char.id)
+      ) {
+        return {type: state.builtins.str};
       }
+      invariant(left_op.type.id === right_op.type.id);
+      const spec = state.types.get(left_op.type.id);
+      invariant(spec.__type === 'BuiltinType' && spec.is_number);
       return {type: left_op.type};
     }
 
@@ -374,8 +380,7 @@ function analyse_expression(state, exp, scope) {
     case '>=':
     case '==':
     case '!=': {
-      if (left_op.type != null)
-        invariant(left_op.type.id === right_op.type.id);
+      invariant(left_op.type.id === right_op.type.id);
       return {type: state.builtins.bool};
     }
 
@@ -388,6 +393,7 @@ function analyse_expression(state, exp, scope) {
       throw new Error(`unknown bin op "${exp.operation}"`);
     }
   }
+
   if (exp.__type === 'Object_literal') {
     const spec = resolve_qualified_name(state, scope, exp.typeName);
     invariant(spec.__type === 'Type');
@@ -400,6 +406,7 @@ function analyse_expression(state, exp, scope) {
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
   }
+
   if (exp.__type === 'Collection_access') {
     const spec = resolve_qualified_name(state, scope, exp.collectionName);
     const key = analyse_expression(state, exp.key, scope);
@@ -412,11 +419,9 @@ function analyse_expression(state, exp, scope) {
       invariant(key.type.id === state.builtins.u32.id);
       return {type: state.builtins.char};
     }
-    console.error(spec);
     throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
-  // throw new Error(`unknown "${exp.__type}"`);
-  return {type: null};
+  throw new Error(`unknown "${exp.__type}"`);
 }
 
 function resolve_type(state, scope, type) {
