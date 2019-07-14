@@ -6,6 +6,7 @@ enum Token {
   Operator {value: str},
   String {value: str},
   Character {value: char},
+  Identifier {value: str},
 }
 
 struct State {

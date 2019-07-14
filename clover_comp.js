@@ -264,7 +264,7 @@ function analyse_statement(state, statement, scope) {
   }
 
   if (statement.__type === 'Return') {
-    // const value = analyse_expression(state, statement.value, scope);
+    const value = analyse_expression(state, statement.value, scope);
     // FIXME: check correct return type
     return;
   }
@@ -388,7 +388,7 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'Binary_operation') {
-    const left_op = analyse_expression(state, exp.left_operand, scope);
+    const left_op = analyse_expression(state, exp.left_operand, scope, refims);
 
     if (exp.operation === '&&') {
       invariant(left_op.type.id == state.builtins.bool.id);
@@ -502,16 +502,35 @@ function resolve_qualified_name(state, scope, name, refims) {
   const value_id = ref.id;
   const path = [];
   let {type} = ref;
+  let refim = refims && refims.get(value_id);
   for (let i = 1; i < name.length; ++i) {
     const type_spec = state.types.get(type.id);
+    const field_name = name[i];
+
     if (type_spec.__type === 'Struct') {
-      const field_spec = type_spec.fields.get(name[i]);
-      if (field_spec == null) throw new Error(`cannot find field "${name[i]}"`);
+      const field_spec = type_spec.fields.get(field_name);
+      if (field_spec == null) throw new Error(`cannot find field "${field_name}"`);
       ({type} = field_spec);
-      path.push({__type: 'Field', name: name[i]});
+      refim = refim && refim.fields && refim.fields.get(field_name);
+      path.push({__type: 'Field', name: field_name});
       continue;
     }
-    throw new Error(`invalid access of "${name[i]}" on type "${type.__type}" ("${name.join('.')}")`);
+
+    if (type_spec.__type === 'Enum') {
+      invariant(refim && refim.variant_id);
+      const variant_spec = state.types.get(refim.variant_id);
+      invariant(variant_spec.__type === 'Enum_variant');
+
+      const field_spec = variant_spec.fields.get(field_name);
+      if (field_spec == null) throw new Error(`cannot find field "${field_name}"`);
+      ({type} = field_spec);
+      refim = refim && refim.fields && refim.fields.get(field_name);
+      path.push({__type: 'Field', name: field_name});
+      continue;
+    }
+
+    throw new Error(`invalid access of "${name[i]}" on type ` +
+        `"${type_spec.__type}" ("${name.join('.')}")`);
   }
   return {__type: 'Reference', value_id, path, type};
 }
