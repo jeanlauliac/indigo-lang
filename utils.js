@@ -48,7 +48,7 @@ function __read_primary_expression(state, __read_expression, ) {
     let operator = state.token.value;
     __read_token(state, );
     let target = __read_primary_expression(state, clone(__read_expression), );
-    return {operator: operator, target: target, is_prefix: true, __type: "In_place_assignment"};
+    return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment"};
   }
   if ((__has_operator(clone(state), clone("!"), ) || __has_operator(clone(state), clone("-"), ))) {
     let operator = state.token.value;

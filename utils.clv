@@ -61,7 +61,8 @@ fn read_primary_expression(
     let operator = state.token.value;
     read_token(&state);
     let target = read_primary_expression(&state, __read_expression);
-    return In_place_assignment {operator, target, is_prefix: true};
+    return In_place_assignment {operator, operation: "++",
+        target, is_prefix: true};
   }
 
   if (has_operator(state, "!") || has_operator(state, "-")) {

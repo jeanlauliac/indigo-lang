@@ -259,7 +259,7 @@ function analyse_statement(state, statement, scope) {
   }
 
   if (statement.__type === 'Expression') {
-    // const value = analyse_expression(state, statement.value, scope);
+    const value = analyse_expression(state, statement.value, scope);
     return;
   }
 
@@ -272,6 +272,7 @@ function analyse_statement(state, statement, scope) {
   if (statement.__type === 'While_loop') {
     const cond = analyse_expression(state, statement.condition, scope);
     invariant(cond.type.id === state.builtins.bool.id);
+    analyse_statement(state, statement.body, scope);
     return;
   }
 
@@ -301,9 +302,8 @@ function analyse_expression(state, exp, scope, refims) {
         invariant(type.__type === 'BuiltinType' && type.is_number);
         return operand;
       }
-      default:
-        invariant(false);
     }
+    throw new Error(`unknown op "${exp.operation}"`);
   }
 
   if (exp.__type === 'String_literal') {
