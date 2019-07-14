@@ -103,7 +103,8 @@ function resolveModule(module) {
     for (const arg_id of func_type.argument_ids) {
       const arg = state.types.get(arg_id);
       func_scope.names.set(arg.name,
-          {__type: 'Value_reference', id: arg_id, type: arg.type});
+          {__type: 'Value_reference', type: arg.type,
+              reference: {__type: 'Local', id: arg_id}});
     }
     for (const st of decl.statements) {
       analyse_statement(state, st, func_scope);
@@ -252,7 +253,7 @@ function analyse_statement(state, statement, scope) {
     const init_value = analyse_expression(state, statement.initialValue, scope);
     const id = get_unique_id(state);
     scope.names.set(statement.name, {__type: 'Value_reference',
-        id, type: init_value.type});
+        type: init_value.type, reference: {__type: 'Local', id}});
     state.types.set(id, {__type: 'Variable',
         type: init_value.type});
     return;
@@ -326,19 +327,23 @@ function analyse_expression(state, exp, scope) {
   }
 
   if (exp.__type === 'Identity_test') {
-    const operand = analyse_expression(state, exp.operand, scope);
     const {id: variant_id} =
         resolve_type(state, scope, {name: exp.variant, parameters: []});
     const variant = state.types.get(variant_id);
     invariant(variant.__type === 'Enum_variant');
+
+    const operand = analyse_expression(state, exp.operand, scope);
+    invariant(operand.reference != null);
+
     invariant(variant.enum_id === operand.type.id);
-    return {type: state.builtins.bool};
+
+    return {type: state.builtins.bool, refinements: operand.refinements};
   }
 
   if (exp.__type === 'Qualified_name') {
-    const ref = resolve_qualified_name(state, scope, exp.value);
-    invariant(ref.__type === 'Value_reference');
-    return {type: ref.type};
+    const res = resolve_qualified_name(state, scope, exp.value);
+    invariant(res.__type === 'Value_reference');
+    return {type: res.type, reference: res.reference};
   }
 
   if (exp.__type === 'Function_call') {
@@ -475,7 +480,8 @@ function resolve_qualified_name(state, scope, name) {
     if (type.__type === 'Struct') {
       const field = type.fields.get(name[i]);
       if (field == null) throw new Error(`cannot find field "${name[i]}"`);
-      ref = {__type: 'Value_reference', type: field.type};
+      ref = {__type: 'Value_reference', type: field.type,
+          reference: {__type: 'Field', name: name[i], object: ref}};
       continue;
     }
     throw new Error(`invalid access of "${name[i]}" on type "${type.__type}" ("${name.join('.')}")`);
