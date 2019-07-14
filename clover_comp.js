@@ -103,8 +103,7 @@ function resolveModule(module) {
     for (const arg_id of func_type.argument_ids) {
       const arg = state.types.get(arg_id);
       func_scope.names.set(arg.name,
-          {__type: 'Value_reference', type: arg.type,
-              reference: {__type: 'Local', id: arg_id}});
+          {__type: 'Value_reference', type: arg.type, id: arg_id});
     }
     for (const st of decl.statements) {
       analyse_statement(state, st, func_scope);
@@ -253,7 +252,7 @@ function analyse_statement(state, statement, scope) {
     const init_value = analyse_expression(state, statement.initialValue, scope);
     const id = get_unique_id(state);
     scope.names.set(statement.name, {__type: 'Value_reference',
-        type: init_value.type, reference: {__type: 'Local', id}});
+        type: init_value.type, id});
     state.types.set(id, {__type: 'Variable',
         type: init_value.type});
     return;
@@ -333,17 +332,28 @@ function analyse_expression(state, exp, scope) {
     invariant(variant.__type === 'Enum_variant');
 
     const operand = analyse_expression(state, exp.operand, scope);
-    invariant(operand.reference != null);
-
     invariant(variant.enum_id === operand.type.id);
 
-    return {type: state.builtins.bool, refinements: operand.refinements};
+    const {reference} = operand;
+    invariant(reference != null);
+    const {path} = reference;
+    let target = {variant_id};
+    for (let i = path.length - 1; i >= 0; --i) {
+      const item = path[i];
+      invariant(item.__type === 'Field');
+      target = {fields: new Map([[item.name, target]])};
+    }
+    const refinements = new Map();
+    refinements.set(reference.value_id, target);
+
+    return {type: state.builtins.bool, refinements};
   }
 
   if (exp.__type === 'Qualified_name') {
     const res = resolve_qualified_name(state, scope, exp.value);
-    invariant(res.__type === 'Value_reference');
-    return {type: res.type, reference: res.reference};
+    invariant(res.__type === 'Reference');
+    return {type: res.type, reference: {
+        value_id: res.value_id, path: res.path}};
   }
 
   if (exp.__type === 'Function_call') {
@@ -439,7 +449,7 @@ function analyse_expression(state, exp, scope) {
   if (exp.__type === 'Collection_access') {
     const spec = resolve_qualified_name(state, scope, exp.collectionName);
     const key = analyse_expression(state, exp.key, scope);
-    invariant(spec.__type === 'Value_reference');
+    invariant(spec.__type === 'Reference');
     if (spec.type.id === state.builtins.vec.id) {
       invariant(key.type.id === state.builtins.u32.id);
       return {type: spec.type.parameters[0]};
@@ -473,20 +483,26 @@ function resolve_type(state, scope, type) {
 
 function resolve_qualified_name(state, scope, name) {
   invariant(name.length >= 1);
-  let ref = resolve_name(scope, name[0]);
+  const ref = resolve_name(scope, name[0]);
+  if (ref.__type === 'Type' || ref.__type === 'Function') {
+    return ref;
+  }
+  invariant(ref.__type === 'Value_reference');
+  const value_id = ref.id;
+  const path = [];
+  let {type} = ref;
   for (let i = 1; i < name.length; ++i) {
-    invariant(ref.__type === 'Value_reference');
-    const type = state.types.get(ref.type.id);
-    if (type.__type === 'Struct') {
-      const field = type.fields.get(name[i]);
-      if (field == null) throw new Error(`cannot find field "${name[i]}"`);
-      ref = {__type: 'Value_reference', type: field.type,
-          reference: {__type: 'Field', name: name[i], object: ref}};
+    const type_spec = state.types.get(type.id);
+    if (type_spec.__type === 'Struct') {
+      const field_spec = type_spec.fields.get(name[i]);
+      if (field_spec == null) throw new Error(`cannot find field "${name[i]}"`);
+      ({type} = field_spec);
+      path.push({__type: 'Field', name: name[i]});
       continue;
     }
     throw new Error(`invalid access of "${name[i]}" on type "${type.__type}" ("${name.join('.')}")`);
   }
-  return ref;
+  return {__type: 'Reference', value_id, path, type};
 }
 
 function resolve_name(scope, name) {
