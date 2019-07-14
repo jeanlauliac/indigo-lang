@@ -284,7 +284,7 @@ function analyse_statement(state, statement, scope) {
 
 }
 
-function analyse_expression(state, exp, scope) {
+function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Bool_literal') {
     return {type: state.builtins.bool};
   }
@@ -350,7 +350,7 @@ function analyse_expression(state, exp, scope) {
   }
 
   if (exp.__type === 'Qualified_name') {
-    const res = resolve_qualified_name(state, scope, exp.value);
+    const res = resolve_qualified_name(state, scope, exp.value, refims);
     invariant(res.__type === 'Reference');
     return {type: res.type, reference: {
         value_id: res.value_id, path: res.path}};
@@ -389,9 +389,19 @@ function analyse_expression(state, exp, scope) {
 
   if (exp.__type === 'Binary_operation') {
     const left_op = analyse_expression(state, exp.left_operand, scope);
+
+    if (exp.operation === '&&') {
+      invariant(left_op.type.id == state.builtins.bool.id);
+
+      const right_op = analyse_expression(state, exp.right_operand, scope, left_op.refinements);
+      invariant(right_op.type.id == state.builtins.bool.id);
+
+      return {type: state.builtins.bool};
+    }
+
     const right_op = analyse_expression(state, exp.right_operand, scope);
+
     switch (exp.operation) {
-    case '&&':
     case '||': {
       invariant(left_op.type.id == state.builtins.bool.id);
       invariant(right_op.type.id == state.builtins.bool.id);
@@ -448,7 +458,7 @@ function analyse_expression(state, exp, scope) {
   }
 
   if (exp.__type === 'Collection_access') {
-    const spec = resolve_qualified_name(state, scope, exp.collectionName);
+    const spec = resolve_qualified_name(state, scope, exp.collectionName, refims);
     const key = analyse_expression(state, exp.key, scope);
     invariant(spec.__type === 'Reference');
     if (spec.type.id === state.builtins.vec.id) {
@@ -482,7 +492,7 @@ function resolve_type(state, scope, type) {
   return {id, parameters};
 }
 
-function resolve_qualified_name(state, scope, name) {
+function resolve_qualified_name(state, scope, name, refims) {
   invariant(name.length >= 1);
   const ref = resolve_name(scope, name[0]);
   if (ref.__type === 'Type' || ref.__type === 'Function') {
