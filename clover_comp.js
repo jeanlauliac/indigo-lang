@@ -425,7 +425,8 @@ function analyse_expression(state, exp, scope) {
 
     case '=': {
       invariant(left_op.type.id === right_op.type.id);
-      return {type: left_op.type.id};
+      invariant(left_op.reference != null);
+      return {type: left_op.type, reference: left_op.reference};
     }
 
     default:
