@@ -258,6 +258,30 @@ function analyse_statement(state, statement, scope) {
     return;
   }
 
+  if (statement.__type === 'Expression') {
+    // const value = analyse_expression(state, statement.value, scope);
+    return;
+  }
+
+  if (statement.__type === 'Return') {
+    // const value = analyse_expression(state, statement.value, scope);
+    // FIXME: check correct return type
+    return;
+  }
+
+  if (statement.__type === 'While_loop') {
+    const cond = analyse_expression(state, statement.condition, scope);
+    invariant(cond.type.id === state.builtins.bool.id);
+    return;
+  }
+
+  if (statement.__type === 'Block') {
+
+    return;
+  }
+
+  throw new Error(`unknown statement type "${statement.__type}"`);
+
 }
 
 function analyse_expression(state, exp, scope) {
@@ -270,7 +294,7 @@ function analyse_expression(state, exp, scope) {
   }
 
   if (exp.__type === 'In_place_assignment') {
-    const operand = analyse_expression(exp.target);
+    const operand = analyse_expression(state, exp.target, scope);
     switch (exp.operation) {
       case '++': {
         const type = state.types.get(operand.type.id);
@@ -454,7 +478,7 @@ function resolve_qualified_name(state, scope, name) {
       ref = {__type: 'Value_reference', type: field.type};
       continue;
     }
-    throw new Error(`invalid access of "${name[i]}" on type "${type.__type}"`);
+    throw new Error(`invalid access of "${name[i]}" on type "${type.__type}" ("${name.join('.')}")`);
   }
   return ref;
 }

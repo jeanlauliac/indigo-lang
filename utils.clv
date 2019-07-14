@@ -30,6 +30,7 @@ fn __has_str(collection: set, key: str): bool {}
 fn __size(collection: str): u32 {}
 fn __size_vec(collection: vec<u32>): u32 {}
 fn __zero(): u32 {}
+fn __die(message: str) {}
 
 fn read_primary_expression(
   ref state: State,

@@ -20,6 +20,10 @@ module.exports.__zero = ____zero;
 function ____zero() {
 }
 
+module.exports.__die = ____die;
+function ____die(message, ) {
+}
+
 module.exports.read_primary_expression = __read_primary_expression;
 function __read_primary_expression(state, __read_expression, ) {
   if (identity_test(state.token, "String")) {
