@@ -394,15 +394,23 @@ function analyse_expression(state, exp, scope, refims) {
     if (exp.operation === '&&') {
       invariant(left_op.type.id == state.builtins.bool.id);
 
-      const right_refinements = merge_conditional_refinements(
+      const right_refinements = merge_refinements(
+          'Intersection',
           left_op.refinements,
           left_op.conditional_refinements);
       const right_op = analyse_expression(state, exp.right_operand,
           scope, right_refinements);
       invariant(right_op.type.id == state.builtins.bool.id);
-      const {refinements} = right_op;
+      const refinements = merge_refinements(
+          'Union',
+          left_op.refinements,
+          right_op.refinements);
+      const conditional_refinements = merge_refinements(
+          'Intersection',
+          left_op.conditional_refinements,
+          right_op.conditional_refinements);
 
-      return {type: state.builtins.bool, refinements};
+      return {type: state.builtins.bool, refinements, conditional_refinements};
     }
 
     const right_op = analyse_expression(state, exp.right_operand, scope);
@@ -480,60 +488,71 @@ function analyse_expression(state, exp, scope, refims) {
   throw new Error(`unknown "${exp.__type}"`);
 }
 
-function merge_conditional_refinements(refims, cond_refims) {
+function merge_refinements(method, refims, right_refims) {
+  invariant(method === 'Intersection' || method === 'Union');
+ 
   if (refims == null) {
     refims = new Map();
   }
-  if (cond_refims == null) {
-    cond_refims = new Map();
+  if (right_refims == null) {
+    right_refims = new Map();
   }
 
   const result = new Map();
   for (const [value_id, entry] of refims.entries()) {
-    const cond_entry = cond_refims.get(value_id);
-    if (cond_entry == null) {
+    const right_entry = right_refims.get(value_id);
+    if (right_entry == null) {
       result.set(value_id, entry);
       continue;
     }
-    result.set(value_id, merge_conditional_refinement_entry(entry, cond_entry));
+    result.set(value_id, merge_refinement_entry(method, entry, right_entry));
   }
-  for (const [value_id, cond_entry] of cond_refims.entries()) {
+  for (const [value_id, right_entry] of right_refims.entries()) {
     if (result.has(value_id)) continue;
-    result.set(value_id, cond_entry);
+    result.set(value_id, right_entry);
   }
   return result;
 }
 
-function merge_conditional_refinement_entry(entry, cond_entry) {
+function merge_refinement_entry(method, entry, right_entry) {
+  invariant(method === 'Intersection' || method === 'Union');
+
   let variants_ids;
 
-  if (entry.variant_ids != null && cond_entry.variant_ids == null) {
-    ({variant_ids} = entry);
-  } else if (entry.variant_ids == null && cond_entry.variant_ids != null) {
-    ({variant_ids} = cond_entry);
-  } else if (entry.variant_ids != null && cond_entry.variant_ids != null) {
+  if (entry.variant_ids != null && right_entry.variant_ids == null) {
+    if (method === 'Intersection') ({variant_ids} = entry);
+  } else if (entry.variant_ids == null && right_entry.variant_ids != null) {
+    if (method === 'Intersection') ({variant_ids} = right_entry);
+  } else if (entry.variant_ids != null && right_entry.variant_ids != null) {
     const possible_ids = new Set(entry.variant_ids);
-    variant_ids = [];
-    for (const id of cond_entry.variant_ids) {
-      if (possible_ids.has(id)) {
-        variant_ids.push(id);
+    if (method === 'Union') {
+      for (const id of right_entry.variant_ids) {
+        possible_ids.add(id);
       }
+      variant_ids = Array.from(possible_ids);
+    } else {
+      variant_ids = [];
+      for (const id of right_entry.variant_ids) {
+        if (possible_ids.has(id)) {
+          variant_ids.push(id);
+        }
+      }
+      invariant(variant_ids.length > 0);
     }
-    invariant(variant_ids.length > 0);
   }
 
   const fields = new Map();
   for (const [name, field] of entry.fields.entries()) {
-    const cond_field = cond_entry.get(name);
-    if (cond_field == null) {
+    const right_field = right_entry.get(name);
+    if (right_field == null) {
       fields.set(name, field);
       continue;
     }
-    fields.set(value_id, merge_conditional_refinement_entry(field, cond_field));
+    fields.set(value_id, merge_refinement_entry(method, field, right_field));
   }
-  for (const [name, cond_field] of cond_refims.fields.entries()) {
+  for (const [name, right_field] of right_refims.fields.entries()) {
     if (fields.has(name)) continue;
-    fields.set(name, cond_field);
+    fields.set(name, right_field);
   }
 
   return {variant_ids, fields};
