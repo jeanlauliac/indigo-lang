@@ -57,6 +57,14 @@ fn read_primary_expression(
     return Bool_literal {value: false};
   }
 
+  if (has_operator(state, "(")) {
+    read_token(&state);
+    let expression = read_expression(&state);
+    invariant(has_operator(state, ")"));
+    read_token(&state);
+    return expression;
+  }
+
   if (state.token is Operator && has_operator(state, "++")) {
     let operator = state.token.value;
     read_token(&state);
@@ -65,7 +73,7 @@ fn read_primary_expression(
         target, is_prefix: true};
   }
 
-  if (has_operator(state, "!") || has_operator(state, "-")) {
+  if (state.token is Operator && (has_operator(state, "!") || has_operator(state, "-"))) {
     let operator = state.token.value;
     read_token(&state);
     let operand = read_primary_expression(&state, __read_expression);
