@@ -296,7 +296,8 @@ function analyse_statement(state, statement, scope, refims) {
     const {statements} = statement;
     // console.error(refims);
     analyse_statement(state, statements[0], scope, refims);
-    // if (statements[1]) analyse_statement(state, statements[1], scope, refims);
+    if (statements[1]) analyse_statement(state, statements[1], scope, refims);
+    // if (statements[2]) analyse_statement(state, statements[2], scope, refims);
     return {};
   }
 
