@@ -93,6 +93,7 @@ function resolveModule(module) {
   // console.error(require('util').inspect(module_scope, {depth: 10}));
   build_module_types(state, module, declaration_ids, module_scope);
 
+  let refims = new Map();
 
   // Analyse functions
   for (const [index, decl] of module.declarations.entries()) {
@@ -106,7 +107,8 @@ function resolveModule(module) {
           {__type: 'Value_reference', type: arg.type, id: arg_id});
     }
     for (const st of decl.statements) {
-      analyse_statement(state, st, func_scope);
+      const res = analyse_statement(state, st, func_scope, refims);
+      refims = res.refinements;
     }
   }
 
@@ -237,15 +239,25 @@ function get_unique_id(state) {
   return state.next_id++;
 }
 
-function analyse_statement(state, statement, scope) {
+function analyse_statement(state, statement, scope, refims) {
   if (statement.__type === 'If') {
-    const cond = analyse_expression(state, statement.condition, scope);
+    const cond = analyse_expression(state, statement.condition, scope, refims);
     invariant(cond.type.id === state.builtins.bool.id);
-    analyse_statement(state, statement.consequent, scope);
-    if (statement.alternate != null) {
-      analyse_statement(state, statement.alternate, scope);
+
+    const consequent_refims = merge_refinements('Intersection',
+        cond.refinements, cond.conditional_refinements);
+    const consequent = analyse_statement(state, statement.consequent,
+        scope, consequent_refims);
+
+    if (statement.alternate == null) {
+      return {refinements: merge_refinements('Union',
+          refims, consequent.refinements)};
     }
-    return;
+
+    const alternate = analyse_statement(state, statement.alternate,
+        scope, cond.refinements);
+    return {refinements: merge_refinements('Union',
+        consequent.refinements, alternate.refinements)}
   }
 
   if (statement.__type === 'Variable_declaration') {
@@ -255,31 +267,32 @@ function analyse_statement(state, statement, scope) {
         type: init_value.type, id});
     state.types.set(id, {__type: 'Variable',
         type: init_value.type});
-    return;
+    return {};
   }
 
   if (statement.__type === 'Expression') {
     const value = analyse_expression(state, statement.value, scope);
-    return;
+    return {refinements: value.refinements};
   }
 
   if (statement.__type === 'Return') {
     const value = analyse_expression(state, statement.value, scope);
     // FIXME: check correct return type
-    return;
+
+    return {refinements: value.refinements};
   }
 
   if (statement.__type === 'While_loop') {
     const cond = analyse_expression(state, statement.condition, scope);
     invariant(cond.type.id === state.builtins.bool.id);
     analyse_statement(state, statement.body, scope);
-    return;
+    return {};
   }
 
   if (statement.__type === 'Block') {
     const {statements} = statement;
     // analyse_statement(state, statements[0], scope);
-    return;
+    return {};
   }
 
   throw new Error(`unknown statement type "${statement.__type}"`);
