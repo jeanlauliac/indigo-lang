@@ -24,8 +24,12 @@ module.exports.__die = ____die;
 function ____die(message, ) {
 }
 
+module.exports.__read_expression = ____read_expression;
+function ____read_expression(state, ) {
+}
+
 module.exports.read_primary_expression = __read_primary_expression;
-function __read_primary_expression(state, __read_expression, ) {
+function __read_primary_expression(state, ) {
   if (identity_test(state.token, "String")) {
     let value = state.token.value;
     __read_token(state, );
@@ -46,7 +50,7 @@ function __read_primary_expression(state, __read_expression, ) {
   }
   if (__has_operator(clone(state), clone("("), )) {
     __read_token(state, );
-    let expression = __read_expression(state, );
+    let expression = global.__read_expression(state, );
     __invariant(clone(__has_operator(clone(state), clone(")"), )), );
     __read_token(state, );
     return expression;
@@ -54,13 +58,13 @@ function __read_primary_expression(state, __read_expression, ) {
   if ((identity_test(state.token, "Operator") && __has_operator(clone(state), clone("++"), ))) {
     let operator = state.token.value;
     __read_token(state, );
-    let target = __read_primary_expression(state, clone(__read_expression), );
+    let target = __read_primary_expression(state, );
     return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment"};
   }
   if ((identity_test(state.token, "Operator") && (__has_operator(clone(state), clone("!"), ) || __has_operator(clone(state), clone("-"), )))) {
     let operator = state.token.value;
     __read_token(state, );
-    let operand = __read_primary_expression(state, clone(__read_expression), );
+    let operand = __read_primary_expression(state, );
     return {operator: operator, operand: operand, __type: "Unary_operation"};
   }
   if ((identity_test(state.token, "Keyword") && (__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )))) {
@@ -70,7 +74,7 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     let values = [];
     while (!__has_operator(clone(state), clone("]"), )) {
-      let expression = __read_expression(state, );
+      let expression = global.__read_expression(state, );
       (values.push(expression));
       if (__has_operator(clone(state), clone(","), )) {
         __read_token(state, );
@@ -95,7 +99,7 @@ function __read_primary_expression(state, __read_expression, ) {
       let value = {__type: "None"};
       if (!is_shorthand) {
         __read_token(state, );
-        (value = __read_expression(state, ));
+        (value = global.__read_expression(state, ));
       }
       if (__has_operator(clone(state), clone(","), )) {
         __read_token(state, );
@@ -111,7 +115,7 @@ function __read_primary_expression(state, __read_expression, ) {
   __invariant(clone(((qualified_name).length > 0)), );
   if (__has_operator(clone(state), clone("["), )) {
     __read_token(state, );
-    let key = __read_expression(state, );
+    let key = global.__read_expression(state, );
     __invariant(clone(__has_operator(clone(state), clone("]"), )), );
     __read_token(state, );
     return {collectionName: qualified_name, key: key, __type: "Collection_access"};
@@ -120,7 +124,7 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     let arguments = [];
     while (!__has_operator(clone(state), clone(")"), )) {
-      (arguments.push(__read_call_argument(state, clone(__read_expression), )));
+      (arguments.push(__read_call_argument(state, )));
       if (__has_operator(clone(state), clone(","), )) {
         __read_token(state, );
       } else {
@@ -148,13 +152,13 @@ function __read_qualified_name(state, ) {
 }
 
 module.exports.read_call_argument = __read_call_argument;
-function __read_call_argument(state, __read_expression, ) {
+function __read_call_argument(state, ) {
   let is_by_reference = false;
   if (__has_operator(clone(state), clone("&"), )) {
     __read_token(state, );
     (is_by_reference = true);
   }
-  return {value: __read_expression(state, ), is_by_reference: is_by_reference, __type: "Call_argument"};
+  return {value: global.__read_expression(state, ), is_by_reference: is_by_reference, __type: "Call_argument"};
 }
 
 module.exports.has_keyword = __has_keyword;

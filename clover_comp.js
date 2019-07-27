@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+global.__read_expression = readExpression;
+
 const utils = require('./utils');
 const {has_keyword, has_operator, get_escaped_char,
   invariant, has_identifier, read_token, read_qualified_name} = utils;
@@ -294,6 +296,7 @@ function analyse_statement(state, statement, scope, refims) {
     const {statements} = statement;
     // console.error(refims);
     analyse_statement(state, statements[0], scope, refims);
+    // if (statements[1]) analyse_statement(state, statements[1], scope, refims);
     return {};
   }
 
@@ -752,6 +755,8 @@ function writeExpression(expression) {
       write("process.stdout.write(");
     } else if (expression.functionName[0] === '__die') {
       write("throw new Error(");
+    } else if (expression.functionName[0] === '__read_expression') {
+      write("global.__read_expression(");
     } else {
       write(`__${expression.functionName.join('.')}(`);
     }
@@ -1123,7 +1128,7 @@ function makeLeftAssociativeOperatorReader(expressionReader, operators) {
 }
 
 function readIdentityExpression(state) {
-  const operand = utils.read_primary_expression(state, readExpression);
+  const operand = utils.read_primary_expression(state);
   if (
     !has_keyword(state, 'isnt') &&
     !has_keyword(state, 'is')
