@@ -413,15 +413,28 @@ function analyse_expression(state, exp, scope, refims) {
       return {type: state.builtins.bool, refinements, conditional_refinements};
     }
 
-    const right_op = analyse_expression(state, exp.right_operand, scope);
-
-    switch (exp.operation) {
-    case '||': {
+    if (exp.operation === '||') {
       invariant(left_op.type.id == state.builtins.bool.id);
+
+      const right_op = analyse_expression(state, exp.right_operand,
+          scope, left_op.refinements);
       invariant(right_op.type.id == state.builtins.bool.id);
-      return {type: state.builtins.bool};
+      const refinements = merge_refinements(
+          'Union',
+          left_op.refinements,
+          right_op.refinements);
+      const conditional_refinements = merge_refinements(
+          'Union',
+          left_op.conditional_refinements,
+          right_op.conditional_refinements);
+
+      return {type: state.builtins.bool, refinements, conditional_refinements};
     }
 
+    const right_op = analyse_expression(state, exp.right_operand,
+        scope, refims);
+
+    switch (exp.operation) {
     case '+':
     case '-': {
       if (
@@ -459,7 +472,7 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'Object_literal') {
-    const spec = resolve_qualified_name(state, scope, exp.typeName);
+    const spec = resolve_qualified_name(state, scope, exp.typeName, refims);
     invariant(spec.__type === 'Type');
     const type = state.types.get(spec.id);
     if (type.__type === 'Enum_variant') {
@@ -490,7 +503,7 @@ function analyse_expression(state, exp, scope, refims) {
 
 function merge_refinements(method, refims, right_refims) {
   invariant(method === 'Intersection' || method === 'Union');
- 
+
   if (refims == null) {
     refims = new Map();
   }
