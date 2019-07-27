@@ -261,13 +261,14 @@ function analyse_statement(state, statement, scope, refims) {
   }
 
   if (statement.__type === 'Variable_declaration') {
-    const init_value = analyse_expression(state, statement.initialValue, scope);
+    const init_value = analyse_expression(state, statement.initialValue,
+        scope, refims);
     const id = get_unique_id(state);
     scope.names.set(statement.name, {__type: 'Value_reference',
         type: init_value.type, id});
     state.types.set(id, {__type: 'Variable',
         type: init_value.type});
-    return {};
+    return {refinements: init_value.refinements};
   }
 
   if (statement.__type === 'Expression') {
@@ -291,7 +292,8 @@ function analyse_statement(state, statement, scope, refims) {
 
   if (statement.__type === 'Block') {
     const {statements} = statement;
-    // analyse_statement(state, statements[0], scope);
+    // console.error(refims);
+    // analyse_statement(state, statements[0], scope, refims);
     return {};
   }
 
@@ -626,8 +628,7 @@ function resolve_qualified_name(state, scope, name, refims) {
       continue;
     }
 
-    if (type_spec.__type === 'Enum') {
-      invariant(refim && refim.variant_ids != null);
+    if (type_spec.__type === 'Enum' && refim && refim.variant_ids != null) {
       invariant(refim.variant_ids.length === 1);
       const variant_spec = state.types.get(refim.variant_ids[0]);
       invariant(variant_spec.__type === 'Enum_variant');

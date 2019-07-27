@@ -44,7 +44,7 @@ function __read_primary_expression(state, __read_expression, ) {
     __read_token(state, );
     return {value: false, __type: "Bool_literal"};
   }
-  if (__has_operator(clone(state), clone("++"), )) {
+  if ((identity_test(state.token, "Operator") && __has_operator(clone(state), clone("++"), ))) {
     let operator = state.token.value;
     __read_token(state, );
     let target = __read_primary_expression(state, clone(__read_expression), );
