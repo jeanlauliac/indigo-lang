@@ -7,6 +7,7 @@ enum Token {
   String {value: str},
   Character {value: char},
   Identifier {value: str},
+  End_of_file,
 }
 
 struct State {
@@ -80,7 +81,7 @@ fn read_primary_expression(
     return Unary_operation {operator, operand};
   }
 
-  if (has_keyword(state, "set") || has_keyword(state, "vec")) {
+  if (state.token is Keyword && (has_keyword(state, "set") || has_keyword(state, "vec"))) {
     let dataType = state.token.value;
     read_token(&state);
     invariant(has_operator(state, "["));
@@ -258,7 +259,7 @@ fn is_alpha(c: char): bool {
 
 fn read_operator(ref state: State): Operator {
   let operators = set ["&&", "++", "==", "!=", "||", ">=", "<="];
-  let value = state.code[state.i];
+  let value = "" + state.code[state.i];
   ++state.i;
   if (__has_str(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
@@ -294,7 +295,7 @@ fn read_character_literal(ref state: State): Character {
     invariant(state.i < __size(state.code));
     value = get_escaped_char(state.code[state.i]);
   } else {
-    value = state.code[state.i];
+    value = "" + state.code[state.i];
   }
   ++state.i;
   invariant(state.i < __size(state.code) && state.code[state.i] == '\'');

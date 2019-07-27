@@ -63,7 +63,7 @@ function __read_primary_expression(state, __read_expression, ) {
     let operand = __read_primary_expression(state, clone(__read_expression), );
     return {operator: operator, operand: operand, __type: "Unary_operation"};
   }
-  if ((__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), ))) {
+  if ((identity_test(state.token, "Keyword") && (__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )))) {
     let dataType = state.token.value;
     __read_token(state, );
     __invariant(clone(__has_operator(clone(state), clone("["), )), );
@@ -236,7 +236,7 @@ function __is_alpha(c, ) {
 module.exports.read_operator = __read_operator;
 function __read_operator(state, ) {
   let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
-  let value = access(state.code, state.i);
+  let value = ("" + access(state.code, state.i));
   ++state.i;
   if ((operators.has((value + access(state.code, state.i))))) {
     (value = (value + access(state.code, state.i)));
@@ -274,7 +274,7 @@ function __read_character_literal(state, ) {
     __invariant(clone((state.i < (state.code).length)), );
     (value = __get_escaped_char(clone(access(state.code, state.i)), ));
   } else {
-    (value = access(state.code, state.i));
+    (value = ("" + access(state.code, state.i)));
   }
   ++state.i;
   __invariant(clone(((state.i < (state.code).length) && (access(state.code, state.i) === "'"))), );

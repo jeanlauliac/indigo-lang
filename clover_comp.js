@@ -293,7 +293,7 @@ function analyse_statement(state, statement, scope, refims) {
   if (statement.__type === 'Block') {
     const {statements} = statement;
     // console.error(refims);
-    // analyse_statement(state, statements[0], scope, refims);
+    analyse_statement(state, statements[0], scope, refims);
     return {};
   }
 
@@ -368,6 +368,7 @@ function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Qualified_name') {
     const res = resolve_qualified_name(state, scope, exp.value, refims);
     invariant(res.__type === 'Reference');
+
     return {type: res.type, reference: {
         value_id: res.value_id, path: res.path}};
   }
@@ -395,10 +396,10 @@ function analyse_expression(state, exp, scope, refims) {
 
   if (exp.__type === 'Collection_literal') {
     if (exp.dataType === 'set') {
-      return state.builtins.set;
+      return {type: state.builtins.set};
     }
     if (exp.dataType === 'vec') {
-      return state.builtins.vec;
+      return {type: state.builtins.vec};
     }
     invariant(false);
   }
