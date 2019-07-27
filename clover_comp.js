@@ -277,7 +277,8 @@ function analyse_statement(state, statement, scope) {
   }
 
   if (statement.__type === 'Block') {
-
+    const {statements} = statement;
+    // analyse_statement(state, statements[0], scope);
     return;
   }
 
@@ -331,22 +332,22 @@ function analyse_expression(state, exp, scope, refims) {
     const variant = state.types.get(variant_id);
     invariant(variant.__type === 'Enum_variant');
 
-    const operand = analyse_expression(state, exp.operand, scope);
+    const operand = analyse_expression(state, exp.operand, scope, refims);
     invariant(variant.enum_id === operand.type.id);
 
-    const {reference} = operand;
+    const {reference, refinements} = operand;
     invariant(reference != null);
     const {path} = reference;
-    let target = {variant_id};
+    let target = {variant_ids: [variant_id]};
     for (let i = path.length - 1; i >= 0; --i) {
       const item = path[i];
       invariant(item.__type === 'Field');
       target = {fields: new Map([[item.name, target]])};
     }
-    const refinements = new Map();
-    refinements.set(reference.value_id, target);
+    const conditional_refinements = new Map();
+    conditional_refinements.set(reference.value_id, target);
 
-    return {type: state.builtins.bool, refinements};
+    return {type: state.builtins.bool, conditional_refinements, refinements};
   }
 
   if (exp.__type === 'Qualified_name') {
@@ -393,10 +394,15 @@ function analyse_expression(state, exp, scope, refims) {
     if (exp.operation === '&&') {
       invariant(left_op.type.id == state.builtins.bool.id);
 
-      const right_op = analyse_expression(state, exp.right_operand, scope, left_op.refinements);
+      const right_refinements = merge_conditional_refinements(
+          left_op.refinements,
+          left_op.conditional_refinements);
+      const right_op = analyse_expression(state, exp.right_operand,
+          scope, right_refinements);
       invariant(right_op.type.id == state.builtins.bool.id);
+      const {refinements} = right_op;
 
-      return {type: state.builtins.bool};
+      return {type: state.builtins.bool, refinements};
     }
 
     const right_op = analyse_expression(state, exp.right_operand, scope);
@@ -474,6 +480,65 @@ function analyse_expression(state, exp, scope, refims) {
   throw new Error(`unknown "${exp.__type}"`);
 }
 
+function merge_conditional_refinements(refims, cond_refims) {
+  if (refims == null) {
+    refims = new Map();
+  }
+  if (cond_refims == null) {
+    cond_refims = new Map();
+  }
+
+  const result = new Map();
+  for (const [value_id, entry] of refims.entries()) {
+    const cond_entry = cond_refims.get(value_id);
+    if (cond_entry == null) {
+      result.set(value_id, entry);
+      continue;
+    }
+    result.set(value_id, merge_conditional_refinement_entry(entry, cond_entry));
+  }
+  for (const [value_id, cond_entry] of cond_refims.entries()) {
+    if (result.has(value_id)) continue;
+    result.set(value_id, cond_entry);
+  }
+  return result;
+}
+
+function merge_conditional_refinement_entry(entry, cond_entry) {
+  let variants_ids;
+
+  if (entry.variant_ids != null && cond_entry.variant_ids == null) {
+    ({variant_ids} = entry);
+  } else if (entry.variant_ids == null && cond_entry.variant_ids != null) {
+    ({variant_ids} = cond_entry);
+  } else if (entry.variant_ids != null && cond_entry.variant_ids != null) {
+    const possible_ids = new Set(entry.variant_ids);
+    variant_ids = [];
+    for (const id of cond_entry.variant_ids) {
+      if (possible_ids.has(id)) {
+        variant_ids.push(id);
+      }
+    }
+    invariant(variant_ids.length > 0);
+  }
+
+  const fields = new Map();
+  for (const [name, field] of entry.fields.entries()) {
+    const cond_field = cond_entry.get(name);
+    if (cond_field == null) {
+      fields.set(name, field);
+      continue;
+    }
+    fields.set(value_id, merge_conditional_refinement_entry(field, cond_field));
+  }
+  for (const [name, cond_field] of cond_refims.fields.entries()) {
+    if (fields.has(name)) continue;
+    fields.set(name, cond_field);
+  }
+
+  return {variant_ids, fields};
+}
+
 function resolve_type(state, scope, type) {
   const spec = resolve_qualified_name(state, scope, type.name);
 
@@ -517,8 +582,9 @@ function resolve_qualified_name(state, scope, name, refims) {
     }
 
     if (type_spec.__type === 'Enum') {
-      invariant(refim && refim.variant_id);
-      const variant_spec = state.types.get(refim.variant_id);
+      invariant(refim && refim.variant_ids != null);
+      invariant(refim.variant_ids.length === 1);
+      const variant_spec = state.types.get(refim.variant_ids[0]);
       invariant(variant_spec.__type === 'Enum_variant');
 
       const field_spec = variant_spec.fields.get(field_name);
