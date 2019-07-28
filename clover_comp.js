@@ -243,13 +243,15 @@ function get_unique_id(state) {
 
 function analyse_statement(state, statement, scope, refims) {
   if (statement.__type === 'If') {
-    const cond = analyse_expression(state, statement.condition, scope, refims);
+    const void_scope = {parent: scope};
+    const cond = analyse_expression(state, statement.condition,
+        void_scope, refims);
     invariant(cond.type.id === state.builtins.bool.id);
 
     const consequent_refims = merge_refinements('Intersection',
         cond.refinements, cond.conditional_refinements);
     const consequent = analyse_statement(state, statement.consequent,
-        scope, consequent_refims);
+        void_scope, consequent_refims);
 
     if (statement.alternate == null) {
       return {refinements: merge_refinements('Union',
@@ -257,12 +259,16 @@ function analyse_statement(state, statement, scope, refims) {
     }
 
     const alternate = analyse_statement(state, statement.alternate,
-        scope, cond.refinements);
+        void_scope, cond.refinements);
     return {refinements: merge_refinements('Union',
         consequent.refinements, alternate.refinements)}
   }
 
   if (statement.__type === 'Variable_declaration') {
+    if (scope.names == null) {
+      throw new Error('cannot declare variable in single-statement context');
+    }
+
     const init_value = analyse_expression(state, statement.initialValue,
         scope, refims);
     const id = get_unique_id(state);
@@ -293,10 +299,11 @@ function analyse_statement(state, statement, scope, refims) {
   }
 
   if (statement.__type === 'Block') {
+    const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
     // console.error(refims);
-    analyse_statement(state, statements[0], scope, refims);
-    if (statements[1]) analyse_statement(state, statements[1], scope, refims);
+    analyse_statement(state, statements[0], block_scope, refims);
+    if (statements[1]) analyse_statement(state, statements[1], block_scope, refims);
     // if (statements[2]) analyse_statement(state, statements[2], scope, refims);
     return {};
   }
@@ -653,10 +660,10 @@ function resolve_qualified_name(state, scope, name, refims) {
 }
 
 function resolve_name(scope, name) {
-  let spec = scope.names.get(name);
+  let spec = scope.names && scope.names.get(name);
   while (spec == null && scope.parent != null) {
     scope = scope.parent;
-    spec = scope.names.get(name);
+    spec = scope.names && scope.names.get(name);
   }
   if (spec != null) return spec;
   throw new Error(`unknown name "${name}"`);
