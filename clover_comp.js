@@ -269,6 +269,11 @@ function analyse_statement(state, statement, scope, refims) {
       throw new Error('cannot declare variable in single-statement context');
     }
 
+    const prev = resolve_name(scope, statement.name);
+    if (prev != null) {
+      throw new Error(`variable "${statement.name}" would shadow existing name`);
+    }
+
     const init_value = analyse_expression(state, statement.initialValue,
         scope, refims);
     const id = get_unique_id(state);
@@ -618,7 +623,10 @@ function resolve_type(state, scope, type) {
 
 function resolve_qualified_name(state, scope, name, refims) {
   invariant(name.length >= 1);
+
   const ref = resolve_name(scope, name[0]);
+  if (ref == null) throw new Error(`unknown name "${name}"`);
+
   if (ref.__type === 'Type' || ref.__type === 'Function') {
     return ref;
   }
@@ -665,8 +673,7 @@ function resolve_name(scope, name) {
     scope = scope.parent;
     spec = scope.names && scope.names.get(name);
   }
-  if (spec != null) return spec;
-  throw new Error(`unknown name "${name}"`);
+  return spec;
 }
 
 
