@@ -4,7 +4,7 @@ global.__read_expression = readExpression;
 
 const utils = require('./utils');
 const {has_keyword, has_operator, get_escaped_char,
-  invariant, has_identifier, read_token, read_qualified_name} = utils;
+  invariant, read_token, read_qualified_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -1162,6 +1162,10 @@ function read_type_name(state) {
     read_token(state);
   }
   return {name, parameters};
+}
+
+function has_identifier(state) {
+  return state.token.__type === 'Identifier';
 }
 
 main();

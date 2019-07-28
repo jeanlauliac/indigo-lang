@@ -100,14 +100,14 @@ fn read_primary_expression(
   }
 
   let qualified_name = vec [];
-  if (has_identifier(state)) {
+  if (state.token is Identifier) {
     qualified_name = read_qualified_name(&state);
   }
 
   if (has_operator(state, "{")) {
     read_token(&state);
     let fields = vec [];
-    while (has_identifier(state)) {
+    while (state.token is Identifier) {
       let name = state.token.value;
       read_token(&state);
       let is_shorthand = !has_operator(state, ":");
@@ -155,12 +155,12 @@ fn read_primary_expression(
 }
 
 fn read_qualified_name(ref state: State): vec<str> {
-  invariant(has_identifier(state));
+  invariant(state.token is Identifier);
   let qualifiedName = vec [state.token.value];
   read_token(&state);
   while (has_operator(state, ".")) {
     read_token(&state);
-    invariant(has_identifier(state));
+    invariant(state.token is Identifier);
     __push(qualifiedName, state.token.value);
     read_token(&state);
   }
@@ -187,10 +187,6 @@ fn has_keyword(state: State, value: str): bool {
 
 fn has_operator(state: State, value: str): bool {
   return state.token is Operator && state.token.value == value;
-}
-
-fn has_identifier(ref state: State): bool {
-  return state.token is Identifier;
 }
 
 fn read_token(ref state: State) {

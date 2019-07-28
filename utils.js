@@ -86,13 +86,13 @@ function __read_primary_expression(state, ) {
     return {dataType: dataType, values: values, __type: "Collection_literal"};
   }
   let qualified_name = [];
-  if (__has_identifier(clone(state), )) {
+  if (identity_test(state.token, "Identifier")) {
     (qualified_name = __read_qualified_name(state, ));
   }
   if (__has_operator(clone(state), clone("{"), )) {
     __read_token(state, );
     let fields = [];
-    while (__has_identifier(clone(state), )) {
+    while (identity_test(state.token, "Identifier")) {
       let name = state.token.value;
       __read_token(state, );
       let is_shorthand = !__has_operator(clone(state), clone(":"), );
@@ -139,12 +139,12 @@ function __read_primary_expression(state, ) {
 
 module.exports.read_qualified_name = __read_qualified_name;
 function __read_qualified_name(state, ) {
-  __invariant(clone(__has_identifier(clone(state), )), );
+  __invariant(clone(identity_test(state.token, "Identifier")), );
   let qualifiedName = [state.token.value, ];
   __read_token(state, );
   while (__has_operator(clone(state), clone("."), )) {
     __read_token(state, );
-    __invariant(clone(__has_identifier(clone(state), )), );
+    __invariant(clone(identity_test(state.token, "Identifier")), );
     (qualifiedName.push(state.token.value));
     __read_token(state, );
   }
@@ -169,11 +169,6 @@ function __has_keyword(state, value, ) {
 module.exports.has_operator = __has_operator;
 function __has_operator(state, value, ) {
   return (identity_test(state.token, "Operator") && (state.token.value === value));
-}
-
-module.exports.has_identifier = __has_identifier;
-function __has_identifier(state, ) {
-  return identity_test(state.token, "Identifier");
 }
 
 module.exports.read_token = __read_token;
