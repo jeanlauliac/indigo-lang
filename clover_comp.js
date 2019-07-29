@@ -299,18 +299,24 @@ function analyse_statement(state, statement, scope, refims) {
   if (statement.__type === 'While_loop') {
     const cond = analyse_expression(state, statement.condition, scope);
     invariant(cond.type.id === state.builtins.bool.id);
-    analyse_statement(state, statement.body, scope);
+    const body_refims = merge_refinements('Intersection',
+        cond.refinements, cond.conditional_refinements);
+    const body_scope = {parent: scope};
+
+    analyse_statement(state, statement.body, body_scope, body_refims);
     return {};
   }
 
   if (statement.__type === 'Block') {
     const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
-    // console.error(refims);
-    analyse_statement(state, statements[0], block_scope, refims);
-    if (statements[1]) analyse_statement(state, statements[1], block_scope, refims);
-    // if (statements[2]) analyse_statement(state, statements[2], scope, refims);
-    return {};
+
+    for (let i = 0; i < statements.length && i <= 1; ++i) {
+      let res = analyse_statement(state, statements[i], block_scope, refims);
+      refims = res.refinements;
+    }
+
+    return {refinements: refims};
   }
 
   throw new Error(`unknown statement type "${statement.__type}"`);
