@@ -5,6 +5,7 @@ enum Token {
   String {value: str},
   Character {value: char},
   Identifier {value: str},
+  Number {value: str},
   End_of_file,
 }
 
@@ -202,6 +203,9 @@ fn read_next_token(ref state: State): Token {
   if (is_alpha(state.code[state.i])) {
     return read_identifier(&state);
   }
+  if (is_numeric(state.code[state.i])) {
+    return read_number(&state);
+  }
   let OPERATOR_PREFIXES = set ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
     '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
   if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
@@ -240,12 +244,26 @@ fn read_identifier(ref state: State): Token {
   return Identifier {value};
 }
 
+fn read_number(ref state: State): Token {
+  let value = "" + state.code[state.i];
+  ++state.i;
+  while (state.i < __size(state.code) && is_numeric(state.code[state.i])) {
+    value = value + state.code[state.i];
+    ++state.i;
+  }
+  return Number {value};
+}
+
 fn is_alphanumeric(c: char): bool {
-  return is_alpha(c) || c >= '0' && c <= '9';
+  return is_alpha(c) || is_numeric(c);
 }
 
 fn is_alpha(c: char): bool {
   return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+}
+
+fn is_numeric(c: char): bool {
+  return c >= '0' && c <= '9';
 }
 
 fn read_operator(ref state: State): Operator {
