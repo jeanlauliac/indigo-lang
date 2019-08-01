@@ -27,11 +27,6 @@ enum Expression {
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
 }
 
-fn __has(collection: set, key: char): bool {}
-fn __has_str(collection: set, key: str): bool {}
-fn __size_vec(collection: vec<u32>): u32 {}
-fn __die(message: str) {}
-
 fn __read_expression(ref state: State): Expression {}
 
 fn read_primary_expression(

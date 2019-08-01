@@ -79,6 +79,13 @@ const builtin_types = [
 const builtin_functions = [
   {name: '__size', arguments: [{type: get_base_type('str')}],
     return_type: get_base_type('u32')},
+  {name: '__die', arguments: [{type: get_base_type('str')}]},
+  {name: '__has', arguments: [{type: get_base_type('set')},
+      {type: get_base_type('char')}], return_type: get_base_type('bool')},
+  {name: '__has_str', arguments: [{type: get_base_type('set')},
+      {type: get_base_type('str')}], return_type: get_base_type('bool')},
+  {name: '__size_vec', arguments: [{type: {name: ['vec'], parameters: [get_base_type('u32')]}}],
+      return_type: get_base_type('u32')},
 ];
 
 function get_base_type(name) {
