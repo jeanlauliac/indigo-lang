@@ -8,10 +8,6 @@ module.exports.__has_str = ____has_str;
 function ____has_str(collection, key, ) {
 }
 
-module.exports.__size = ____size;
-function ____size(collection, ) {
-}
-
 module.exports.__size_vec = ____size_vec;
 function ____size_vec(collection, ) {
 }

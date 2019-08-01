@@ -76,6 +76,15 @@ const builtin_types = [
   {__type: 'BuiltinType', name: 'u32', is_number: true},
 ];
 
+const builtin_functions = [
+  {name: '__size', arguments: [{type: get_base_type('str')}],
+    return_type: get_base_type('u32')},
+];
+
+function get_base_type(name) {
+  return {name: [name], parameters: []};
+}
+
 function resolveModule(module) {
   const state = {next_id: 1, types: new Map(), builtins: {}};
 
@@ -87,6 +96,26 @@ function resolveModule(module) {
     global_scope.names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
     state.builtins[type.name] = {id};
+  }
+
+  for (const def of builtin_functions) {
+    const id = get_unique_id(state);
+
+    const argument_ids = [];
+    for (const arg of def.arguments) {
+      const arg_id = get_unique_id(state);
+      argument_ids.push(arg_id);
+      state.types.set(arg_id, {__type: 'Function_argument',
+          type: resolve_type(state, global_scope, arg.type),
+          is_by_reference: arg.is_by_reference});
+    }
+    let return_type;
+    if (def.return_type != null) {
+      return_type = resolve_type(state, global_scope, def.return_type);
+    }
+
+    state.types.set(id, {__type: 'Function', argument_ids, return_type});
+    global_scope.names.set(def.name, {__type: 'Function', id});
   }
 
   const {type_names, declaration_ids} = build_module_type_names(state, module);
