@@ -16,10 +16,6 @@ module.exports.__size_vec = ____size_vec;
 function ____size_vec(collection, ) {
 }
 
-module.exports.__zero = ____zero;
-function ____zero() {
-}
-
 module.exports.__die = ____die;
 function ____die(message, ) {
 }

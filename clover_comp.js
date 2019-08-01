@@ -348,6 +348,10 @@ function analyse_expression(state, exp, scope, refims) {
     return {type: state.builtins.str};
   }
 
+  if (exp.__type === 'Number_literal') {
+    return {type: state.builtins.u32};
+  }
+
   if (exp.__type === 'Unary_operation') {
     const operand = analyse_expression(state, exp.operand, scope);
     if (exp.operator === '-') {
@@ -742,10 +746,6 @@ function writeExpression(expression) {
       write('))');
       return;
     }
-    if (expression.functionName[0] === '__zero') {
-      write('0');
-      return;
-    }
     if (expression.functionName[0].startsWith('__size')) {
       write('(');
       writeExpression(expression.arguments[0].value);
@@ -799,6 +799,10 @@ function writeExpression(expression) {
   }
   if (expression.__type === 'String_literal') {
     write(JSON.stringify(expression.value));
+    return;
+  }
+  if (expression.__type === 'Number_literal') {
+    write(expression.value);
     return;
   }
   if (expression.__type === 'Bool_literal') {

@@ -31,7 +31,6 @@ fn __has(collection: set, key: char): bool {}
 fn __has_str(collection: set, key: str): bool {}
 fn __size(collection: str): u32 {}
 fn __size_vec(collection: vec<u32>): u32 {}
-fn __zero(): u32 {}
 fn __die(message: str) {}
 
 fn __read_expression(ref state: State): Expression {}
@@ -134,7 +133,7 @@ fn read_primary_expression(
     read_token(&state);
     return Object_literal {typeName: qualified_name, fields};
   }
-  invariant(__size_vec(qualified_name) > __zero());
+  invariant(__size_vec(qualified_name) > 0);
 
   if (has_operator(state, "[")) {
     read_token(&state);
