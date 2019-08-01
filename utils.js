@@ -35,6 +35,11 @@ function __read_primary_expression(state, ) {
     __read_token(state, );
     return {value: value, __type: "String_literal"};
   }
+  if (identity_test(state.token, "Number")) {
+    let value = state.token.value;
+    __read_token(state, );
+    return {value: value, __type: "Number_literal"};
+  }
   if (identity_test(state.token, "Character")) {
     let value = state.token.value;
     __read_token(state, );

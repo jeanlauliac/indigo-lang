@@ -22,6 +22,7 @@ enum Expression {
   In_place_assignment {operator: str, target: Expression, is_prefix: bool},
   Qualified_name {value: vec<str>},
   String_literal {value: str},
+  Number_literal {value: str},
   Unary_operation {operator: str, operand: Expression},
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
 }
@@ -43,6 +44,11 @@ fn read_primary_expression(
     let value = state.token.value;
     read_token(&state);
     return String_literal {value};
+  }
+  if (state.token is Number) {
+    let value = state.token.value;
+    read_token(&state);
+    return Number_literal {value};
   }
   if (state.token is Character) {
     let value = state.token.value;
