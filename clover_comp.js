@@ -86,6 +86,8 @@ const builtin_functions = [
       {type: get_base_type('str')}], return_type: get_base_type('bool')},
   {name: '__size_vec', arguments: [{type: {name: ['vec'], parameters: [get_base_type('u32')]}}],
       return_type: get_base_type('u32')},
+  {name: '__push', arguments: [{type: {name: ['vec'], parameters: [get_base_type('u32')]}},
+      {type: get_base_type('u32')}]},
 ];
 
 function get_base_type(name) {
