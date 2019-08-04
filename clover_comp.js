@@ -107,7 +107,7 @@ function resolveModule(module) {
     state.types.set(id, type);
     global_scope.names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
-    state.builtins[type.name] = {id};
+    state.builtins[type.name] = {id, parameters: []};
   }
 
   for (const def of builtin_functions) {
@@ -367,7 +367,7 @@ function analyse_statement(state, statement, scope, refims) {
     const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
 
-    for (let i = 0; i < statements.length && i <= 1; ++i) {
+    for (let i = 0; i < statements.length && i < 2; ++i) {
       let res = analyse_statement(state, statements[i], block_scope, refims);
       refims = res.refinements;
     }
@@ -461,6 +461,9 @@ function analyse_expression(state, exp, scope, refims) {
     const func = state.types.get(spec.id);
     invariant(func.__type === 'Function');
     invariant(func.argument_ids.length === exp.arguments.length);
+
+    const settled_type_params = new Map();
+
     for (let i = 0; i < func.argument_ids.length; ++i) {
       const arg = analyse_expression(state, exp.arguments[i].value, scope);
       const arg_def = state.types.get(func.argument_ids[i]);
@@ -469,7 +472,7 @@ function analyse_expression(state, exp, scope, refims) {
       // FIXME: remove!
       if (arg.type == null) continue;
 
-      invariant(arg.type.id === arg_def.type.id);
+      match_types(state, arg.type, arg_def.type, settled_type_params);
     }
 
     const func_def = state.types.get(spec.id);
@@ -597,6 +600,30 @@ function analyse_expression(state, exp, scope, refims) {
     throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
   throw new Error(`unknown "${exp.__type}"`);
+}
+
+function match_types(state, actual_type, expected_type, settled_type_parameters) {
+  if (actual_type.id !== expected_type.id) {
+    const type_def = state.types.get(expected_type.id);
+    invariant(type_def.__type === 'Function_type_parameter');
+
+    const settled_type = settled_type_parameters.get(expected_type.id);
+    if (settled_type == null) {
+      settled_type_parameters.set(expected_type.id, actual_type);
+      return;
+    }
+    expected_type = settled_type;
+    invariant(actual_type.id === expected_type.id);
+  }
+
+  // console.error(actual_type, expected_type);
+  // invariant(actual_type.parameters.length === expected_type.parameters.length);
+
+
+  // invariant(actual_type.parameters.length === expected_type.parameters.length);
+
+
+  // invariant(arg.type.id === arg_def.type.id);
 }
 
 function merge_refinements(method, refims, right_refims) {
