@@ -84,10 +84,13 @@ const builtin_functions = [
       {type: get_base_type('char')}], return_type: get_base_type('bool')},
   {name: '__has_str', arguments: [{type: get_base_type('set')},
       {type: get_base_type('str')}], return_type: get_base_type('bool')},
-  {name: '__size_vec', arguments: [{type: {name: ['vec'], parameters: [get_base_type('u32')]}}],
+  {name: '__size_vec', arguments: [{
+        type: {name: ['vec'], parameters: [get_base_type('u32')]}}],
       return_type: get_base_type('u32')},
-  {name: '__push', arguments: [{type: {name: ['vec'], parameters: [get_base_type('u32')]}},
-      {type: get_base_type('u32')}]},
+  {name: '__push', type_parameter_names: ['Value'],
+      arguments: [{
+        type: {name: ['vec'], parameters: [get_base_type('Value')]}},
+      {type: get_base_type('Value')}]},
 ];
 
 function get_base_type(name) {
@@ -110,20 +113,35 @@ function resolveModule(module) {
   for (const def of builtin_functions) {
     const id = get_unique_id(state);
 
+    let type_scope = global_scope;
+    const type_parameter_ids = [];
+    if (def.type_parameter_names != null) {
+      type_scope = {parent: global_scope, names: new Map()};
+      for (const name of def.type_parameter_names) {
+        const param_id = get_unique_id(state);
+        type_parameter_ids.push(param_id);
+        state.types.set(param_id, {__type: 'Function_type_parameter',
+            name, function_id: id});
+        type_scope.names.set(name, {__type: 'Type',
+            id: param_id, parameter_count: 0});
+      }
+    }
+
     const argument_ids = [];
     for (const arg of def.arguments) {
       const arg_id = get_unique_id(state);
       argument_ids.push(arg_id);
       state.types.set(arg_id, {__type: 'Function_argument',
-          type: resolve_type(state, global_scope, arg.type),
+          type: resolve_type(state, type_scope, arg.type),
           is_by_reference: arg.is_by_reference});
     }
     let return_type;
     if (def.return_type != null) {
-      return_type = resolve_type(state, global_scope, def.return_type);
+      return_type = resolve_type(state, type_scope, def.return_type);
     }
 
-    state.types.set(id, {__type: 'Function', argument_ids, return_type});
+    state.types.set(id, {__type: 'Function', argument_ids,
+        type_parameter_ids, return_type});
     global_scope.names.set(def.name, {__type: 'Function', id});
   }
 
