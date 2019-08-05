@@ -4,7 +4,7 @@ global.__read_expression = readExpression;
 
 const utils = require('./utils');
 const {has_keyword, has_operator, get_escaped_char,
-  invariant, read_token, read_qualified_name} = utils;
+  invariant, read_token, read_qualified_name, read_type_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);
 
@@ -1245,30 +1245,6 @@ function readIdentityExpression(state) {
   read_token(state);
   const variant = read_qualified_name(state);
   return {__type: 'Identity_test', is_negative, operand, variant};
-}
-
-function read_type_name(state) {
-  let name;
-  if (has_keyword(state, 'set') || has_keyword(state, 'vec')
-      || has_keyword(state, 'dict')) {
-    name = [state.token.value];
-    read_token(state);
-  } else {
-    name = read_qualified_name(state);
-  }
-  const parameters = [];
-  if (has_operator(state, '<')) {
-    read_token(state);
-    while (!has_operator(state, '>')) {
-      parameters.push(read_type_name(state));
-      if (has_operator(state, ',')) {
-        read_token(state);
-      }
-    }
-    invariant(has_operator(state, '>'));
-    read_token(state);
-  }
-  return {name, parameters};
 }
 
 function has_identifier(state) {

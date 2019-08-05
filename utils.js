@@ -142,6 +142,30 @@ function __read_call_argument(state, ) {
   return {value: global.__read_expression(state, ), is_by_reference: is_by_reference, __type: "Call_argument"};
 }
 
+module.exports.read_type_name = __read_type_name;
+function __read_type_name(state, ) {
+  let name = [];
+  if ((identity_test(state.token, "Keyword") && ((__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )) || __has_keyword(clone(state), clone("dict"), )))) {
+    (name = [state.token.value, ]);
+    __read_token(state, );
+  } else {
+    (name = __read_qualified_name(state, ));
+  }
+  let parameters = [];
+  if (__has_operator(clone(state), clone("<"), )) {
+    __read_token(state, );
+    while (!__has_operator(clone(state), clone(">"), )) {
+      (parameters.push(__read_type_name(state, )));
+      if (__has_operator(clone(state), clone(","), )) {
+        __read_token(state, );
+      }
+    }
+    __invariant(clone(__has_operator(clone(state), clone(">"), )), );
+    __read_token(state, );
+  }
+  return {name: name, parameters: parameters, __type: "Type_reference"};
+}
+
 module.exports.has_keyword = __has_keyword;
 function __has_keyword(state, value, ) {
   return (identity_test(state.token, "Keyword") && (state.token.value === value));

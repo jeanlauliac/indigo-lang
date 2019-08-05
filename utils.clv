@@ -27,6 +27,11 @@ enum Expression {
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
 }
 
+struct Type_reference {
+  name: vec<str>,
+  parameters: vec<Type_reference>,
+}
+
 fn __read_expression(ref state: State): Expression {}
 
 fn read_primary_expression(
@@ -83,6 +88,7 @@ fn read_primary_expression(
   if (state.token is Keyword && (has_keyword(state, "set") || has_keyword(state, "vec"))) {
     let dataType = state.token.value;
     read_token(&state);
+
     invariant(has_operator(state, "["));
     read_token(&state);
     let values = vec [];
@@ -179,6 +185,33 @@ fn read_call_argument(ref state: State): Call_argument {
     is_by_reference = true;
   }
   return Call_argument {value: __read_expression(&state), is_by_reference};
+}
+
+fn read_type_name(ref state: State): Type_reference {
+  let name = vec [];
+  if (state.token is Keyword && (
+        has_keyword(state, "set") ||
+        has_keyword(state, "vec") ||
+        has_keyword(state, "dict")
+      )) {
+    name = vec [state.token.value];
+    read_token(&state);
+  } else {
+    name = read_qualified_name(&state);
+  }
+  let parameters = vec [];
+  if (has_operator(state, "<")) {
+    read_token(&state);
+    while (!has_operator(state, ">")) {
+      __push(parameters, read_type_name(&state));
+      if (has_operator(state, ",")) {
+        read_token(&state);
+      }
+    }
+    invariant(has_operator(state, ">"));
+    read_token(&state);
+  }
+  return Type_reference {name, parameters};
 }
 
 fn has_keyword(state: State, value: str): bool {
