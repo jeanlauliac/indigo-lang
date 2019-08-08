@@ -85,13 +85,23 @@ fn read_primary_expression(
     return Unary_operation {operator, operand};
   }
 
-  if (state.token is Keyword && (has_keyword(state, "set") || has_keyword(state, "vec"))) {
+  if (state.token is Keyword &&
+      (has_keyword(state, "set") || has_keyword(state, "vec"))) {
     let dataType = state.token.value;
     read_token(&state);
 
+    let item_type = Type_reference {name: vec [], parameters: vec []};
+    if (has_operator(state, "<")) {
+      read_token(&state);
+
+      item_type = read_type_name(&state);
+      invariant(has_operator(state, ">"));
+      read_token(&state);
+    }
+
     invariant(has_operator(state, "["));
     read_token(&state);
-    let values = vec [];
+    let values = vec<Expression> [];
     while (!has_operator(state, "]")) {
       let expression = __read_expression(&state);
       __push(values, expression);
@@ -102,7 +112,7 @@ fn read_primary_expression(
       }
     }
     read_token(&state);
-    return Collection_literal {dataType, values};
+    return Collection_literal {dataType, item_type, values};
   }
 
   let qualified_name = vec [];

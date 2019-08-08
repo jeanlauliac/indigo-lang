@@ -51,6 +51,13 @@ function __read_primary_expression(state, ) {
   if ((identity_test(state.token, "Keyword") && (__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )))) {
     let dataType = state.token.value;
     __read_token(state, );
+    let item_type = {name: [], parameters: [], __type: "Type_reference"};
+    if (__has_operator(clone(state), clone("<"), )) {
+      __read_token(state, );
+      (item_type = __read_type_name(state, ));
+      __invariant(clone(__has_operator(clone(state), clone(">"), )), );
+      __read_token(state, );
+    }
     __invariant(clone(__has_operator(clone(state), clone("["), )), );
     __read_token(state, );
     let values = [];
@@ -64,7 +71,7 @@ function __read_primary_expression(state, ) {
       }
     }
     __read_token(state, );
-    return {dataType: dataType, values: values, __type: "Collection_literal"};
+    return {dataType: dataType, item_type: item_type, values: values, __type: "Collection_literal"};
   }
   let qualified_name = [];
   if (identity_test(state.token, "Identifier")) {
