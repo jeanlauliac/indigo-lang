@@ -484,7 +484,9 @@ function analyse_expression(state, exp, scope, refims) {
       return {type: state.builtins.set};
     }
     if (exp.dataType === 'vec') {
-      return {type: state.builtins.vec};
+      return {type: {
+        id: state.builtins.vec.id,
+        parameters: [resolve_type(state, scope, exp.item_type)]}};
     }
     invariant(false);
   }

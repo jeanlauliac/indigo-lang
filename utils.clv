@@ -115,14 +115,14 @@ fn read_primary_expression(
     return Collection_literal {dataType, item_type, values};
   }
 
-  let qualified_name = vec [];
+  let qualified_name = vec<str> [];
   if (state.token is Identifier) {
     qualified_name = read_qualified_name(&state);
   }
 
   if (has_operator(state, "{")) {
     read_token(&state);
-    let fields = vec [];
+    let fields = vec<str> [];
     while (state.token is Identifier) {
       let name = state.token.value;
       read_token(&state);
@@ -155,7 +155,7 @@ fn read_primary_expression(
 
   if (has_operator(state, "(")) {
     read_token(&state);
-    let arguments = vec [];
+    let arguments = vec<str> [];
     while (!has_operator(state, ")")) {
       __push(arguments, read_call_argument(&state));
       if (has_operator(state, ",")) {
@@ -172,7 +172,7 @@ fn read_primary_expression(
 
 fn read_qualified_name(ref state: State): vec<str> {
   invariant(state.token is Identifier);
-  let qualifiedName = vec [state.token.value];
+  let qualifiedName = vec<str> [state.token.value];
   read_token(&state);
   while (has_operator(state, ".")) {
     read_token(&state);
@@ -198,18 +198,18 @@ fn read_call_argument(ref state: State): Call_argument {
 }
 
 fn read_type_name(ref state: State): Type_reference {
-  let name = vec [];
+  let name = vec<str> [];
   if (state.token is Keyword && (
         has_keyword(state, "set") ||
         has_keyword(state, "vec") ||
         has_keyword(state, "dict")
       )) {
-    name = vec [state.token.value];
+    name = vec<str> [state.token.value];
     read_token(&state);
   } else {
     name = read_qualified_name(&state);
   }
-  let parameters = vec [];
+  let parameters = vec<Type_reference> [];
   if (has_operator(state, "<")) {
     read_token(&state);
     while (!has_operator(state, ">")) {
