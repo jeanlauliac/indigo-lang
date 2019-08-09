@@ -28,6 +28,11 @@ enum Expression {
   Object_literal {fields: vec<Object_field>},
   Collection_access {collectionName: vec<str>, key: Expression},
   Function_call {functionName: vec<str>, arguments: vec<Call_argument>},
+  Collection_literal {
+    dataType: str,
+    item_type: Type_reference,
+    values: vec<Expression>,
+  },
 }
 
 struct Object_field {
