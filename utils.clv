@@ -135,7 +135,7 @@ fn read_primary_expression(
 
   if (has_operator(state, "{")) {
     read_token(&state);
-    let fields = vec<str> [];
+    let fields = vec<Object_field> [];
     while (state.token is Identifier) {
       let name = state.token.value;
       read_token(&state);
@@ -163,7 +163,7 @@ fn read_primary_expression(
 
   if (has_operator(state, "(")) {
     read_token(&state);
-    let arguments = vec<str> [];
+    let arguments = vec<Call_argument> [];
     while (!has_operator(state, ")")) {
       __push(arguments, read_call_argument(&state));
       if (has_operator(state, ",")) {

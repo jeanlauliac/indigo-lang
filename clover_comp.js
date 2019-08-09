@@ -84,8 +84,9 @@ const builtin_functions = [
       {type: get_base_type('char')}], return_type: get_base_type('bool')},
   {name: '__has_str', arguments: [{type: get_base_type('set')},
       {type: get_base_type('str')}], return_type: get_base_type('bool')},
-  {name: '__size_vec', arguments: [{
-        type: {name: ['vec'], parameters: [get_base_type('u32')]}}],
+  {name: '__size_vec', type_parameter_names: ['Value'],
+      arguments: [{
+        type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
       return_type: get_base_type('u32')},
   {name: '__push', type_parameter_names: ['Value'],
       arguments: [{
@@ -580,10 +581,10 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(spec.__type === 'Type');
     const type = state.types.get(spec.id);
     if (type.__type === 'Enum_variant') {
-      return {type: {id: type.enum_id}};
+      return {type: {id: type.enum_id, parameters: []}};
     }
     if (type.__type === 'Struct') {
-      return {type: {id: spec.id}};
+      return {type: {id: spec.id, parameters: []}};
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
   }
@@ -619,14 +620,11 @@ function match_types(state, actual_type, expected_type, settled_type_parameters)
     invariant(actual_type.id === expected_type.id);
   }
 
-  // console.error(actual_type, expected_type);
-  // invariant(actual_type.parameters.length === expected_type.parameters.length);
-
-
-  // invariant(actual_type.parameters.length === expected_type.parameters.length);
-
-
-  // invariant(arg.type.id === arg_def.type.id);
+  invariant(actual_type.parameters.length === expected_type.parameters.length);
+  for (let i = 0; i < actual_type.parameters.length; ++i) {
+    match_types(state, actual_type.parameters[i],
+        expected_type.parameters[i], settled_type_parameters);
+  }
 }
 
 function merge_refinements(method, refims, right_refims) {
