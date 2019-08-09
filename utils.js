@@ -89,7 +89,7 @@ function __read_primary_expression(state, ) {
       } else {
         __invariant(clone(__has_operator(clone(state), clone("}"), )), );
       }
-      (fields.push({name: name, value: value, }));
+      (fields.push({name: name, value: value, __type: "Object_field"}));
     }
     __invariant(clone(__has_operator(clone(state), clone("}"), )), );
     __read_token(state, );

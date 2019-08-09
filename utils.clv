@@ -26,6 +26,8 @@ enum Expression {
   Unary_operation {operator: str, operand: Expression},
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
   Object_literal {fields: vec<Object_field>},
+  Collection_access {collectionName: vec<str>, key: Expression},
+  Function_call {functionName: vec<str>, arguments: vec<Call_argument>},
 }
 
 struct Object_field {
@@ -138,7 +140,7 @@ fn read_primary_expression(
       } else {
         invariant(has_operator(state, "}"));
       }
-      __push(fields, {name, value});
+      __push(fields, Object_field {name, value});
     }
     invariant(has_operator(state, "}"));
     read_token(&state);
