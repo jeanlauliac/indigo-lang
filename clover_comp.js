@@ -367,7 +367,7 @@ function analyse_statement(state, statement, scope, refims) {
     const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
 
-    for (let i = 0; i < statements.length && i < 2; ++i) {
+    for (let i = 0; i < statements.length && i < 3; ++i) {
       let res = analyse_statement(state, statements[i], block_scope, refims);
       refims = res.refinements;
     }
