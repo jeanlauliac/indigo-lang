@@ -177,7 +177,9 @@ fn read_qualified_name(ref state: State): vec<str> {
   while (has_operator(state, ".")) {
     read_token(&state);
     invariant(state.token is Identifier);
-    __push(qualifiedName, state.token.value);
+    if (state.token is Identifier) {
+      __push(qualifiedName, state.token.value);
+    }
     read_token(&state);
   }
   return qualifiedName;

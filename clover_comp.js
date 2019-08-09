@@ -341,19 +341,19 @@ function analyse_statement(state, statement, scope, refims) {
   }
 
   if (statement.__type === 'Expression') {
-    const value = analyse_expression(state, statement.value, scope);
+    const value = analyse_expression(state, statement.value, scope, refims);
     return {refinements: value.refinements};
   }
 
   if (statement.__type === 'Return') {
-    const value = analyse_expression(state, statement.value, scope);
+    const value = analyse_expression(state, statement.value, scope, refims);
     // FIXME: check correct return type
 
     return {refinements: value.refinements};
   }
 
   if (statement.__type === 'While_loop') {
-    const cond = analyse_expression(state, statement.condition, scope);
+    const cond = analyse_expression(state, statement.condition, scope, refims);
     invariant(cond.type.id === state.builtins.bool.id);
     const body_refims = merge_refinements('Intersection',
         cond.refinements, cond.conditional_refinements);
@@ -389,7 +389,7 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'In_place_assignment') {
-    const operand = analyse_expression(state, exp.target, scope);
+    const operand = analyse_expression(state, exp.target, scope, refims);
     switch (exp.operation) {
       case '++': {
         const type = state.types.get(operand.type.id);
@@ -465,7 +465,8 @@ function analyse_expression(state, exp, scope, refims) {
     const settled_type_params = new Map();
 
     for (let i = 0; i < func.argument_ids.length; ++i) {
-      const arg = analyse_expression(state, exp.arguments[i].value, scope);
+      const arg = analyse_expression(state, exp.arguments[i].value,
+          scope, refims);
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 

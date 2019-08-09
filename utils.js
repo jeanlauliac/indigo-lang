@@ -133,7 +133,9 @@ function __read_qualified_name(state, ) {
   while (__has_operator(clone(state), clone("."), )) {
     __read_token(state, );
     __invariant(clone(identity_test(state.token, "Identifier")), );
-    (qualifiedName.push(state.token.value));
+    if (identity_test(state.token, "Identifier")) {
+      (qualifiedName.push(state.token.value));
+    }
     __read_token(state, );
   }
   return qualifiedName;
