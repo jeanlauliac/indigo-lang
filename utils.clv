@@ -25,6 +25,12 @@ enum Expression {
   Number_literal {value: str},
   Unary_operation {operator: str, operand: Expression},
   Identity_test {is_negative: bool, operand: Expression, variant: vec<str>},
+  Object_literal {fields: vec<Object_field>},
+}
+
+struct Object_field {
+  name: str,
+  value: Object_field_value,
 }
 
 struct Type_reference {
@@ -126,18 +132,13 @@ fn read_primary_expression(
     while (state.token is Identifier) {
       let name = state.token.value;
       read_token(&state);
-      let is_shorthand = !has_operator(state, ":");
-      let value = None {};
-      if (!is_shorthand) {
-        read_token(&state);
-        value = __read_expression(&state);
-      }
+      let value = read_object_field_value(&state);
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
         invariant(has_operator(state, "}"));
       }
-      __push(fields, {name, value, is_shorthand});
+      __push(fields, {name, value});
     }
     invariant(has_operator(state, "}"));
     read_token(&state);
@@ -183,6 +184,19 @@ fn read_qualified_name(ref state: State): vec<str> {
     read_token(&state);
   }
   return qualifiedName;
+}
+
+enum Object_field_value {
+  Shorthand_field_value {},
+  Expression_field_value {expression: Expression},
+}
+
+fn read_object_field_value(ref state: State): Object_field_value {
+  if (!has_operator(state, ":")) {
+    return Shorthand_field_value {};
+  }
+  read_token(&state);
+  return Expression_field_value {expression: __read_expression(&state)};
 }
 
 struct Call_argument {

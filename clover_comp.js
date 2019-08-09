@@ -367,7 +367,7 @@ function analyse_statement(state, statement, scope, refims) {
     const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
 
-    for (let i = 0; i < statements.length && i < 3; ++i) {
+    for (let i = 0; i < statements.length && i < 4; ++i) {
       let res = analyse_statement(state, statements[i], block_scope, refims);
       refims = res.refinements;
     }
@@ -900,10 +900,10 @@ function writeExpression(expression) {
     for (const field of expression.fields) {
       write(field.name);
       write(': ');
-      if (field.is_shorthand) {
+      if (field.value.__type === 'Shorthand_field_value') {
         writeExpression({__type: 'Qualified_name', value: [field.name]});
       } else {
-        writeExpression(field.value);
+        writeExpression(field.value.expression);
       }
       write(', ');
     }

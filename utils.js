@@ -83,18 +83,13 @@ function __read_primary_expression(state, ) {
     while (identity_test(state.token, "Identifier")) {
       let name = state.token.value;
       __read_token(state, );
-      let is_shorthand = !__has_operator(clone(state), clone(":"), );
-      let value = {__type: "None"};
-      if (!is_shorthand) {
-        __read_token(state, );
-        (value = global.__read_expression(state, ));
-      }
+      let value = __read_object_field_value(state, );
       if (__has_operator(clone(state), clone(","), )) {
         __read_token(state, );
       } else {
         __invariant(clone(__has_operator(clone(state), clone("}"), )), );
       }
-      (fields.push({name: name, value: value, is_shorthand: is_shorthand, }));
+      (fields.push({name: name, value: value, }));
     }
     __invariant(clone(__has_operator(clone(state), clone("}"), )), );
     __read_token(state, );
@@ -139,6 +134,15 @@ function __read_qualified_name(state, ) {
     __read_token(state, );
   }
   return qualifiedName;
+}
+
+module.exports.read_object_field_value = __read_object_field_value;
+function __read_object_field_value(state, ) {
+  if (!__has_operator(clone(state), clone(":"), )) {
+    return {__type: "Shorthand_field_value"};
+  }
+  __read_token(state, );
+  return {expression: global.__read_expression(state, ), __type: "Expression_field_value"};
 }
 
 module.exports.read_call_argument = __read_call_argument;
