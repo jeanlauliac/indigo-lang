@@ -1,0 +1,4 @@
+title: 'Empty main function, no output'
+stdout: ''
+code: >
+  fn main() {}

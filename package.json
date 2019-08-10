@@ -4,9 +4,13 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "node ./test.js"
+    "test": "jest"
   },
   "bin": {
     "clover_comp": "clover_comp.js"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0",
+    "js-yaml": "^3.13.1"
   }
 }
