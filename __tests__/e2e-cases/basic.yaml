@@ -1,4 +1,5 @@
 title: 'Empty main function, no output'
 stdout: ''
-code: >
-  fn main() {}
+files:
+  index.clv: >
+    fn main() {}

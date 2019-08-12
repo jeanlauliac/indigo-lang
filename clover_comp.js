@@ -3,13 +3,20 @@
 global.__read_expression = readExpression;
 
 const utils = require('./utils');
+const fs = require('fs');
 const {has_keyword, has_operator, get_escaped_char,
   invariant, read_token, read_qualified_name, read_type_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);
 
 function main() {
-  const code = require('fs').readFileSync('./utils.clv', 'utf8');
+  let code;
+  if (process.argv[2] === '-i') {
+    fileTree = JSON.parse(fs.readFileSync(0, "utf8"));
+    code = fileTree['index.clv'];
+  } else {
+    code = fs.readFileSync('./utils.clv', 'utf8');
+  }
   const state = {code, i: 0, phase: 'module',
       token: null, nextToken: null};
   read_token(state);
