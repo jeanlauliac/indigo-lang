@@ -9,7 +9,13 @@ const allCases = fs.readdirSync(caseDirPath);
 for (const caseName of allCases) {
   const caseData = fs.readFileSync(path.join(caseDirPath, caseName));
   const caseSpec = yaml.safeLoad(caseData, 'utf8');
-  test(`${caseSpec.title} [${path.basename(caseName, '.yaml')}]`, () => {
+  let testFunc = test;
+  if (caseSpec.only) {
+    testFunc = test.only;
+  } else if (caseSpec.skip) {
+    testFunc = test.skip;
+  }
+  testFunc(`${caseSpec.title} [${path.basename(caseName, '.yaml')}]`, () => {
     let result = child_process.spawnSync(
       path.join(__dirname, '../clover_comp.js'),
       ['-i'],

@@ -1,0 +1,8 @@
+title: 'Say hello'
+stdout: 'Hello, world'
+skip: true
+files:
+  index.clv: >
+    fn main() {
+      print("Hello, world");
+    }
