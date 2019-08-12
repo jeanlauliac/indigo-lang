@@ -11,9 +11,11 @@ const write = process.stdout.write.bind(process.stdout);
 
 function main() {
   let code;
+  let call_main = false;
   if (process.argv[2] === '-i') {
     fileTree = JSON.parse(fs.readFileSync(0, "utf8"));
     code = fileTree['index.clv'];
+    call_main = true;
   } else {
     code = fs.readFileSync('./utils.clv', 'utf8');
   }
@@ -71,6 +73,7 @@ function identity_test(value, type) {
   return value.__type === type;
 }
 `);
+  if (call_main) write('__main();\n');
 }
 
 const builtin_types = [
@@ -99,6 +102,7 @@ const builtin_functions = [
       arguments: [{
         type: {name: ['vec'], parameters: [get_base_type('Value')]}},
       {type: get_base_type('Value')}]},
+  {name: 'println', arguments: [{type: get_base_type('str')}]},
 ];
 
 function get_base_type(name) {
@@ -869,6 +873,8 @@ function writeExpression(expression) {
       write("throw new Error(");
     } else if (expression.functionName[0] === '__read_expression') {
       write("global.__read_expression(");
+    } else if (expression.functionName[0] === 'println') {
+      write('console.log(');
     } else {
       write(`__${expression.functionName.join('.')}(`);
     }

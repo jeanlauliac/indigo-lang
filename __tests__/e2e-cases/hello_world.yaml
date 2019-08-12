@@ -1,8 +1,7 @@
 title: 'Say hello'
-stdout: 'Hello, world'
-skip: true
+stdout: "Hello, world\n"
 files:
   index.clv: >
     fn main() {
-      print("Hello, world");
+      println("Hello, world");
     }
