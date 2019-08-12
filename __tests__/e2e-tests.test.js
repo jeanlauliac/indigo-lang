@@ -25,6 +25,11 @@ for (const caseName of allCases) {
         encoding: 'utf8',
       },
     );
+    if (caseSpec.fail) {
+      expect(result.status).not.toBe(0);
+      return;
+    }
+
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.signal).toBe(null);
