@@ -1,4 +1,4 @@
-title: 'Empty main function, no output'
+title: 'Empty main function'
 stdout: ''
 files:
   index.clv: >

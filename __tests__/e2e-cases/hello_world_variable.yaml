@@ -1,0 +1,8 @@
+title: 'Say hello, with variable'
+stdout: "Hello, world\n"
+files:
+  index.clv: >
+    fn main() {
+      let name = "world";
+      println("Hello, " + name);
+    }
