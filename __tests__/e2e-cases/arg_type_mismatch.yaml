@@ -1,7 +1,0 @@
-title: 'Fail on argument type mismatch'
-fail: true
-files:
-  index.clv: >
-    fn main() {
-      println(12);
-    }

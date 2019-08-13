@@ -1,7 +1,0 @@
-title: 'Say hello'
-stdout: "Hello, world\n"
-files:
-  index.clv: >
-    fn main() {
-      println("Hello, world");
-    }

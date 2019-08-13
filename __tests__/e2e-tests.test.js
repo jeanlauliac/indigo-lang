@@ -4,47 +4,52 @@ const path = require('path');
 const child_process = require('child_process');
 
 const caseDirPath = path.join(__dirname, 'e2e-cases');
-const allCases = fs.readdirSync(caseDirPath);
+const allGroups = fs.readdirSync(caseDirPath);
 
-for (const caseName of allCases) {
-  const caseData = fs.readFileSync(path.join(caseDirPath, caseName));
-  const caseSpec = yaml.safeLoad(caseData, 'utf8');
-  let testFunc = test;
-  if (caseSpec.only) {
-    testFunc = test.only;
-  } else if (caseSpec.skip) {
-    testFunc = test.skip;
-  }
-  testFunc(`${caseSpec.title} [${path.basename(caseName, '.yaml')}]`, () => {
-    let result = child_process.spawnSync(
-      path.join(__dirname, '../clover_comp.js'),
-      ['-i'],
-      {
-        input: JSON.stringify(caseSpec.files),
-        stdio: 'pipe',
-        encoding: 'utf8',
-      },
-    );
-    if (caseSpec.fail) {
-      expect(result.status).not.toBe(0);
-      return;
+for (const groupName of allGroups) {
+  describe(groupName, () => {
+    const groupData = fs.readFileSync(path.join(caseDirPath, groupName));
+    const groupSpec = yaml.safeLoad(groupData, 'utf8');
+    for (const caseTitle of Object.keys(groupSpec)) {
+      const caseSpec = groupSpec[caseTitle];
+      let testFunc = test;
+      if (caseSpec.only) {
+        testFunc = test.only;
+      } else if (caseSpec.skip) {
+        testFunc = test.skip;
+      }
+      testFunc(`${caseTitle}`, () => {
+        let result = child_process.spawnSync(
+          path.join(__dirname, '../clover_comp.js'),
+          ['-i'],
+          {
+            input: JSON.stringify(caseSpec.files),
+            stdio: 'pipe',
+            encoding: 'utf8',
+          },
+        );
+        if (caseSpec.fail) {
+          expect(result.status).not.toBe(0);
+          return;
+        }
+
+        expect(result.stderr).toBe('');
+        expect(result.status).toBe(0);
+        expect(result.signal).toBe(null);
+        expect(result.error).toBeUndefined();
+
+        result = child_process.spawnSync(process.execPath, [], {
+          input: result.stdout,
+          stdio: 'pipe',
+          encoding: 'utf8',
+        });
+
+        expect(result.stderr).toBe('');
+        expect(result.status).toBe(0);
+        expect(result.signal).toBe(null);
+        expect(result.error).toBeUndefined();
+        expect(result.stdout).toBe(caseSpec.stdout);
+      });
     }
-
-    expect(result.stderr).toBe('');
-    expect(result.status).toBe(0);
-    expect(result.signal).toBe(null);
-    expect(result.error).toBeUndefined();
-
-    result = child_process.spawnSync(process.execPath, [], {
-      input: result.stdout,
-      stdio: 'pipe',
-      encoding: 'utf8',
-    });
-
-    expect(result.stderr).toBe('');
-    expect(result.status).toBe(0);
-    expect(result.signal).toBe(null);
-    expect(result.error).toBeUndefined();
-    expect(result.stdout).toBe(caseSpec.stdout);
   });
 }

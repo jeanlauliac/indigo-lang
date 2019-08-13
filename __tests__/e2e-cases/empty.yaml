@@ -1,5 +1,0 @@
-title: 'Empty main function'
-stdout: ''
-files:
-  index.clv: >
-    fn main() {}
