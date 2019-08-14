@@ -22,7 +22,6 @@ function main() {
   const state = {code, i: 0, phase: 'module',
       token: null, nextToken: null};
   read_token(state);
-  read_token(state);
 
   const module = readModule(state);
   const namespace = resolveModule(module);

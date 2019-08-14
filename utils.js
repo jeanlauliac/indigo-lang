@@ -192,8 +192,7 @@ function __has_operator(state, value, ) {
 module.exports.read_token = __read_token;
 function __read_token(state, ) {
   __read_whitespace(state, );
-  (state.token = state.nextToken);
-  (state.nextToken = __read_next_token(state, ));
+  (state.token = __read_next_token(state, ));
 }
 
 module.exports.read_next_token = __read_next_token;

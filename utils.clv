@@ -11,7 +11,6 @@ enum Token {
 
 struct State {
   token: Token,
-  nextToken: Token,
   code: str,
   i: u32,
 }
@@ -257,8 +256,7 @@ fn has_operator(state: State, value: str): bool {
 
 fn read_token(ref state: State) {
   read_whitespace(&state);
-  state.token = state.nextToken;
-  state.nextToken = read_next_token(&state);
+  state.token = read_next_token(&state);
 }
 
 fn read_next_token(ref state: State): Token {
