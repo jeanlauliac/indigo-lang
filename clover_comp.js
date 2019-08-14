@@ -481,9 +481,6 @@ function analyse_expression(state, exp, scope, refims) {
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 
-      // FIXME: remove!
-      if (arg.type == null) continue;
-
       match_types(state, arg.type, arg_def.type, settled_type_params);
     }
 
