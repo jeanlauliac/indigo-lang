@@ -390,6 +390,8 @@ function analyse_statement(state, statement, scope, refims) {
 
 }
 
+const EMPTY_MAP = {};
+
 function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Bool_literal') {
     return {type: state.builtins.bool};
@@ -493,9 +495,16 @@ function analyse_expression(state, exp, scope, refims) {
       return {type: state.builtins.set};
     }
     if (exp.dataType === 'vec') {
+      const value_type = resolve_type(state, scope, exp.item_type);
+      for (const value of exp.values) {
+        const res = analyse_expression(state, value, scope, refims);
+        refims = res.refinements;
+        match_types(state, res.type, value_type, EMPTY_MAP);
+      }
       return {type: {
-        id: state.builtins.vec.id,
-        parameters: [resolve_type(state, scope, exp.item_type)]}};
+          id: state.builtins.vec.id,
+          parameters: [value_type]},
+        refinements: refims};
     }
     invariant(false);
   }

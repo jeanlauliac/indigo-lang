@@ -179,7 +179,10 @@ fn read_primary_expression(
 
 fn read_qualified_name(ref state: State): vec<str> {
   invariant(state.token is Identifier);
-  let qualifiedName = vec<str> [state.token.value];
+  let qualifiedName = vec<str> [];
+  if (state.token is Identifier) {
+    qualifiedName = vec<str> [state.token.value];
+  }
   read_token(&state);
   while (has_operator(state, ".")) {
     read_token(&state);

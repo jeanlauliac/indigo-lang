@@ -123,7 +123,10 @@ function __read_primary_expression(state, ) {
 module.exports.read_qualified_name = __read_qualified_name;
 function __read_qualified_name(state, ) {
   __invariant(clone(identity_test(state.token, "Identifier")), );
-  let qualifiedName = [state.token.value, ];
+  let qualifiedName = [];
+  if (identity_test(state.token, "Identifier")) {
+    (qualifiedName = [state.token.value, ]);
+  }
   __read_token(state, );
   while (__has_operator(clone(state), clone("."), )) {
     __read_token(state, );
