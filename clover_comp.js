@@ -513,13 +513,13 @@ function analyse_expression(state, exp, scope, refims) {
     if (exp.operation === '=') {
       const right_op = analyse_expression(state, exp.right_operand,
         scope, refims);
+      const {conditional_refinements, refinements} = right_op;
       const left_op = analyse_expression(state, exp.left_operand,
-        scope, right_op.refinements);
-      const {refinements} = left_op;
+        scope, refinements);
 
       invariant(left_op.type.id === right_op.type.id);
       invariant(left_op.reference != null);
-      return {type: left_op.type, refinements};
+      return {type: left_op.type, conditional_refinements, refinements};
     }
 
     const left_op = analyse_expression(state, exp.left_operand, scope, refims);
@@ -565,7 +565,7 @@ function analyse_expression(state, exp, scope, refims) {
     }
 
     const right_op = analyse_expression(state, exp.right_operand,
-        scope, refims);
+        scope, left_op.refinements);
     const {refinements} = right_op;
 
     switch (exp.operation) {
@@ -576,7 +576,7 @@ function analyse_expression(state, exp, scope, refims) {
         (left_op.type.id === state.builtins.str.id || left_op.type.id === state.builtins.char.id) &&
         (right_op.type.id === state.builtins.str.id || right_op.type.id === state.builtins.char.id)
       ) {
-        return {type: state.builtins.str};
+        return {type: state.builtins.str, refinements};
       }
       invariant(left_op.type.id === right_op.type.id);
       const spec = state.types.get(left_op.type.id);
