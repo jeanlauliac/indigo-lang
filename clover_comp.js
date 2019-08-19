@@ -510,6 +510,18 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'Binary_operation') {
+    if (exp.operation === '=') {
+      const right_op = analyse_expression(state, exp.right_operand,
+        scope, refims);
+      const left_op = analyse_expression(state, exp.left_operand,
+        scope, right_op.refinements);
+      const {refinements} = left_op;
+
+      invariant(left_op.type.id === right_op.type.id);
+      invariant(left_op.reference != null);
+      return {type: left_op.type, refinements};
+    }
+
     const left_op = analyse_expression(state, exp.left_operand, scope, refims);
 
     if (exp.operation === '&&') {
@@ -554,6 +566,7 @@ function analyse_expression(state, exp, scope, refims) {
 
     const right_op = analyse_expression(state, exp.right_operand,
         scope, refims);
+    const {refinements} = right_op;
 
     switch (exp.operation) {
     case '+':
@@ -568,7 +581,7 @@ function analyse_expression(state, exp, scope, refims) {
       invariant(left_op.type.id === right_op.type.id);
       const spec = state.types.get(left_op.type.id);
       invariant(spec.__type === 'BuiltinType' && spec.is_number);
-      return {type: left_op.type};
+      return {type: left_op.type, refinements};
     }
 
     case '<':
@@ -578,13 +591,7 @@ function analyse_expression(state, exp, scope, refims) {
     case '==':
     case '!=': {
       invariant(left_op.type.id === right_op.type.id);
-      return {type: state.builtins.bool};
-    }
-
-    case '=': {
-      invariant(left_op.type.id === right_op.type.id);
-      invariant(left_op.reference != null);
-      return {type: left_op.type, reference: left_op.reference};
+      return {type: state.builtins.bool, refinements};
     }
 
     default:
