@@ -109,7 +109,7 @@ function get_base_type(name) {
 }
 
 function resolveModule(module) {
-  const state = {next_id: 1, types: new Map(), builtins: {}};
+  const state = {next_id: 1, types: new Map(), builtin_ids: {}};
 
   const global_scope = {parent: null, names: new Map()};
 
@@ -118,7 +118,7 @@ function resolveModule(module) {
     state.types.set(id, type);
     global_scope.names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
-    state.builtins[type.name] = {id, parameters: []};
+    state.builtin_ids[type.name] = id;
   }
 
   for (const def of builtin_functions) {
@@ -313,7 +313,7 @@ function analyse_statement(state, statement, scope, refims) {
     const void_scope = {parent: scope};
     const cond = analyse_expression(state, statement.condition,
         void_scope, refims);
-    invariant(cond.type.id === state.builtins.bool.id);
+    invariant(cond.type.id === state.builtin_ids.bool);
 
     const consequent_refims = merge_refinements('Intersection',
         cond.refinements, cond.conditional_refinements);
@@ -365,7 +365,7 @@ function analyse_statement(state, statement, scope, refims) {
 
   if (statement.__type === 'While_loop') {
     const cond = analyse_expression(state, statement.condition, scope, refims);
-    invariant(cond.type.id === state.builtins.bool.id);
+    invariant(cond.type.id === state.builtin_ids.bool);
     const body_refims = merge_refinements('Intersection',
         cond.refinements, cond.conditional_refinements);
     const body_scope = {parent: scope};
@@ -394,11 +394,11 @@ const EMPTY_MAP = new Map();
 
 function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Bool_literal') {
-    return {type: state.builtins.bool};
+    return {type: {id: state.builtin_ids.bool, parameters: []}};
   }
 
   if (exp.__type === 'Character_literal') {
-    return {type: state.builtins.char};
+    return {type: {id: state.builtin_ids.char, parameters: []}};
   }
 
   if (exp.__type === 'In_place_assignment') {
@@ -414,11 +414,11 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'String_literal') {
-    return {type: state.builtins.str};
+    return {type: {id: state.builtin_ids.str, parameters: []}};
   }
 
   if (exp.__type === 'Number_literal') {
-    return {type: state.builtins.u32};
+    return {type: {id: state.builtin_ids.u32, parameters: []}};;
   }
 
   if (exp.__type === 'Unary_operation') {
@@ -430,7 +430,7 @@ function analyse_expression(state, exp, scope, refims) {
       return operand;
     }
     if (exp.operator === '!') {
-      invariant(operand.type.id === state.builtins.bool.id);
+      invariant(operand.type.id === state.builtin_ids.bool);
       return operand;
     }
     throw new Error(`invalid op "${exp.operator}"`);
@@ -470,7 +470,8 @@ function analyse_expression(state, exp, scope, refims) {
 
     // console.error(require('util').inspect(conditional_refinements, {depth: null}));
 
-    return {type: state.builtins.bool, conditional_refinements, refinements};
+    return {type: {id: state.builtin_ids.bool, parameters: []},
+        conditional_refinements, refinements};
   }
 
   if (exp.__type === 'Qualified_name') {
@@ -505,7 +506,7 @@ function analyse_expression(state, exp, scope, refims) {
 
   if (exp.__type === 'Collection_literal') {
     if (exp.dataType === 'set') {
-      return {type: state.builtins.set};
+      return {type: {id: state.builtin_ids.set, parameters: []}};
     }
     if (exp.dataType === 'vec') {
       const value_type = resolve_type(state, scope, exp.item_type);
@@ -515,7 +516,7 @@ function analyse_expression(state, exp, scope, refims) {
         match_types(state, res.type, value_type, EMPTY_MAP);
       }
       return {type: {
-          id: state.builtins.vec.id,
+          id: state.builtin_ids.vec,
           parameters: [value_type]},
         refinements: refims};
     }
@@ -539,7 +540,7 @@ function analyse_expression(state, exp, scope, refims) {
     const left_op = analyse_expression(state, exp.left_operand, scope, refims);
 
     if (exp.operation === '&&') {
-      invariant(left_op.type.id == state.builtins.bool.id);
+      invariant(left_op.type.id == state.builtin_ids.bool);
 
       const right_refinements = merge_refinements(
           'Intersection',
@@ -547,7 +548,7 @@ function analyse_expression(state, exp, scope, refims) {
           left_op.conditional_refinements);
       const right_op = analyse_expression(state, exp.right_operand,
           scope, right_refinements);
-      invariant(right_op.type.id == state.builtins.bool.id);
+      invariant(right_op.type.id == state.builtin_ids.bool);
       const refinements = merge_refinements(
           'Union',
           left_op.refinements,
@@ -557,15 +558,16 @@ function analyse_expression(state, exp, scope, refims) {
           left_op.conditional_refinements,
           right_op.conditional_refinements);
 
-      return {type: state.builtins.bool, refinements, conditional_refinements};
+      return {type: {id: state.builtin_ids.bool, parameters: []},
+          refinements, conditional_refinements};
     }
 
     if (exp.operation === '||') {
-      invariant(left_op.type.id == state.builtins.bool.id);
+      invariant(left_op.type.id == state.builtin_ids.bool);
 
       const right_op = analyse_expression(state, exp.right_operand,
           scope, left_op.refinements);
-      invariant(right_op.type.id == state.builtins.bool.id);
+      invariant(right_op.type.id == state.builtin_ids.bool);
       const refinements = merge_refinements(
           'Union',
           left_op.refinements,
@@ -575,7 +577,8 @@ function analyse_expression(state, exp, scope, refims) {
           left_op.conditional_refinements,
           right_op.conditional_refinements);
 
-      return {type: state.builtins.bool, refinements, conditional_refinements};
+      return {type: {id: state.builtin_ids.bool, parameters: []},
+          refinements, conditional_refinements};
     }
 
     const right_op = analyse_expression(state, exp.right_operand,
@@ -587,10 +590,10 @@ function analyse_expression(state, exp, scope, refims) {
     case '-': {
       if (
         exp.operation === '+' &&
-        (left_op.type.id === state.builtins.str.id || left_op.type.id === state.builtins.char.id) &&
-        (right_op.type.id === state.builtins.str.id || right_op.type.id === state.builtins.char.id)
+        (left_op.type.id === state.builtin_ids.str || left_op.type.id === state.builtin_ids.char) &&
+        (right_op.type.id === state.builtin_ids.str || right_op.type.id === state.builtin_ids.char)
       ) {
-        return {type: state.builtins.str, refinements};
+        return {type: {id: state.builtin_ids.str, parameters: []}, refinements};
       }
       invariant(left_op.type.id === right_op.type.id);
       const spec = state.types.get(left_op.type.id);
@@ -605,7 +608,7 @@ function analyse_expression(state, exp, scope, refims) {
     case '==':
     case '!=': {
       invariant(left_op.type.id === right_op.type.id);
-      return {type: state.builtins.bool, refinements};
+      return {type: {id: state.builtin_ids.bool, parameters: []}, refinements};
     }
 
     default:
@@ -634,13 +637,13 @@ function analyse_expression(state, exp, scope, refims) {
     const spec = resolve_qualified_name(state, scope, exp.collectionName, refims);
     const key = analyse_expression(state, exp.key, scope);
     invariant(spec.__type === 'Reference');
-    if (spec.type.id === state.builtins.vec.id) {
-      invariant(key.type.id === state.builtins.u32.id);
+    if (spec.type.id === state.builtin_ids.vec) {
+      invariant(key.type.id === state.builtin_ids.u32);
       return {type: spec.type.parameters[0]};
     }
-    if (spec.type.id === state.builtins.str.id) {
-      invariant(key.type.id === state.builtins.u32.id);
-      return {type: state.builtins.char};
+    if (spec.type.id === state.builtin_ids.str) {
+      invariant(key.type.id === state.builtin_ids.u32);
+      return {type: {id: state.builtin_ids.char, parameters: []}};
     }
     throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
