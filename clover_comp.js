@@ -664,11 +664,12 @@ function merge_refinements(method, refims, right_refims) {
   for (const [value_id, entry] of refims.entries()) {
     const right_entry = right_refims.get(value_id);
     if (right_entry == null) {
-      result.set(value_id, entry);
+      if (method === 'Intersection') result.set(value_id, entry);
       continue;
     }
     result.set(value_id, merge_refinement_entry(method, entry, right_entry));
   }
+  if (method === 'Union') return result;
   for (const [value_id, right_entry] of right_refims.entries()) {
     if (result.has(value_id)) continue;
     result.set(value_id, right_entry);
