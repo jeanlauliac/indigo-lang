@@ -45,6 +45,11 @@ struct Type_reference {
   parameters: vec<Type_reference>,
 }
 
+struct Call_argument {
+  is_by_reference: bool,
+  value: Expression,
+}
+
 fn __read_expression(ref state: State): Expression {}
 
 fn read_primary_expression(
@@ -210,11 +215,6 @@ fn read_object_field_value(ref state: State): Object_field_value {
   }
   read_token(&state);
   return Expression_field_value {expression: __read_expression(&state)};
-}
-
-struct Call_argument {
-  is_by_reference: bool,
-  value: Expression,
 }
 
 fn read_call_argument(ref state: State): Call_argument {
