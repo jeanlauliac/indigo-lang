@@ -2,9 +2,9 @@
 
 set -e
 
-./clover_comp.js > dist/utils.js
+./clover_comp.js > dist/compiled_src.js
 cp ./clover_comp.js dist/
-dist/clover_comp.js > dist/utils_new.js
-cp dist/utils_new.js dist/utils.js
-dist/clover_comp.js > dist/utils_new.js
-diff dist/utils.js dist/utils_new.js
+dist/clover_comp.js > dist/compiled_src.new.js
+cp dist/compiled_src.new.js dist/compiled_src.js
+dist/clover_comp.js > dist/compiled_src.new.js
+diff dist/compiled_src.js dist/compiled_src.new.js

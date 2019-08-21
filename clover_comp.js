@@ -2,7 +2,7 @@
 
 global.__read_expression = readExpression;
 
-const utils = require('./utils');
+const utils = require('./compiled_src');
 const fs = require('fs');
 const {has_keyword, has_operator, get_escaped_char,
   invariant, read_token, read_qualified_name, read_type_name} = utils;
@@ -17,7 +17,7 @@ function main() {
     code = fileTree['index.clv'];
     call_main = true;
   } else {
-    code = fs.readFileSync('./utils.clv', 'utf8');
+    code = fs.readFileSync('./src/index.clv', 'utf8');
   }
   const state = {code, i: 0, phase: 'module',
       token: null, nextToken: null};

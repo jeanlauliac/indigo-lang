@@ -1,4 +1,5 @@
 
+
 enum Token {
   Keyword {value: str},
   Operator {value: str},
