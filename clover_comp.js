@@ -530,8 +530,9 @@ function analyse_expression(state, exp, scope, refims) {
       const left_op = analyse_expression(state, exp.left_operand,
         scope, refinements);
 
-      invariant(left_op.type.id === right_op.type.id);
+      match_types(state, left_op.type, right_op.type, EMPTY_MAP);
       invariant(left_op.reference != null);
+
       return {type: left_op.type, conditional_refinements, refinements};
     }
 
