@@ -618,12 +618,14 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(spec.__type === 'Type');
     const type = state.types.get(spec.id);
     if (type.__type === 'Enum_variant') {
-      analyse_object_literal_fields(state, type.fields, exp.fields);
-      return {type: {id: type.enum_id, parameters: []}};
+      const refinements = analyse_object_literal_fields(state, type.fields,
+          exp.fields, scope, refims);
+      return {type: {id: type.enum_id, parameters: []}, refinements};
     }
     if (type.__type === 'Struct') {
-      analyse_object_literal_fields(state, type.fields, exp.fields);
-      return {type: {id: spec.id, parameters: []}};
+      const refinements = analyse_object_literal_fields(state, type.fields,
+          exp.fields, scope, refims);
+      return {type: {id: spec.id, parameters: []}, refinements};
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
   }
@@ -645,7 +647,8 @@ function analyse_expression(state, exp, scope, refims) {
   throw new Error(`unknown "${exp.__type}"`);
 }
 
-function analyse_object_literal_fields(state, type_fields, exp_fields) {
+function analyse_object_literal_fields(
+    state, type_fields, exp_fields, scope, refims) {
   const field_set = new Set(type_fields.keys());
   for (const exp_field of exp_fields) {
     const field_spec = type_fields.get(exp_field.name);
@@ -653,11 +656,26 @@ function analyse_object_literal_fields(state, type_fields, exp_fields) {
       throw new Error(`unknown field name "${exp_field.name}"`);
     }
     field_set.delete(exp_field.name);
+
+    const field_value = exp_field.value;
+    if (field_value.__type === 'Shorthand_field_value') {
+      const res = resolve_qualified_name(state, scope, [exp_field.name], refims);
+      invariant(res.__type === 'Reference');
+      match_types(state, res.type, field_spec.type);
+      refims = res.refinements;
+      continue;
+    }
+    invariant(field_value.__type === 'Expression_field_value');
+    const value = analyse_expression(state, field_value.expression, scope, refims);
+    match_types(state, value.type, field_spec.type);
+    refims = value.refinements;
   }
+
   if (field_set.size > 0) {
     throw new Error(`missing fields in object literal: ` +
       `${[...field_set].map(x => `"${x}"`).join(', ')}`);
   }
+  return refims;
 }
 
 function match_types(state, actual_type, expected_type, settled_type_parameters) {

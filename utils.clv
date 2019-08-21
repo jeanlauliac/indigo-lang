@@ -103,7 +103,10 @@ fn read_primary_expression(
     let dataType = state.token.value;
     read_token(&state);
 
-    let item_type = Type_reference {name: vec [], parameters: vec []};
+    let item_type = Type_reference {
+      name: vec<str> [],
+      parameters: vec<Type_reference> [],
+    };
     if (has_operator(state, "<")) {
       read_token(&state);
 
@@ -357,7 +360,7 @@ fn read_string_literal(ref state: State): String {
     ++state.i;
   }
   invariant(state.i < __size(state.code));
-  let token = String {value: value};
+  let token = String {value};
   ++state.i;
   return token;
 }
