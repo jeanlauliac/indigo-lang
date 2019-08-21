@@ -1,0 +1,15 @@
+'Can access field after checking identity in "if"':
+  stdout: "hello\n"
+  files:
+    index.clv: >
+      enum Maybe {
+        None {},
+        Some {value: str},
+      }
+
+      fn main() {
+        let foo = Some {value: "hello"};
+        if (foo is Some) {
+          println(foo.value);
+        }
+      }
