@@ -618,9 +618,11 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(spec.__type === 'Type');
     const type = state.types.get(spec.id);
     if (type.__type === 'Enum_variant') {
+      analyse_object_literal_fields(state, type.fields, exp.fields);
       return {type: {id: type.enum_id, parameters: []}};
     }
     if (type.__type === 'Struct') {
+      analyse_object_literal_fields(state, type.fields, exp.fields);
       return {type: {id: spec.id, parameters: []}};
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
@@ -641,6 +643,21 @@ function analyse_expression(state, exp, scope, refims) {
     throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
   throw new Error(`unknown "${exp.__type}"`);
+}
+
+function analyse_object_literal_fields(state, type_fields, exp_fields) {
+  const field_set = new Set(type_fields.keys());
+  for (const exp_field of exp_fields) {
+    const field_spec = type_fields.get(exp_field.name);
+    if (field_spec == null) {
+      throw new Error(`unknown field name "${exp_field.name}"`);
+    }
+    field_set.delete(exp_field.name);
+  }
+  if (field_set.size > 0) {
+    throw new Error(`missing fields in object literal: ` +
+      `${[...field_set].map(x => `"${x}"`).join(', ')}`);
+  }
 }
 
 function match_types(state, actual_type, expected_type, settled_type_parameters) {
