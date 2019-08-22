@@ -19,8 +19,7 @@ function main() {
   } else {
     code = fs.readFileSync('./src/index.clv', 'utf8');
   }
-  const state = {code, i: 0, phase: 'module',
-      token: null, nextToken: null};
+  const state = {code, i: 0, token: null};
   read_token(state);
 
   const module = readModule(state);
@@ -110,7 +109,6 @@ function get_base_type(name) {
 
 function resolveModule(module) {
   const state = {next_id: 1, types: new Map(), builtin_ids: {}};
-
   const global_scope = {parent: null, names: new Map()};
 
   for (const type of builtin_types) {
