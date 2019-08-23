@@ -206,7 +206,7 @@ function __read_next_token(state, ) {
   if (__is_alpha(clone(access(state.code, state.i)), )) {
     return __read_identifier(state, );
   }
-  if (__is_numeric(clone(access(state.code, state.i)), )) {
+  if (__tokens__is_numeric(clone(access(state.code, state.i)), )) {
     return __read_number(state, );
   }
   let OPERATOR_PREFIXES = new Set(["|", "(", ")", "{", "}", "=", ";", ":", ",", ".", "&", "<", ">", "/", "*", "+", "[", "]", "!", "-", ]);
@@ -249,7 +249,7 @@ module.exports.read_number = __read_number;
 function __read_number(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
-  while (((state.i < (state.code).length) && __is_numeric(clone(access(state.code, state.i)), ))) {
+  while (((state.i < (state.code).length) && __tokens__is_numeric(clone(access(state.code, state.i)), ))) {
     (value = (value + access(state.code, state.i)));
     ++state.i;
   }
@@ -258,17 +258,12 @@ function __read_number(state, ) {
 
 module.exports.is_alphanumeric = __is_alphanumeric;
 function __is_alphanumeric(c, ) {
-  return (__is_alpha(clone(c), ) || __is_numeric(clone(c), ));
+  return (__is_alpha(clone(c), ) || __tokens__is_numeric(clone(c), ));
 }
 
 module.exports.is_alpha = __is_alpha;
 function __is_alpha(c, ) {
   return (((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z")));
-}
-
-module.exports.is_numeric = __is_numeric;
-function __is_numeric(c, ) {
-  return ((c >= "0") && (c <= "9"));
 }
 
 module.exports.read_operator = __read_operator;
@@ -332,6 +327,11 @@ function __get_escaped_char(code, ) {
 module.exports.invariant = __invariant;
 function __invariant(cond, ) {
   if (!cond) throw new Error(clone("invariant failed"), );
+}
+
+module.exports.tokens__is_numeric = __tokens__is_numeric;
+function __tokens__is_numeric(c, ) {
+  return ((c >= "0") && (c <= "9"));
 }
 
 function clone(v) {

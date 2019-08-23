@@ -31,12 +31,20 @@ function main() {
 
   const state = create_fresh_state();
 
+  // ****** pass 1: build type names
+
   const INDEX_MODULE_NAME = 'index.clv';
   const index_module_ast = filesystem.get(INDEX_MODULE_NAME);
   const index_module_names = build_module_type_names(state, index_module_ast);
 
   const index_module_id = get_unique_id(state);
   state.types.set(index_module_id, {__type: 'Module', names: index_module_names});
+
+  const root_names = state.types.get(state.root_module_id).names;
+  const root_scope = {parent: null, names: root_names};
+  const index_module_scope = {parent: root_scope, names: index_module_names};
+
+  const submodules = new Map();
 
   for (const [file_name, module_ast] of filesystem) {
     if (file_name === INDEX_MODULE_NAME) continue;
@@ -53,31 +61,33 @@ function main() {
       __type: 'Module_name',
       id: module_id,
     });
+    const module_scope = {parent: index_module_scope, names: module_names};
+    submodules.set(module_name, {ast: module_ast, scope: module_scope});
   }
 
-  const root_names = state.types.get(state.root_module_id).names;
-  const root_scope = {parent: null, names: root_names};
-  const index_module_scope = {parent: root_scope, names: index_module_names};
+  // ****** pass 2: build type entities
+
+  build_module_types(state, index_module_scope, index_module_ast);
+  for (const [module_name, {ast, scope}] of submodules) {
+    build_module_types(state, scope, ast);
+  }
+
+  // ****** pass 3: analyse functions
+
   analyse_module(state, index_module_scope, index_module_ast);
+  for (const [module_name, {ast, scope}] of submodules) {
+    analyse_module(state, scope, ast);
+  }
+
+  // ****** write output
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const decl of index_module_ast.declarations) {
-    if (decl.__type !== 'Function') continue;
-    const func = decl;
-    write(`module.exports.${func.name} = __${func.name};\n`);
-    write(`function __${func.name}(`);
-    for (const argument of func.arguments) {
-      write(`${argument.name}, `);
-    }
-    write(`) {\n`);
-    for (const statement of func.statements) {
-      write('  ');
-      writeStatement(statement, '  ');
-      write('\n');
-    }
-    write(`}\n\n`);
+  write_module('', index_module_ast);
+  for (const [module_name, {ast}] of submodules) {
+    write_module(`${module_name}__`, ast);
   }
+
   write(`function clone(v) {
   if (v == null) return v;
   if (typeof v === 'string') return v;
@@ -107,6 +117,25 @@ function identity_test(value, type) {
 }
 `);
   if (call_main) write('__main();\n');
+}
+
+function write_module(prefix, ast) {
+  for (const decl of ast.declarations) {
+    if (decl.__type !== 'Function') continue;
+    const func = decl;
+    write(`module.exports.${prefix}${func.name} = __${prefix}${func.name};\n`);
+    write(`function __${prefix}${func.name}(`);
+    for (const argument of func.arguments) {
+      write(`${argument.name}, `);
+    }
+    write(`) {\n`);
+    for (const statement of func.statements) {
+      write('  ');
+      writeStatement(statement, '  ');
+      write('\n');
+    }
+    write(`}\n\n`);
+  }
 }
 
 const builtin_types = [
@@ -198,10 +227,6 @@ function get_base_type(name) {
 }
 
 function analyse_module(state, scope, module_ast) {
-
-  build_module_types(state, scope, module_ast);
-
-  // Analyse functions
   for (const [index, decl] of module_ast.declarations.entries()) {
     if (decl.__type !== 'Function') continue;
     const name = scope.names.get(decl.name);
@@ -855,18 +880,30 @@ function resolve_type(state, scope, type) {
 function resolve_qualified_name(state, scope, name, refims) {
   invariant(name.length >= 1);
 
-  const ref = resolve_name(scope, name[0]);
-  if (ref == null) throw new Error(`unknown name "${name}"`);
+  let ref = resolve_name(scope, name[0]);
+  if (ref == null) throw new Error(`unknown name "${name[0]}"`);
 
-  if (ref.__type === 'Type' || ref.__type === 'Function') {
+  let i = 1;
+  while (ref.__type === 'Module_name' && i < name.length) {
+    const md = state.types.get(ref.id);
+    invariant(md.__type === 'Module');
+    ref = md.names.get(name[i]);
+    if (ref == null) {
+      throw new Error(`unknown name "${name[i]}" in path "${name.join('.')}"`);
+    }
+    ++i;
+  }
+  if (ref.__type !== 'Value_reference') {
+    invariant(i === name.length);
     return ref;
   }
+
   invariant(ref.__type === 'Value_reference');
   const value_id = ref.id;
   const path = [];
   let {type} = ref;
   let refim = refims && refims.get(value_id);
-  for (let i = 1; i < name.length; ++i) {
+  for (; i < name.length; ++i) {
     const type_spec = state.types.get(type.id);
     const field_name = name[i];
 
@@ -1007,7 +1044,7 @@ function writeExpression(expression) {
     } else if (expression.functionName[0] === 'println') {
       write('console.log(');
     } else {
-      write(`__${expression.functionName.join('.')}(`);
+      write(`__${expression.functionName.join('__')}(`);
     }
     for (const argument of expression.arguments) {
       if (!argument.is_by_reference) {
