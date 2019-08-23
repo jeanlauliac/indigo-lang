@@ -12,22 +12,28 @@ const write = process.stdout.write.bind(process.stdout);
 function main() {
   let code;
   let call_main = false;
+  let filesystem = new Map();
   if (process.argv[2] === '-i') {
     fileTree = JSON.parse(fs.readFileSync(0, "utf8"));
-    code = fileTree['index.clv'];
+    for (const key of Object.keys(fileTree)) {
+      const code = fileTree[key];
+      filesystem.set(key, readModule(code));
+    }
     call_main = true;
   } else {
-    code = fs.readFileSync('./src/index.clv', 'utf8');
+    const all_files = fs.readdirSync('./src');
+    for (const file_name of all_files) {
+      const code = fs.readFileSync(`./src/${file_name}`, 'utf8');
+      filesystem.set(file_name, readModule(code));
+    }
   }
-  const state = {code, i: 0, token: null};
-  read_token(state);
 
-  const module = readModule(state);
-  const namespace = resolveModule(module);
+  const md = filesystem.get('index.clv');
+  const namespace = resolveModule(md);
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const decl of module.declarations) {
+  for (const decl of md.declarations) {
     if (decl.__type !== 'Function') continue;
     const func = decl;
     write(`module.exports.${func.name} = __${func.name};\n`);
@@ -1083,7 +1089,10 @@ function writeExpression(expression) {
  * ======== Parsing ========================================================
  */
 
-function readModule(state) {
+function readModule(code) {
+  const state = {code, i: 0, token: null};
+  read_token(state);
+
   const declarations = [];
   while (state.token.__type !== 'End_of_file') {
     declarations.push(readModuleDeclaration(state));
