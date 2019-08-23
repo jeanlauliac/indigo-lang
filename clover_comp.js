@@ -61,6 +61,7 @@ function main() {
       __type: 'Module_name',
       id: module_id,
     });
+
     const module_scope = {parent: index_module_scope, names: module_names};
     submodules.set(module_name, {ast: module_ast, scope: module_scope});
   }
@@ -307,6 +308,11 @@ function build_module_types(state, scope, module_ast) {
     if (decl.__type === 'Enum') {
       const name = scope.names.get(decl.name);
       invariant(name.__type === 'Type');
+
+      if (resolve_name(scope.parent, decl.name) != null) {
+        throw new Error(`duplicate name "${decl.name}"`);
+      }
+
       const {id, variant_ids} = name;
       const variants = [];
 
@@ -335,6 +341,10 @@ function build_module_types(state, scope, module_ast) {
       const name = scope.names.get(decl.name);
       invariant(name.__type === 'Type');
 
+      if (resolve_name(scope.parent, decl.name) != null) {
+        throw new Error(`duplicate name "${decl.name}"`);
+      }
+
       const fields = new Map();
       for (const [field_index, field] of decl.fields.entries()) {
         if (fields.has(field.name)) {
@@ -352,6 +362,10 @@ function build_module_types(state, scope, module_ast) {
     if (decl.__type === 'Function') {
       const name = scope.names.get(decl.name);
       invariant(name.__type === 'Function');
+
+      if (resolve_name(scope.parent, decl.name) != null) {
+        throw new Error(`duplicate name "${decl.name}"`);
+      }
 
       const argument_ids = [];
       for (const arg of decl.arguments) {
