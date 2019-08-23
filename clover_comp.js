@@ -4,6 +4,7 @@ global.__read_expression = readExpression;
 
 const utils = require('./compiled_src');
 const fs = require('fs');
+const path = require('path');
 const {has_keyword, has_operator, get_escaped_char,
   invariant, read_token, read_qualified_name, read_type_name} = utils;
 
@@ -30,20 +31,38 @@ function main() {
 
   const state = create_fresh_state();
 
-  const module_ast = filesystem.get('index.clv');
-  const module_names = build_module_type_names(state, module_ast);
+  const INDEX_MODULE_NAME = 'index.clv';
+  const index_module_ast = filesystem.get(INDEX_MODULE_NAME);
+  const index_module_names = build_module_type_names(state, index_module_ast);
 
-  const module_id = get_unique_id(state);
-  state.types.set(module_id, {__type: 'Module', names: module_names});
+  const index_module_id = get_unique_id(state);
+  state.types.set(index_module_id, {__type: 'Module', names: index_module_names});
+
+  for (const [file_name, module_ast] of filesystem) {
+    if (file_name === INDEX_MODULE_NAME) continue;
+    if (path.extname(file_name) !== '.clv') continue;
+    const module_names = build_module_type_names(state, module_ast);
+
+    const module_id = get_unique_id(state);
+    state.types.set(module_id, {__type: 'Module', names: module_names});
+    const module_name = path.basename(file_name, '.clv');
+    if (index_module_names.has(module_name)) {
+      throw new Error(`duplicate name "${module_name}"`);
+    }
+    index_module_names.set(module_name, {
+      __type: 'Module_name',
+      id: module_id,
+    });
+  }
 
   const root_names = state.types.get(state.root_module_id).names;
   const root_scope = {parent: null, names: root_names};
-  const module_scope = {parent: root_scope, names: module_names};
-  analyse_module(state, module_scope, module_ast);
+  const index_module_scope = {parent: root_scope, names: index_module_names};
+  analyse_module(state, index_module_scope, index_module_ast);
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const decl of module_ast.declarations) {
+  for (const decl of index_module_ast.declarations) {
     if (decl.__type !== 'Function') continue;
     const func = decl;
     write(`module.exports.${func.name} = __${func.name};\n`);
