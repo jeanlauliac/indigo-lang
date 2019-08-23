@@ -28,12 +28,22 @@ function main() {
     }
   }
 
-  const md = filesystem.get('index.clv');
-  const namespace = resolveModule(md);
+  const state = create_fresh_state();
+
+  const module_ast = filesystem.get('index.clv');
+  const module_names = build_module_type_names(state, module_ast);
+
+  const module_id = get_unique_id(state);
+  state.types.set(module_id, {__type: 'Module', names: module_names});
+
+  const root_names = state.types.get(state.root_module_id).names;
+  const root_scope = {parent: null, names: root_names};
+  const module_scope = {parent: root_scope, names: module_names};
+  analyse_module(state, module_scope, module_ast);
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const decl of md.declarations) {
+  for (const decl of module_ast.declarations) {
     if (decl.__type !== 'Function') continue;
     const func = decl;
     write(`module.exports.${func.name} = __${func.name};\n`);
@@ -109,29 +119,30 @@ const builtin_functions = [
   {name: 'println', arguments: [{type: get_base_type('str')}]},
 ];
 
-function get_base_type(name) {
-  return {name: [name], parameters: []};
-}
-
-function resolveModule(module) {
-  const state = {next_id: 1, types: new Map(), builtin_ids: {}};
-  const global_scope = {parent: null, names: new Map()};
+function create_fresh_state() {
+  const root_names = new Map();
+  const state = {
+    next_id: 2,
+    types: new Map([[1, {__type: 'Module', names: root_names}]]),
+    builtin_ids: {},
+    root_module_id: 1,
+  };
 
   for (const type of builtin_types) {
     const id = get_unique_id(state);
     state.types.set(id, type);
-    global_scope.names.set(type.name,
+    root_names.set(type.name,
         {__type: 'Type', id, parameter_count: type.parameter_count});
     state.builtin_ids[type.name] = id;
   }
 
+  const root_scope = {parent: null, names: root_names};
   for (const def of builtin_functions) {
     const id = get_unique_id(state);
 
-    let type_scope = global_scope;
+    const type_scope = {parent: root_scope, names: new Map()};
     const type_parameter_ids = [];
     if (def.type_parameter_names != null) {
-      type_scope = {parent: global_scope, names: new Map()};
       for (const name of def.type_parameter_names) {
         const param_id = get_unique_id(state);
         type_parameter_ids.push(param_id);
@@ -157,34 +168,40 @@ function resolveModule(module) {
 
     state.types.set(id, {__type: 'Function', argument_ids,
         type_parameter_ids, return_type});
-    global_scope.names.set(def.name, {__type: 'Function', id});
+    root_names.set(def.name, {__type: 'Function', id});
   }
 
-  const {type_names, declaration_ids} = build_module_type_names(state, module);
-  const module_scope = {parent: global_scope, names: type_names};
+  return state;
+}
 
-  // console.error(require('util').inspect(module_scope, {depth: 10}));
-  build_module_types(state, module, declaration_ids, module_scope);
+function get_base_type(name) {
+  return {name: [name], parameters: []};
+}
 
-  let refims = new Map();
+function analyse_module(state, scope, module_ast) {
+
+  build_module_types(state, scope, module_ast);
 
   // Analyse functions
-  for (const [index, decl] of module.declarations.entries()) {
+  for (const [index, decl] of module_ast.declarations.entries()) {
     if (decl.__type !== 'Function') continue;
-    const {id} = declaration_ids.get(index);
-    const func_type = state.types.get(id);
-    const func_scope = {parent: module_scope, names: new Map()};
+    const name = scope.names.get(decl.name);
+    invariant(name.__type === 'Function');
+    const func_type = state.types.get(name.id);
+
+    const func_scope = {parent: scope, names: new Map()};
     for (const arg_id of func_type.argument_ids) {
       const arg = state.types.get(arg_id);
       func_scope.names.set(arg.name,
           {__type: 'Value_reference', type: arg.type, id: arg_id});
     }
+
+    let refims = new Map();
     for (const st of decl.statements) {
       const res = analyse_statement(state, st, func_scope, refims);
       refims = res.refinements;
     }
   }
-
 }
 
 /**
@@ -195,7 +212,6 @@ function resolveModule(module) {
  */
 function build_module_type_names(state, module) {
   const type_names = new Map();
-  const declaration_ids = new Map();
 
   for (const [declaration_index, decl] of module.declarations.entries()) {
     if (decl.__type === 'Enum') {
@@ -204,9 +220,8 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {__type: 'Type', id});
       const variant_ids = new Map();
-      declaration_ids.set(declaration_index, {id, variant_ids});
+      type_names.set(decl.name, {__type: 'Type', id, variant_ids});
 
       for (const [variant_index, variant] of decl.variants.entries()) {
         if (type_names.has(variant.name)) {
@@ -227,13 +242,12 @@ function build_module_type_names(state, module) {
       const id = get_unique_id(state);
       type_names.set(decl.name, {
         __type: decl.__type === 'Struct' ? 'Type' : 'Function', id});
-      declaration_ids.set(declaration_index, {id});
       continue;
     }
 
     invariant(false);
   }
-  return {type_names, declaration_ids};
+  return type_names;
 }
 
 /**
@@ -242,12 +256,14 @@ function build_module_type_names(state, module) {
  * represented by an ID, which can then be used to look up its properties in the
  * state's type map.
  */
-function build_module_types(state, module, declaration_ids, scope) {
+function build_module_types(state, scope, module_ast) {
 
-  for (const [decl_index, decl] of module.declarations.entries()) {
+  for (const [decl_index, decl] of module_ast.declarations.entries()) {
 
-    const {id, variant_ids} = declaration_ids.get(decl_index);
     if (decl.__type === 'Enum') {
+      const name = scope.names.get(decl.name);
+      invariant(name.__type === 'Type');
+      const {id, variant_ids} = name;
       const variants = [];
 
       for (const [variant_index, variant] of decl.variants.entries()) {
@@ -272,6 +288,9 @@ function build_module_types(state, module, declaration_ids, scope) {
     }
 
     if (decl.__type === 'Struct') {
+      const name = scope.names.get(decl.name);
+      invariant(name.__type === 'Type');
+
       const fields = new Map();
       for (const [field_index, field] of decl.fields.entries()) {
         if (fields.has(field.name)) {
@@ -282,11 +301,14 @@ function build_module_types(state, module, declaration_ids, scope) {
           type: resolve_type(state, scope, field.type),
         });
       }
-      state.types.set(id, {__type: 'Struct', fields});
+      state.types.set(name.id, {__type: 'Struct', fields});
       continue;
     }
 
     if (decl.__type === 'Function') {
+      const name = scope.names.get(decl.name);
+      invariant(name.__type === 'Function');
+
       const argument_ids = [];
       for (const arg of decl.arguments) {
         const arg_id = get_unique_id(state);
@@ -300,7 +322,7 @@ function build_module_types(state, module, declaration_ids, scope) {
       if (decl.return_type != null) {
         return_type = resolve_type(state, scope, decl.return_type);
       }
-      state.types.set(id, {__type: 'Function', argument_ids, return_type})
+      state.types.set(name.id, {__type: 'Function', argument_ids, return_type})
       continue;
     }
 
