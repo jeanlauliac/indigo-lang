@@ -337,7 +337,7 @@ fn read_operator(ref state: State): Operator {
   let operators = set ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = "" + state.code[state.i];
   ++state.i;
-  if (__has_str(operators, value + state.code[state.i])) {
+  if (state.i < __size(state.code) && __has_str(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }

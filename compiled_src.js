@@ -271,7 +271,7 @@ function __read_operator(state, ) {
   let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
-  if ((operators.has((value + access(state.code, state.i))))) {
+  if (((state.i < (state.code).length) && (operators.has((value + access(state.code, state.i)))))) {
     (value = (value + access(state.code, state.i)));
     ++state.i;
   }
