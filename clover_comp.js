@@ -44,7 +44,7 @@ function main() {
   const root_scope = {parent: null, names: root_names};
   const index_module_scope = {parent: root_scope, names: index_module_names};
 
-  const submodules = new Map();
+  const submodules = [];
 
   for (const [file_name, module_ast] of filesystem) {
     if (file_name === INDEX_MODULE_NAME) continue;
@@ -63,20 +63,20 @@ function main() {
     });
 
     const module_scope = {parent: index_module_scope, names: module_names};
-    submodules.set(module_name, {ast: module_ast, scope: module_scope});
+    submodules.push({name: module_name, ast: module_ast, scope: module_scope});
   }
 
   // ****** pass 2: build type entities
 
   build_module_types(state, index_module_scope, index_module_ast);
-  for (const [module_name, {ast, scope}] of submodules) {
+  for (const {ast, scope} of submodules) {
     build_module_types(state, scope, ast);
   }
 
   // ****** pass 3: analyse functions
 
   analyse_module(state, index_module_scope, index_module_ast);
-  for (const [module_name, {ast, scope}] of submodules) {
+  for (const {ast, scope} of submodules) {
     analyse_module(state, scope, ast);
   }
 
@@ -85,8 +85,8 @@ function main() {
   write('// GENERATED, DO NOT EDIT\n\n');
 
   write_module('', index_module_ast);
-  for (const [module_name, {ast}] of submodules) {
-    write_module(`${module_name}__`, ast);
+  for (const {name, ast} of submodules) {
+    write_module(`${name}__`, ast);
   }
 
   write(`function clone(v) {
