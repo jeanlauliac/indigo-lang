@@ -35,7 +35,8 @@ function main() {
 
   const INDEX_MODULE_NAME = 'index.clv';
   const index_module_ast = filesystem.get(INDEX_MODULE_NAME);
-  const index_module_names = build_module_type_names(state, index_module_ast);
+  const {type_names: index_module_names, assigned_declarations: index_decls} =
+      build_module_type_names(state, index_module_ast);
 
   const index_module_id = get_unique_id(state);
   state.types.set(index_module_id, {__type: 'Module', names: index_module_names});
@@ -49,10 +50,11 @@ function main() {
   for (const [file_name, module_ast] of filesystem) {
     if (file_name === INDEX_MODULE_NAME) continue;
     if (path.extname(file_name) !== '.clv') continue;
-    const module_names = build_module_type_names(state, module_ast);
+    const {type_names, assigned_declarations} =
+        build_module_type_names(state, module_ast);
 
     const module_id = get_unique_id(state);
-    state.types.set(module_id, {__type: 'Module', names: module_names});
+    state.types.set(module_id, {__type: 'Module', names: type_names});
     const module_name = path.basename(file_name, '.clv');
     if (index_module_names.has(module_name)) {
       throw new Error(`duplicate name "${module_name}"`);
@@ -62,31 +64,32 @@ function main() {
       id: module_id,
     });
 
-    const module_scope = {parent: index_module_scope, names: module_names};
-    submodules.push({name: module_name, ast: module_ast, scope: module_scope});
+    const module_scope = {parent: index_module_scope, names: type_names};
+    submodules.push({name: module_name,
+        scope: module_scope, declarations: assigned_declarations});
   }
 
   // ****** pass 2: build type entities
 
-  build_module_types(state, index_module_scope, index_module_ast);
-  for (const {ast, scope} of submodules) {
-    build_module_types(state, scope, ast);
+  build_module_types(state, index_module_scope, index_decls);
+  for (const {scope, declarations} of submodules) {
+    build_module_types(state, scope, declarations);
   }
 
   // ****** pass 3: analyse functions
 
-  analyse_module(state, index_module_scope, index_module_ast);
-  for (const {ast, scope} of submodules) {
-    analyse_module(state, scope, ast);
+  analyse_module(state, index_module_scope, index_decls);
+  for (const {declarations, scope} of submodules) {
+    analyse_module(state, scope, declarations);
   }
 
   // ****** write output
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  write_module('', index_module_ast);
-  for (const {name, ast} of submodules) {
-    write_module(`${name}__`, ast);
+  write_module('', index_decls);
+  for (const {name, declarations} of submodules) {
+    write_module(`${name}__`, declarations);
   }
 
   write(`function clone(v) {
@@ -120,8 +123,8 @@ function identity_test(value, type) {
   if (call_main) write('__main();\n');
 }
 
-function write_module(prefix, ast) {
-  for (const decl of ast.declarations) {
+function write_module(prefix, declarations) {
+  for (const {declaration: decl} of declarations) {
     if (decl.__type !== 'Function') continue;
     const func = decl;
     write(`module.exports.${prefix}${func.name} = __${prefix}${func.name};\n`);
@@ -227,12 +230,10 @@ function get_base_type(name) {
   return {name: [name], parameters: []};
 }
 
-function analyse_module(state, scope, module_ast) {
-  for (const [index, decl] of module_ast.declarations.entries()) {
+function analyse_module(state, scope, declarations) {
+  for (const {id, declaration: decl} of declarations) {
     if (decl.__type !== 'Function') continue;
-    const name = scope.names.get(decl.name);
-    invariant(name.__type === 'Function');
-    const func_type = state.types.get(name.id);
+    const func_type = state.types.get(id);
 
     const func_scope = {parent: scope, names: new Map()};
     for (const arg_id of func_type.argument_ids) {
@@ -257,8 +258,9 @@ function analyse_module(state, scope, module_ast) {
  */
 function build_module_type_names(state, module) {
   const type_names = new Map();
+  const assigned_declarations = [];
 
-  for (const [declaration_index, decl] of module.declarations.entries()) {
+  for (const decl of module.declarations) {
     if (decl.__type === 'Enum') {
       if (type_names.has(decl.name)) {
         throw new Error(`duplicate name "${decl.name}"`);
@@ -276,6 +278,8 @@ function build_module_type_names(state, module) {
         type_names.set(variant.name, {__type: 'Type', id: vid});
         variant_ids.set(variant_index, vid);
       }
+
+      assigned_declarations.push({id, variant_ids, declaration: decl});
       continue;
     }
 
@@ -287,12 +291,13 @@ function build_module_type_names(state, module) {
       const id = get_unique_id(state);
       type_names.set(decl.name, {
         __type: decl.__type === 'Struct' ? 'Type' : 'Function', id});
+      assigned_declarations.push({id, declaration: decl});
       continue;
     }
 
     invariant(false);
   }
-  return type_names;
+  return {type_names, assigned_declarations};
 }
 
 /**
@@ -301,19 +306,15 @@ function build_module_type_names(state, module) {
  * represented by an ID, which can then be used to look up its properties in the
  * state's type map.
  */
-function build_module_types(state, scope, module_ast) {
-
-  for (const [decl_index, decl] of module_ast.declarations.entries()) {
+function build_module_types(state, scope, declarations) {
+  for (const {id, variant_ids, declaration: decl} of declarations) {
 
     if (decl.__type === 'Enum') {
-      const name = scope.names.get(decl.name);
-      invariant(name.__type === 'Type');
 
       if (resolve_name(scope.parent, decl.name) != null) {
         throw new Error(`duplicate name "${decl.name}"`);
       }
 
-      const {id, variant_ids} = name;
       const variants = [];
 
       for (const [variant_index, variant] of decl.variants.entries()) {
@@ -333,14 +334,10 @@ function build_module_types(state, scope, module_ast) {
       }
 
       state.types.set(id, {__type: 'Enum', variants});
-
       continue;
     }
 
     if (decl.__type === 'Struct') {
-      const name = scope.names.get(decl.name);
-      invariant(name.__type === 'Type');
-
       if (resolve_name(scope.parent, decl.name) != null) {
         throw new Error(`duplicate name "${decl.name}"`);
       }
@@ -355,14 +352,11 @@ function build_module_types(state, scope, module_ast) {
           type: resolve_type(state, scope, field.type),
         });
       }
-      state.types.set(name.id, {__type: 'Struct', fields});
+      state.types.set(id, {__type: 'Struct', fields});
       continue;
     }
 
     if (decl.__type === 'Function') {
-      const name = scope.names.get(decl.name);
-      invariant(name.__type === 'Function');
-
       if (resolve_name(scope.parent, decl.name) != null) {
         throw new Error(`duplicate name "${decl.name}"`);
       }
@@ -380,7 +374,7 @@ function build_module_types(state, scope, module_ast) {
       if (decl.return_type != null) {
         return_type = resolve_type(state, scope, decl.return_type);
       }
-      state.types.set(name.id, {__type: 'Function', argument_ids, return_type})
+      state.types.set(id, {__type: 'Function', argument_ids, return_type})
       continue;
     }
 
