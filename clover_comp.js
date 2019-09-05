@@ -472,11 +472,23 @@ const EMPTY_MAP = new Map();
 
 function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Bool_literal') {
-    return {type: {id: state.builtin_ids.bool, parameters: []}};
+    return {
+      type: {id: state.builtin_ids.bool, parameters: []},
+      expression: {
+        __type: 'Typed_bool_literal',
+        value: exp.value,
+      },
+    };
   }
 
   if (exp.__type === 'Character_literal') {
-    return {type: {id: state.builtin_ids.char, parameters: []}};
+    return {
+      type: {id: state.builtin_ids.char, parameters: []},
+      expression: {
+        __type: 'Typed_character_literal',
+        value: exp.value,
+      },
+    };
   }
 
   if (exp.__type === 'In_place_assignment') {
@@ -485,31 +497,72 @@ function analyse_expression(state, exp, scope, refims) {
       case '++': {
         const type = state.types.get(operand.type.id);
         invariant(type.__type === 'BuiltinType' && type.is_number);
-        return operand;
+        return {
+          type: operand.type,
+          expression: {
+            __type: 'Typed_in_place_assignment',
+            operand: operand.expression,
+            operator: exp.operation,
+            type: operand.type,
+          },
+        };
       }
     }
     throw new Error(`unknown op "${exp.operation}"`);
   }
 
   if (exp.__type === 'String_literal') {
-    return {type: {id: state.builtin_ids.str, parameters: []}};
+    return {
+      type: {id: state.builtin_ids.str, parameters: []},
+      expression: {
+        __type: 'Typed_string_literal',
+        value: exp.value,
+      },
+    };
   }
 
   if (exp.__type === 'Number_literal') {
-    return {type: {id: state.builtin_ids.u32, parameters: []}};;
+    const value = Number.parseInt(exp.value, 10);
+    invariant(value.toString() === exp.value);
+    invariant(value < Math.pow(2, 31) - 1);
+    invariant(value > -Math.pow(2, 31));
+    return {
+      type: {id: state.builtin_ids.u32, parameters: []},
+      expression: {
+        __type: 'Typed_u32_literal',
+        value,
+      },
+    };
   }
 
   if (exp.__type === 'Unary_operation') {
     const operand = analyse_expression(state, exp.operand, scope);
+    const {operator} = exp;
     if (exp.operator === '-') {
       const type_def = state.types.get(operand.type.id);
       invariant(type_def.__type === 'BuiltinType');
       invariant(type_def.is_number && type_def.is_signed);
-      return operand;
+      return {
+        type: operand.type,
+        expression: {
+          __type: 'Typed_unary_operation',
+          type: operand.type,
+          operand: operand.expression,
+          operator,
+        },
+      };
     }
     if (exp.operator === '!') {
       invariant(operand.type.id === state.builtin_ids.bool);
-      return operand;
+      return {
+        type: operand.type,
+        expression: {
+          __type: 'Typed_unary_operation',
+          type: operand.type,
+          operand: operand.expression,
+          operator,
+        },
+      };
     }
     throw new Error(`invalid op "${exp.operator}"`);
   }
@@ -548,16 +601,34 @@ function analyse_expression(state, exp, scope, refims) {
 
     // console.error(require('util').inspect(conditional_refinements, {depth: null}));
 
-    return {type: {id: state.builtin_ids.bool, parameters: []},
-        conditional_refinements, refinements};
+    return {
+      type: {id: state.builtin_ids.bool, parameters: []},
+      conditional_refinements,
+      refinements,
+      expression: {
+        __type: 'Typed_identity_test',
+        operand: operand.expression,
+        variant_id,
+      }
+    };
   }
 
   if (exp.__type === 'Qualified_name') {
     const res = resolve_qualified_name(state, scope, exp.value, refims);
     invariant(res.__type === 'Reference');
+    const reference = {
+      value_id: res.value_id,
+      path: res.path,
+    };
 
-    return {type: res.type, reference: {
-        value_id: res.value_id, path: res.path}};
+    return {
+      type: res.type,
+      reference,
+      expression: {
+        __type: 'Typed_qualified_name',
+        reference,
+      }
+    };
   }
 
   if (exp.__type === 'Function_call') {
@@ -568,6 +639,7 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(func.argument_ids.length === exp.arguments.length);
 
     const settled_type_params = new Map();
+    const arguments = [];
 
     for (let i = 0; i < func.argument_ids.length; ++i) {
       const arg = analyse_expression(state, exp.arguments[i].value,
@@ -576,10 +648,19 @@ function analyse_expression(state, exp, scope, refims) {
       invariant(arg_def.__type === 'Function_argument');
 
       match_types(state, arg.type, arg_def.type, settled_type_params);
+      arguments.push(arg.expression);
     }
 
     const func_def = state.types.get(spec.id);
-    return {type: func_def.return_type};
+    return {
+      type: func_def.return_type,
+      expression: {
+        __type: 'Typed_function_call',
+        function_id: spec.id,
+        type_parameters: settled_type_params,
+        arguments,
+      },
+    };
   }
 
   if (exp.__type === 'Collection_literal') {
