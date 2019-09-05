@@ -78,18 +78,17 @@ function main() {
 
   // ****** pass 3: analyse functions
 
-  analyse_module(state, index_module_scope, index_decls);
-  for (const {declarations, scope} of submodules) {
-    analyse_module(state, scope, declarations);
+  analyse_module(state, index_module_scope, index_decls, '');
+  for (const {name, declarations, scope} of submodules) {
+    analyse_module(state, scope, declarations, `${name}__`);
   }
 
   // ****** write output
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  write_module('', index_decls);
-  for (const {name, declarations} of submodules) {
-    write_module(`${name}__`, declarations);
+  for (const func of state.functions) {
+    write_function(state, func);
   }
 
   write(`function clone(v) {
@@ -123,23 +122,23 @@ function identity_test(value, type) {
   if (call_main) write('__main();\n');
 }
 
-function write_module(prefix, declarations) {
-  for (const {declaration: decl} of declarations) {
-    if (decl.__type !== 'Function') continue;
-    const func = decl;
-    write(`module.exports.${prefix}${func.name} = __${prefix}${func.name};\n`);
-    write(`function __${prefix}${func.name}(`);
-    for (const argument of func.arguments) {
-      write(`${argument.name}, `);
-    }
-    write(`) {\n`);
-    for (const statement of func.statements) {
-      write('  ');
-      writeStatement(statement, '  ');
-      write('\n');
-    }
-    write(`}\n\n`);
+function write_function(state, func) {
+  write(`module.exports.${func.pseudo_name} = __${func.pseudo_name};\n`);
+  write(`function __${func.pseudo_name}(`);
+  const spec = state.types.get(func.id);
+  invariant(spec.__type === 'Function');
+
+  for (const arg_id of spec.argument_ids) {
+    const arg = state.types.get(arg_id);
+    write(`${arg.name}, `);
   }
+  write(`) {\n`);
+  for (const statement of func.statements) {
+    write('  ');
+    writeStatement(statement, '  ');
+    write('\n');
+  }
+  write(`}\n\n`);
 }
 
 const builtin_types = [
@@ -176,6 +175,7 @@ function create_fresh_state() {
   const state = {
     next_id: 2,
     types: new Map([[1, {__type: 'Module', names: root_names}]]),
+    functions: [],
     builtin_ids: {},
     root_module_id: 1,
   };
@@ -230,7 +230,8 @@ function get_base_type(name) {
   return {name: [name], parameters: []};
 }
 
-function analyse_module(state, scope, declarations) {
+function analyse_module(state, scope, declarations, name_prefix) {
+
   for (const {id, declaration: decl} of declarations) {
     if (decl.__type !== 'Function') continue;
     const func_type = state.types.get(id);
@@ -243,10 +244,19 @@ function analyse_module(state, scope, declarations) {
     }
 
     let refims = new Map();
+    const statements = [];
+
     for (const st of decl.statements) {
       const res = analyse_statement(state, st, func_scope, refims);
       refims = res.refinements;
+      statements.push(st);
     }
+
+    state.functions.push({
+      id,
+      pseudo_name: name_prefix + decl.name,
+      statements,
+    });
   }
 }
 
