@@ -135,7 +135,7 @@ function write_function(state, func) {
   write(`) {\n`);
   for (const statement of func.statements) {
     write('  ');
-    writeStatement(statement, '  ');
+    write_statement(state, statement, '  ');
     write('\n');
   }
   write(`}\n\n`);
@@ -249,7 +249,7 @@ function analyse_module(state, scope, declarations, name_prefix) {
     for (const st of decl.statements) {
       const res = analyse_statement(state, st, func_scope, refims);
       refims = res.refinements;
-      statements.push(st);
+      statements.push(res.statement);
     }
 
     state.functions.push({
@@ -409,14 +409,31 @@ function analyse_statement(state, statement, scope, refims) {
         void_scope, consequent_refims);
 
     if (statement.alternate == null) {
-      return {refinements: merge_refinements('Union',
-          refims, consequent.refinements)};
+      return {
+        refinements: merge_refinements('Union', refims, consequent.refinements),
+        statement: {
+          __type: 'Typed_if',
+          condition: statement.condition,
+          consequent: consequent.statement,
+        },
+      };
     }
 
     const alternate = analyse_statement(state, statement.alternate,
         void_scope, cond.refinements);
-    return {refinements: merge_refinements('Union',
-        consequent.refinements, alternate.refinements)}
+    return {
+      refinements: merge_refinements(
+        'Union',
+        consequent.refinements,
+        alternate.refinements,
+      ),
+      statement: {
+        __type: 'Typed_if',
+        condition: statement.condition,
+        consequent: consequent.statement,
+        alternate: alternate.statement,
+      },
+    }
   }
 
   if (statement.__type === 'Variable_declaration') {
@@ -435,20 +452,33 @@ function analyse_statement(state, statement, scope, refims) {
     scope.names.set(statement.name, {__type: 'Value_reference',
         type: init_value.type, id});
     state.types.set(id, {__type: 'Variable',
-        type: init_value.type});
-    return {refinements: init_value.refinements};
+        type: init_value.type, pseudo_name: statement.name});
+    return {
+      refinements: init_value.refinements,
+      statement: {
+        __type: 'Typed_variable_declaration',
+        id,
+        initial_value: statement.initialValue,
+      },
+    };
   }
 
   if (statement.__type === 'Expression') {
     const value = analyse_expression(state, statement.value, scope, refims);
-    return {refinements: value.refinements};
+    return {
+      refinements: value.refinements,
+      statement: {__type: 'Typed_expression', value: statement.value},
+    };
   }
 
   if (statement.__type === 'Return') {
     const value = analyse_expression(state, statement.value, scope, refims);
     // FIXME: check correct return type
 
-    return {refinements: value.refinements};
+    return {
+      refinements: value.refinements,
+      statement: {__type: 'Typed_return', value: statement.value},
+    };
   }
 
   if (statement.__type === 'While_loop') {
@@ -458,20 +488,34 @@ function analyse_statement(state, statement, scope, refims) {
         cond.refinements, cond.conditional_refinements);
     const body_scope = {parent: scope};
 
-    analyse_statement(state, statement.body, body_scope, body_refims);
-    return {};
+    const body = analyse_statement(state, statement.body, body_scope, body_refims);
+    return {
+      statement: {
+        __type: 'Typed_while_loop',
+        condition: statement.condition,
+        body: body.statement,
+      },
+    };
   }
 
   if (statement.__type === 'Block') {
     const block_scope = {parent: scope, names: new Map()};
     const {statements} = statement;
 
+    const res_statements = [];
     for (let i = 0; i < statements.length; ++i) {
       let res = analyse_statement(state, statements[i], block_scope, refims);
       refims = res.refinements;
+      res_statements.push(res.statement);
     }
 
-    return {refinements: refims};
+    return {
+      refinements: refims,
+      statement: {
+        __type: 'Typed_block',
+        statements: res_statements,
+      },
+    };
   }
 
   throw new Error(`unknown statement type "${statement.__type}"`);
@@ -1049,53 +1093,54 @@ function resolve_name(scope, name) {
 }
 
 
-function writeStatement(statement, indent) {
-  if (statement.__type === 'Variable_declaration') {
-    write(`let ${statement.name} = `);
-    writeExpression(statement.initialValue);
+function write_statement(state, statement, indent) {
+  if (statement.__type === 'Typed_variable_declaration') {
+    const spec = state.types.get(statement.id);
+    write(`let ${spec.pseudo_name} = `);
+    writeExpression(statement.initial_value);
     write(';');
     return;
   }
-  if (statement.__type === 'Expression') {
+  if (statement.__type === 'Typed_expression') {
     writeExpression(statement.value);
     write(';');
     return;
   }
-  if (statement.__type === 'While_loop') {
+  if (statement.__type === 'Typed_while_loop') {
     write(`while (`);
     writeExpression(statement.condition);
     write(') ');
-    writeStatement(statement.body, indent);
+    write_statement(state, statement.body, indent);
     return;
   }
-  if (statement.__type === 'If') {
+  if (statement.__type === 'Typed_if') {
     write(`if (`);
     writeExpression(statement.condition);
     write(') ');
-    writeStatement(statement.consequent, indent);
+    write_statement(state, statement.consequent, indent);
     if (statement.alternate) {
       write(' else ');
-      writeStatement(statement.alternate, indent);
+      write_statement(state, statement.alternate, indent);
     }
     return;
   }
-  if (statement.__type === 'Block') {
+  if (statement.__type === 'Typed_block') {
     write('{\n');
     for (const subStatement of statement.statements) {
       write(indent + '  ');
-      writeStatement(subStatement, indent + '  ');
+      write_statement(state, subStatement, indent + '  ');
       write('\n');
     }
     write(`${indent}}`);
     return;
   }
-  if (statement.__type === 'Return') {
+  if (statement.__type === 'Typed_return') {
     write('return ');
     writeExpression(statement.value);
     write(';');
     return;
   }
-  write(`UNKNOWN_STATEMENT_${statement.__type};`);
+  throw new Error(`unknown statement type ${statement.__type}`);
 }
 
 function writeExpression(expression) {
