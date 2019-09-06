@@ -653,8 +653,6 @@ function analyse_expression(state, exp, scope, refims) {
     const conditional_refinements = new Map();
     conditional_refinements.set(reference.value_id, target);
 
-    // console.error(require('util').inspect(conditional_refinements, {depth: null}));
-
     return {
       type: {id: state.builtin_ids.bool, parameters: []},
       conditional_refinements,
@@ -719,19 +717,35 @@ function analyse_expression(state, exp, scope, refims) {
 
   if (exp.__type === 'Collection_literal') {
     if (exp.dataType === 'set') {
-      return {type: {id: state.builtin_ids.set, parameters: []}};
+      return {
+        type: {id: state.builtin_ids.set, parameters: []},
+        expression: {
+          __type: 'Typed_set_literal',
+          values: exp.values,
+        },
+      };
     }
     if (exp.dataType === 'vec') {
-      const value_type = resolve_type(state, scope, exp.item_type);
+      const item_type = resolve_type(state, scope, exp.item_type);
+      const items = [];
       for (const value of exp.values) {
         const res = analyse_expression(state, value, scope, refims);
         refims = res.refinements;
-        match_types(state, res.type, value_type, EMPTY_MAP);
+        match_types(state, res.type, item_type, EMPTY_MAP);
+        items.push(res.expression);
       }
-      return {type: {
+      return {
+        type: {
           id: state.builtin_ids.vec,
-          parameters: [value_type]},
-        refinements: refims};
+          parameters: [item_type],
+        },
+        refinements: refims,
+        expression: {
+          __type: 'Typed_vector_literal',
+          item_type,
+          items,
+        }
+      };
     }
     invariant(false);
   }
@@ -747,7 +761,16 @@ function analyse_expression(state, exp, scope, refims) {
       match_types(state, left_op.type, right_op.type, EMPTY_MAP);
       invariant(left_op.reference != null);
 
-      return {type: left_op.type, conditional_refinements, refinements};
+      return {
+        type: left_op.type,
+        conditional_refinements,
+        refinements,
+        expression: {
+          __type: 'Typed_assignment',
+          reference: left_op.reference,
+          value: right_op.expression,
+        },
+      };
     }
 
     const left_op = analyse_expression(state, exp.left_operand, scope, refims);
@@ -771,8 +794,17 @@ function analyse_expression(state, exp, scope, refims) {
           left_op.conditional_refinements,
           right_op.conditional_refinements);
 
-      return {type: {id: state.builtin_ids.bool, parameters: []},
-          refinements, conditional_refinements};
+      return {
+        type: {id: state.builtin_ids.bool, parameters: []},
+        refinements,
+        conditional_refinements,
+        expression: {
+          __type: 'Typed_binary_logic_operation',
+          operation: 'And',
+          left_operand: left_op.expression,
+          right_operand: right_op.expression,
+        },
+      };
     }
 
     if (exp.operation === '||') {
@@ -790,8 +822,17 @@ function analyse_expression(state, exp, scope, refims) {
           left_op.conditional_refinements,
           right_op.conditional_refinements);
 
-      return {type: {id: state.builtin_ids.bool, parameters: []},
-          refinements, conditional_refinements};
+      return {
+        type: {id: state.builtin_ids.bool, parameters: []},
+        refinements,
+        conditional_refinements,
+        expression: {
+          __type: 'Typed_binary_logic_operation',
+          operation: 'Or',
+          left_operand: left_op.expression,
+          right_operand: right_op.expression,
+        },
+      };
     }
 
     const right_op = analyse_expression(state, exp.right_operand,
@@ -799,34 +840,58 @@ function analyse_expression(state, exp, scope, refims) {
     const {refinements} = right_op;
 
     switch (exp.operation) {
-    case '+':
-    case '-': {
-      if (
-        exp.operation === '+' &&
-        (left_op.type.id === state.builtin_ids.str || left_op.type.id === state.builtin_ids.char) &&
-        (right_op.type.id === state.builtin_ids.str || right_op.type.id === state.builtin_ids.char)
-      ) {
-        return {type: {id: state.builtin_ids.str, parameters: []}, refinements};
+      case '+':
+      case '-': {
+        if (
+          exp.operation === '+' &&
+          (left_op.type.id === state.builtin_ids.str || left_op.type.id === state.builtin_ids.char) &&
+          (right_op.type.id === state.builtin_ids.str || right_op.type.id === state.builtin_ids.char)
+        ) {
+          return {
+            type: {id: state.builtin_ids.str, parameters: []},
+            refinements,
+            expression: {
+              __type: 'Typed_concatenation',
+              left_operand: left_op.expression,
+              right_operand: right_op.expression,
+            },
+          };
+        }
+        invariant(left_op.type.id === right_op.type.id);
+        const spec = state.types.get(left_op.type.id);
+        invariant(spec.__type === 'BuiltinType' && spec.is_number);
+        return {
+          type: left_op.type,
+          refinements,
+          expression: {
+            __type: 'Typed_binary_numeric_operation',
+            operation: exp.operation === '+' ? 'Sum' : 'Subtract',
+            left_operand: left_op.expression,
+            right_operand: right_op.expression,
+          },
+        };
       }
-      invariant(left_op.type.id === right_op.type.id);
-      const spec = state.types.get(left_op.type.id);
-      invariant(spec.__type === 'BuiltinType' && spec.is_number);
-      return {type: left_op.type, refinements};
-    }
 
-    case '<':
-    case '<=':
-    case '>':
-    case '>=':
-    case '==':
-    case '!=': {
-      invariant(left_op.type.id === right_op.type.id);
-      return {type: {id: state.builtin_ids.bool, parameters: []}, refinements};
+      case '<':
+      case '<=':
+      case '>':
+      case '>=':
+      case '==':
+      case '!=': {
+        invariant(left_op.type.id === right_op.type.id);
+        return {
+          type: {id: state.builtin_ids.bool, parameters: []},
+          refinements,
+          expression: {
+            __type: 'Typed_comparison_operation',
+            operation: exp.operation,
+            left_operand: left_op.expression,
+            right_operand: right_op.expression,
+          },
+        };
+      }
     }
-
-    default:
-      throw new Error(`unknown bin op "${exp.operation}"`);
-    }
+    throw new Error(`unknown bin op "${exp.operation}"`);
   }
 
   if (exp.__type === 'Object_literal') {
@@ -834,14 +899,30 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(spec.__type === 'Type');
     const type = state.types.get(spec.id);
     if (type.__type === 'Enum_variant') {
-      const refinements = analyse_object_literal_fields(state, type.fields,
+      const {refinements, fields} = analyse_object_literal_fields(state, type.fields,
           exp.fields, scope, refims);
-      return {type: {id: type.enum_id, parameters: []}, refinements};
+      return {
+        type: {id: type.enum_id, parameters: []},
+        refinements,
+        expression: {
+          __type: 'Typed_enum_literal',
+          enum_id: type.enum_id,
+          fields,
+        },
+      };
     }
     if (type.__type === 'Struct') {
-      const refinements = analyse_object_literal_fields(state, type.fields,
+      const {refinements, fields} = analyse_object_literal_fields(state, type.fields,
           exp.fields, scope, refims);
-      return {type: {id: spec.id, parameters: []}, refinements};
+      return {
+        type: {id: spec.id, parameters: []},
+        refinements,
+        expression: {
+          __type: 'Typed_struct_literal',
+          struct_id: spec.id,
+          fields,
+        },
+      };
     }
     throw new Error(`invalid constructor "${exp.typeName.join('.')}"`);
   }
@@ -852,11 +933,25 @@ function analyse_expression(state, exp, scope, refims) {
     invariant(spec.__type === 'Reference');
     if (spec.type.id === state.builtin_ids.vec) {
       invariant(key.type.id === state.builtin_ids.u32);
-      return {type: spec.type.parameters[0]};
+      return {
+        type: spec.type.parameters[0],
+        expression: {
+          __type: 'Typed_vector_access',
+          operand_id: spec.value_id,
+          key: key.expression,
+        },
+      };
     }
     if (spec.type.id === state.builtin_ids.str) {
       invariant(key.type.id === state.builtin_ids.u32);
-      return {type: {id: state.builtin_ids.char, parameters: []}};
+      return {
+        type: {id: state.builtin_ids.char, parameters: []},
+        expression: {
+          __type: 'Typed_string_character_access',
+          operand_id: spec.value_id,
+          key: key.expression,
+        },
+      };
     }
     throw new Error(`invalid collection access on "${exp.collectionName.join('.')}"`);
   }
@@ -865,6 +960,7 @@ function analyse_expression(state, exp, scope, refims) {
 
 function analyse_object_literal_fields(
     state, type_fields, exp_fields, scope, refims) {
+  const fields = new Map();
   const field_set = new Set(type_fields.keys());
   for (const exp_field of exp_fields) {
     const field_spec = type_fields.get(exp_field.name);
@@ -885,13 +981,15 @@ function analyse_object_literal_fields(
     const value = analyse_expression(state, field_value.expression, scope, refims);
     match_types(state, value.type, field_spec.type);
     refims = value.refinements;
+
+    fields.set(exp_field.name, value.expression);
   }
 
   if (field_set.size > 0) {
     throw new Error(`missing fields in object literal: ` +
       `${[...field_set].map(x => `"${x}"`).join(', ')}`);
   }
-  return refims;
+  return {refinements: refims, fields};
 }
 
 function match_types(state, actual_type, expected_type, settled_type_parameters) {
