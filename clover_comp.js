@@ -71,9 +71,9 @@ function main() {
 
   // ****** pass 2: build type entities
 
-  build_module_types(state, index_module_scope, index_decls);
-  for (const {scope, declarations} of submodules) {
-    build_module_types(state, scope, declarations);
+  build_module_types(state, index_module_scope, index_decls, '');
+  for (const {name, scope, declarations} of submodules) {
+    build_module_types(state, scope, declarations, `${name}__`);
   }
 
   // ****** pass 3: analyse functions
@@ -87,8 +87,8 @@ function main() {
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const func of state.functions) {
-    write_function(state, func);
+  for (const [id, func] of state.functions.entries()) {
+    write_function(state, id, func);
   }
 
   write(`function clone(v) {
@@ -122,11 +122,12 @@ function identity_test(value, type) {
   if (call_main) write('__main();\n');
 }
 
-function write_function(state, func) {
-  write(`module.exports.${func.pseudo_name} = __${func.pseudo_name};\n`);
-  write(`function __${func.pseudo_name}(`);
-  const spec = state.types.get(func.id);
+function write_function(state, id, func) {
+  const spec = state.types.get(id);
   invariant(spec.__type === 'Function');
+
+  write(`module.exports.${spec.pseudo_name} = __${spec.pseudo_name};\n`);
+  write(`function __${spec.pseudo_name}(`);
 
   for (const arg_id of spec.argument_ids) {
     const arg = state.types.get(arg_id);
@@ -175,7 +176,7 @@ function create_fresh_state() {
   const state = {
     next_id: 2,
     types: new Map([[1, {__type: 'Module', names: root_names}]]),
-    functions: [],
+    functions: new Map(),
     builtin_ids: {},
     root_module_id: 1,
   };
@@ -219,7 +220,7 @@ function create_fresh_state() {
     }
 
     state.types.set(id, {__type: 'Function', argument_ids,
-        type_parameter_ids, return_type});
+        type_parameter_ids, return_type, pseudo_name: def.name});
     root_names.set(def.name, {__type: 'Function', id});
   }
 
@@ -252,8 +253,7 @@ function analyse_module(state, scope, declarations, name_prefix) {
       statements.push(res.statement);
     }
 
-    state.functions.push({
-      id,
+    state.functions.set(id, {
       pseudo_name: name_prefix + decl.name,
       statements,
     });
@@ -316,7 +316,7 @@ function build_module_type_names(state, module) {
  * represented by an ID, which can then be used to look up its properties in the
  * state's type map.
  */
-function build_module_types(state, scope, declarations) {
+function build_module_types(state, scope, declarations, name_prefix) {
   for (const {id, variant_ids, declaration: decl} of declarations) {
 
     if (decl.__type === 'Enum') {
@@ -339,7 +339,12 @@ function build_module_types(state, scope, declarations) {
           });
         }
         const variant_id = variant_ids.get(variant_index);
-        state.types.set(variant_id, {__type: 'Enum_variant', fields, enum_id: id});
+        state.types.set(variant_id, {
+          __type: 'Enum_variant',
+          fields,
+          enum_id: id,
+          pseudo_name: variant.name,
+        });
         variants.push(variant_id);
       }
 
@@ -384,7 +389,12 @@ function build_module_types(state, scope, declarations) {
       if (decl.return_type != null) {
         return_type = resolve_type(state, scope, decl.return_type);
       }
-      state.types.set(id, {__type: 'Function', argument_ids, return_type})
+      state.types.set(id, {
+        __type: 'Function',
+        argument_ids,
+        return_type,
+        pseudo_name: name_prefix + decl.name,
+      });
       continue;
     }
 
@@ -413,7 +423,7 @@ function analyse_statement(state, statement, scope, refims) {
         refinements: merge_refinements('Union', refims, consequent.refinements),
         statement: {
           __type: 'Typed_if',
-          condition: statement.condition,
+          condition: cond.expression,
           consequent: consequent.statement,
         },
       };
@@ -429,7 +439,7 @@ function analyse_statement(state, statement, scope, refims) {
       ),
       statement: {
         __type: 'Typed_if',
-        condition: statement.condition,
+        condition: cond.expression,
         consequent: consequent.statement,
         alternate: alternate.statement,
       },
@@ -452,13 +462,13 @@ function analyse_statement(state, statement, scope, refims) {
     scope.names.set(statement.name, {__type: 'Value_reference',
         type: init_value.type, id});
     state.types.set(id, {__type: 'Variable',
-        type: init_value.type, pseudo_name: statement.name});
+        type: init_value.type, name: statement.name});
     return {
       refinements: init_value.refinements,
       statement: {
         __type: 'Typed_variable_declaration',
         id,
-        initial_value: statement.initialValue,
+        initial_value: init_value.expression,
       },
     };
   }
@@ -467,7 +477,7 @@ function analyse_statement(state, statement, scope, refims) {
     const value = analyse_expression(state, statement.value, scope, refims);
     return {
       refinements: value.refinements,
-      statement: {__type: 'Typed_expression', value: statement.value},
+      statement: {__type: 'Typed_expression', value: value.expression},
     };
   }
 
@@ -477,7 +487,7 @@ function analyse_statement(state, statement, scope, refims) {
 
     return {
       refinements: value.refinements,
-      statement: {__type: 'Typed_return', value: statement.value},
+      statement: {__type: 'Typed_return', value: value.expression},
     };
   }
 
@@ -492,7 +502,7 @@ function analyse_statement(state, statement, scope, refims) {
     return {
       statement: {
         __type: 'Typed_while_loop',
-        condition: statement.condition,
+        condition: cond.expression,
         body: body.statement,
       },
     };
@@ -555,6 +565,7 @@ function analyse_expression(state, exp, scope, refims) {
           type: operand.type,
           expression: {
             __type: 'Typed_in_place_assignment',
+            is_prefix: exp.is_prefix,
             operand: operand.expression,
             operator: exp.operation,
             type: operand.type,
@@ -583,7 +594,7 @@ function analyse_expression(state, exp, scope, refims) {
     return {
       type: {id: state.builtin_ids.u32, parameters: []},
       expression: {
-        __type: 'Typed_u32_literal',
+        __type: 'Typed_number_literal',
         value,
       },
     };
@@ -622,6 +633,8 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'Identity_test') {
+    // TODO: handle "is_negative"
+
     const {id: variant_id} =
         resolve_type(state, scope, {name: exp.variant, parameters: []});
     const variant = state.types.get(variant_id);
@@ -659,6 +672,7 @@ function analyse_expression(state, exp, scope, refims) {
       refinements,
       expression: {
         __type: 'Typed_identity_test',
+        is_negative: exp.is_negative,
         operand: operand.expression,
         variant_id,
       }
@@ -677,8 +691,9 @@ function analyse_expression(state, exp, scope, refims) {
       type: res.type,
       reference,
       expression: {
-        __type: 'Typed_qualified_name',
-        reference,
+        __type: 'Typed_reference',
+        value_id: res.value_id,
+        path: res.path,
       }
     };
   }
@@ -694,13 +709,18 @@ function analyse_expression(state, exp, scope, refims) {
     const arguments = [];
 
     for (let i = 0; i < func.argument_ids.length; ++i) {
-      const arg = analyse_expression(state, exp.arguments[i].value,
+      // TODO: check `is_by_reference` is valid
+      const arg_spec = exp.arguments[i];
+      const arg = analyse_expression(state, arg_spec.value,
           scope, refims);
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 
       match_types(state, arg.type, arg_def.type, settled_type_params);
-      arguments.push(arg.expression);
+      arguments.push({
+        is_by_reference: arg_spec.is_by_reference,
+        value: arg.expression
+      });
     }
 
     const func_def = state.types.get(spec.id);
@@ -741,7 +761,7 @@ function analyse_expression(state, exp, scope, refims) {
         },
         refinements: refims,
         expression: {
-          __type: 'Typed_vector_literal',
+          __type: 'Typed_collection_literal',
           item_type,
           items,
         }
@@ -799,7 +819,7 @@ function analyse_expression(state, exp, scope, refims) {
         refinements,
         conditional_refinements,
         expression: {
-          __type: 'Typed_binary_logic_operation',
+          __type: 'Typed_binary_operation',
           operation: 'And',
           left_operand: left_op.expression,
           right_operand: right_op.expression,
@@ -827,7 +847,7 @@ function analyse_expression(state, exp, scope, refims) {
         refinements,
         conditional_refinements,
         expression: {
-          __type: 'Typed_binary_logic_operation',
+          __type: 'Typed_binary_operation',
           operation: 'Or',
           left_operand: left_op.expression,
           right_operand: right_op.expression,
@@ -851,7 +871,8 @@ function analyse_expression(state, exp, scope, refims) {
             type: {id: state.builtin_ids.str, parameters: []},
             refinements,
             expression: {
-              __type: 'Typed_concatenation',
+              __type: 'Typed_binary_operation',
+              operation: 'Concat',
               left_operand: left_op.expression,
               right_operand: right_op.expression,
             },
@@ -864,7 +885,7 @@ function analyse_expression(state, exp, scope, refims) {
           type: left_op.type,
           refinements,
           expression: {
-            __type: 'Typed_binary_numeric_operation',
+            __type: 'Typed_binary_operation',
             operation: exp.operation === '+' ? 'Sum' : 'Subtract',
             left_operand: left_op.expression,
             right_operand: right_op.expression,
@@ -878,13 +899,22 @@ function analyse_expression(state, exp, scope, refims) {
       case '>=':
       case '==':
       case '!=': {
+        const ops = {
+          '<': 'Lesser',
+          '<=': 'Lesser_or_equal',
+          '>': 'Greater',
+          '>=': 'Greater_or_equal',
+          '==': 'Equal',
+          '!=': 'Unequal',
+        };
         invariant(left_op.type.id === right_op.type.id);
+        invariant(ops[exp.operation] != null);
         return {
           type: {id: state.builtin_ids.bool, parameters: []},
           refinements,
           expression: {
-            __type: 'Typed_comparison_operation',
-            operation: exp.operation,
+            __type: 'Typed_binary_operation',
+            operation: ops[exp.operation],
             left_operand: left_op.expression,
             right_operand: right_op.expression,
           },
@@ -906,7 +936,7 @@ function analyse_expression(state, exp, scope, refims) {
         refinements,
         expression: {
           __type: 'Typed_enum_literal',
-          enum_id: type.enum_id,
+          variant_id: spec.id,
           fields,
         },
       };
@@ -936,8 +966,8 @@ function analyse_expression(state, exp, scope, refims) {
       return {
         type: spec.type.parameters[0],
         expression: {
-          __type: 'Typed_vector_access',
-          operand_id: spec.value_id,
+          __type: 'Typed_collection_access',
+          operand: {value_id: spec.value_id, path: spec.path},
           key: key.expression,
         },
       };
@@ -947,8 +977,8 @@ function analyse_expression(state, exp, scope, refims) {
       return {
         type: {id: state.builtin_ids.char, parameters: []},
         expression: {
-          __type: 'Typed_string_character_access',
-          operand_id: spec.value_id,
+          __type: 'Typed_collection_access',
+          operand: {value_id: spec.value_id, path: spec.path},
           key: key.expression,
         },
       };
@@ -975,6 +1005,12 @@ function analyse_object_literal_fields(
       invariant(res.__type === 'Reference');
       match_types(state, res.type, field_spec.type);
       refims = res.refinements;
+
+      fields.set(exp_field.name, {
+        __type: 'Typed_reference',
+        value_id: res.value_id,
+        path: res.path,
+      });
       continue;
     }
     invariant(field_value.__type === 'Expression_field_value');
@@ -1194,26 +1230,27 @@ function resolve_name(scope, name) {
 function write_statement(state, statement, indent) {
   if (statement.__type === 'Typed_variable_declaration') {
     const spec = state.types.get(statement.id);
-    write(`let ${spec.pseudo_name} = `);
-    writeExpression(statement.initial_value);
+    invariant(spec.__type === 'Variable');
+    write(`let ${spec.name} = `);
+    write_expression(state, statement.initial_value);
     write(';');
     return;
   }
   if (statement.__type === 'Typed_expression') {
-    writeExpression(statement.value);
+    write_expression(state, statement.value);
     write(';');
     return;
   }
   if (statement.__type === 'Typed_while_loop') {
     write(`while (`);
-    writeExpression(statement.condition);
+    write_expression(state, statement.condition);
     write(') ');
     write_statement(state, statement.body, indent);
     return;
   }
   if (statement.__type === 'Typed_if') {
     write(`if (`);
-    writeExpression(statement.condition);
+    write_expression(state, statement.condition);
     write(') ');
     write_statement(state, statement.consequent, indent);
     if (statement.alternate) {
@@ -1234,175 +1271,218 @@ function write_statement(state, statement, indent) {
   }
   if (statement.__type === 'Typed_return') {
     write('return ');
-    writeExpression(statement.value);
+    write_expression(state, statement.value);
     write(';');
     return;
   }
   throw new Error(`unknown statement type ${statement.__type}`);
 }
 
-function writeExpression(expression) {
-  if (expression.__type === 'Function_call') {
-    if (expression.functionName[0].startsWith('__has')) {
+function write_expression(state, expression) {
+  if (expression.__type === 'Typed_function_call') {
+    const spec = state.types.get(expression.function_id);
+    // const func = state.functions.get(expression.function_id);
+    invariant(spec.__type === 'Function');
+    const {pseudo_name} = spec;
+
+    if (pseudo_name.startsWith('__has')) {
       write('(');
-      writeExpression(expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value);
       write('.has(');
-      writeExpression(expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value);
       write('))');
       return;
     }
-    if (expression.functionName[0].startsWith('__size')) {
+    if (pseudo_name.startsWith('__size')) {
       write('(');
-      writeExpression(expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value);
       write(').length');
       return;
     }
-    if (expression.functionName[0] === '__push') {
+    if (pseudo_name === '__push') {
       write('(');
-      writeExpression(expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value);
       write('.push(');
-      writeExpression(expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value);
       write('))');
       return;
     }
-    if (expression.functionName[0] === '__substring') {
+    if (pseudo_name === '__substring') {
       write('(');
-      writeExpression(expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value);
       write('.substring(');
-      writeExpression(expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value);
       write(', ');
-      writeExpression(expression.arguments[2].value);
+      write_expression(state, expression.arguments[2].value);
       write('))');
       return;
     }
-    if (expression.functionName[0] === '__read_file') {
+    if (pseudo_name === '__read_file') {
       write("(require('fs').readFileSync)(");
-    } else if (expression.functionName[0] === '__write') {
+    } else if (pseudo_name === '__write') {
       write("process.stdout.write(");
-    } else if (expression.functionName[0] === '__die') {
+    } else if (pseudo_name === '__die') {
       write("throw new Error(");
-    } else if (expression.functionName[0] === '__read_expression') {
+    } else if (pseudo_name === '__read_expression') {
       write("global.__read_expression(");
-    } else if (expression.functionName[0] === 'println') {
+    } else if (pseudo_name === 'println') {
       write('console.log(');
     } else {
-      write(`__${expression.functionName.join('__')}(`);
+      write(`__${pseudo_name}(`);
     }
     for (const argument of expression.arguments) {
       if (!argument.is_by_reference) {
         write('clone(');
-        writeExpression(argument.value);
+        write_expression(state, argument.value);
         write(')');
       } else {
-        writeExpression(argument.value);
+        write_expression(state, argument.value);
       }
       write(', ');
     }
-    if (expression.functionName === '__read_file') {
+    if (pseudo_name === '__read_file') {
       write("'utf8'")
     }
     write(')');
     return;
   }
-  if (expression.__type === 'String_literal') {
+  if (expression.__type === 'Typed_string_literal' ||
+          expression.__type === 'String_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
-  if (expression.__type === 'Number_literal') {
-    write(expression.value);
+  if (expression.__type === 'Typed_number_literal') {
+    write(expression.value.toString());
     return;
   }
-  if (expression.__type === 'Bool_literal') {
+  if (expression.__type === 'Typed_bool_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
-  if (expression.__type === 'Object_literal') {
+  if (
+    expression.__type === 'Typed_enum_literal' ||
+    expression.__type === 'Typed_struct_literal'
+  ) {
     write('{');
-    for (const field of expression.fields) {
-      write(field.name);
+    for (const [name, value] of expression.fields.entries()) {
+      write(name);
       write(': ');
-      if (field.value.__type === 'Shorthand_field_value') {
-        writeExpression({__type: 'Qualified_name', value: [field.name]});
-      } else {
-        writeExpression(field.value.expression);
-      }
+      write_expression(state, value);
       write(', ');
     }
-    if (expression.typeName.length > 0) {
-      write(`__type: ${JSON.stringify(expression.typeName.join('.'))}`);
+    if (expression.__type === 'Typed_enum_literal') {
+      // enum_id
+      const spec = state.types.get(expression.variant_id);
+      invariant(spec.__type === 'Enum_variant');
+      write(`__type: ${JSON.stringify(spec.pseudo_name)}`);
     }
     write('}');
     return;
   }
-  if (expression.__type === 'Binary_operation') {
+  if (expression.__type === 'Typed_binary_operation') {
     write('(');
-    writeExpression(expression.left_operand);
-    let {operation} = expression;
-    if (operation === '==') operation = '===';
-    if (operation === '!=') operation = '!==';
-    write(` ${operation} `);
-    writeExpression(expression.right_operand);
+    write_expression(state, expression.left_operand);
+    const op_map = {
+      'And': '&&',
+      'Or': '||',
+      'Equal': '===',
+      'Unequal': '!==',
+      'Lesser': '<',
+      'Greater': '>',
+      'Lesser_or_equal': '<=',
+      'Greater_or_equal': '>=',
+      'Concat': '+',
+    };
+    const op_string = op_map[expression.operation];
+    invariant(op_string != null);
+    write(` ${op_string} `);
+
+    write_expression(state, expression.right_operand);
     write(')');
     return;
   }
-  if (expression.__type === 'Qualified_name') {
-    write(expression.value.join('.'));
+  if (expression.__type === 'Typed_reference') {
+    write_reference(state, expression);
     return;
   }
-  if (expression.__type === 'Collection_literal') {
-    if (expression.dataType === 'set') {
-      write('new Set([');
-    }
-    if (expression.dataType === 'vec') {
-      write('[');
-    }
+  if (expression.__type === 'Typed_assignment') {
+    write_reference(state, expression.reference);
+    write(' = ');
+    write_expression(state, expression.value);
+    return;
+  }
+  if (expression.__type === 'Typed_set_literal') {
+    write('new Set([');
     for (const value of expression.values) {
-      writeExpression(value);
+      write_expression(state, value);
+      write(', ');
+    }
+    write('])');
+    return;
+  }
+  if (expression.__type === 'Typed_collection_literal') {
+    write('[');
+    for (const item of expression.items) {
+      write_expression(state, item);
       write(', ');
     }
     write(']');
-    if (expression.dataType === 'set') {
-      write(')');
-    }
     return;
   }
-  if (expression.__type === 'Character_literal') {
+  if (expression.__type === 'Typed_character_literal' ||
+          expression.__type === 'Character_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
-  if (expression.__type === 'Collection_access') {
-    write(`access(${expression.collectionName.join('.')}, `);
-    writeExpression(expression.key);
+  if (expression.__type === 'Typed_collection_access') {
+    write(`access(`);
+    write_reference(state, expression.operand);
+    write(`, `);
+    write_expression(state, expression.key);
     write(')');
     return;
   }
-  if (expression.__type === 'In_place_assignment') {
+  if (expression.__type === 'Typed_in_place_assignment') {
     if (expression.is_prefix) {
       write(expression.operator);
     }
-    writeExpression(expression.target);
+    write_expression(state, expression.operand);
     if (!expression.is_prefix) {
       write(expression.operator);
     }
     return;
   }
-  if (expression.__type === 'Identity_test') {
+  if (expression.__type === 'Typed_identity_test') {
     if (expression.is_negative) {
       write('!');
     }
     write(`identity_test(`);
-    writeExpression(expression.operand);
+    write_expression(state, expression.operand);
     write(', ');
-    write(JSON.stringify(expression.variant.join('.')));
+
+    const spec = state.types.get(expression.variant_id);
+    invariant(spec.__type === 'Enum_variant');
+    write(JSON.stringify(spec.pseudo_name));
+
     write(')');
     return;
   }
-  if (expression.__type === 'Unary_operation') {
+  if (expression.__type === 'Typed_unary_operation') {
     write(expression.operator);
-    writeExpression(expression.operand);
+    write_expression(state, expression.operand);
     return;
   }
-  write(`UNKNOWN_EXPRESSION_${expression.__type}`);
+  throw new Error(`unknown expression type "${expression.__type}"`);
+}
+
+function write_reference(state, ref) {
+  const value = state.types.get(ref.value_id);
+  invariant(value.name != null);
+  write(value.name);
+  for (const entry of ref.path) {
+    write('.');
+    write(entry.name);
+  }
 }
 
 /**
