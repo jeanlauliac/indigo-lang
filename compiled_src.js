@@ -51,10 +51,10 @@ function __read_primary_expression(state, ) {
   if ((identity_test(state.token, "Keyword") && (__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )))) {
     let dataType = state.token.value;
     __read_token(state, );
-    let item_type = {name: [], parameters: [], __type: "Type_reference"};
+    let item_type = {name: [], parameters: [], };
     if (__has_operator(clone(state), clone("<"), )) {
       __read_token(state, );
-      (item_type = __read_type_name(state, ));
+      item_type = __read_type_name(state, );
       __invariant(clone(__has_operator(clone(state), clone(">"), )), );
       __read_token(state, );
     }
@@ -75,7 +75,7 @@ function __read_primary_expression(state, ) {
   }
   let qualified_name = [];
   if (identity_test(state.token, "Identifier")) {
-    (qualified_name = __read_qualified_name(state, ));
+    qualified_name = __read_qualified_name(state, );
   }
   if (__has_operator(clone(state), clone("{"), )) {
     __read_token(state, );
@@ -89,7 +89,7 @@ function __read_primary_expression(state, ) {
       } else {
         __invariant(clone(__has_operator(clone(state), clone("}"), )), );
       }
-      (fields.push({name: name, value: value, __type: "Object_field"}));
+      (fields.push({name: name, value: value, }));
     }
     __invariant(clone(__has_operator(clone(state), clone("}"), )), );
     __read_token(state, );
@@ -125,7 +125,7 @@ function __read_qualified_name(state, ) {
   __invariant(clone(identity_test(state.token, "Identifier")), );
   let qualifiedName = [];
   if (identity_test(state.token, "Identifier")) {
-    (qualifiedName = [state.token.value, ]);
+    qualifiedName = [state.token.value, ];
   }
   __read_token(state, );
   while (__has_operator(clone(state), clone("."), )) {
@@ -153,19 +153,19 @@ function __read_call_argument(state, ) {
   let is_by_reference = false;
   if (__has_operator(clone(state), clone("&"), )) {
     __read_token(state, );
-    (is_by_reference = true);
+    is_by_reference = true;
   }
-  return {value: global.__read_expression(state, ), is_by_reference: is_by_reference, __type: "Call_argument"};
+  return {value: global.__read_expression(state, ), is_by_reference: is_by_reference, };
 }
 
 module.exports.read_type_name = __read_type_name;
 function __read_type_name(state, ) {
   let name = [];
   if ((identity_test(state.token, "Keyword") && ((__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )) || __has_keyword(clone(state), clone("dict"), )))) {
-    (name = [state.token.value, ]);
+    name = [state.token.value, ];
     __read_token(state, );
   } else {
-    (name = __read_qualified_name(state, ));
+    name = __read_qualified_name(state, );
   }
   let parameters = [];
   if (__has_operator(clone(state), clone("<"), )) {
@@ -179,7 +179,7 @@ function __read_type_name(state, ) {
     __invariant(clone(__has_operator(clone(state), clone(">"), )), );
     __read_token(state, );
   }
-  return {name: name, parameters: parameters, __type: "Type_reference"};
+  return {name: name, parameters: parameters, };
 }
 
 module.exports.has_keyword = __has_keyword;
@@ -195,7 +195,7 @@ function __has_operator(state, value, ) {
 module.exports.read_token = __read_token;
 function __read_token(state, ) {
   __read_whitespace(state, );
-  (state.token = __read_next_token(state, ));
+  state.token = __read_next_token(state, );
 }
 
 module.exports.read_next_token = __read_next_token;
@@ -236,7 +236,7 @@ function __read_identifier(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
   while (((state.i < (state.code).length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
-    (value = (value + access(state.code, state.i)));
+    value = (value + access(state.code, state.i));
     ++state.i;
   }
   if ((keywords.has(value))) {
@@ -250,7 +250,7 @@ function __read_number(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
   while (((state.i < (state.code).length) && __tokens__is_numeric(clone(access(state.code, state.i)), ))) {
-    (value = (value + access(state.code, state.i)));
+    value = (value + access(state.code, state.i));
     ++state.i;
   }
   return {value: value, __type: "Number"};
@@ -272,7 +272,7 @@ function __read_operator(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
   if (((state.i < (state.code).length) && (operators.has((value + access(state.code, state.i)))))) {
-    (value = (value + access(state.code, state.i)));
+    value = (value + access(state.code, state.i));
     ++state.i;
   }
   return {value: value, __type: "Operator"};
@@ -285,9 +285,9 @@ function __read_string_literal(state, ) {
   while (((state.i < (state.code).length) && (access(state.code, state.i) !== "\""))) {
     if ((access(state.code, state.i) === "\\")) {
       ++state.i;
-      (value = (value + __get_escaped_char(clone(access(state.code, state.i)), )));
+      value = (value + __get_escaped_char(clone(access(state.code, state.i)), ));
     } else {
-      (value = (value + access(state.code, state.i)));
+      value = (value + access(state.code, state.i));
     }
     ++state.i;
   }
@@ -305,9 +305,9 @@ function __read_character_literal(state, ) {
   if ((access(state.code, state.i) === "\\")) {
     ++state.i;
     __invariant(clone((state.i < (state.code).length)), );
-    (value = __get_escaped_char(clone(access(state.code, state.i)), ));
+    value = __get_escaped_char(clone(access(state.code, state.i)), );
   } else {
-    (value = access(state.code, state.i));
+    value = access(state.code, state.i);
   }
   ++state.i;
   __invariant(clone(((state.i < (state.code).length) && (access(state.code, state.i) === "'"))), );
