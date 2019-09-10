@@ -8,8 +8,12 @@ struct State {
 enum Expression {
   Bool_literal {value: bool},
   Character_literal {value: char},
-  In_place_assignment {operator: str, operation: str,
-    target: Expression, is_prefix: bool},
+  In_place_assignment {
+    operator: str,
+    operation: str,
+    target: Expression,
+    is_prefix: bool
+  },
   Qualified_name {value: vec<str>},
   String_literal {value: str},
   Number_literal {value: str},
