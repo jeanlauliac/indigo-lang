@@ -277,7 +277,7 @@ fn read_next_token(ref state: State): Token {
   if (tokens.is_numeric(state.code[state.i])) {
     return read_number(&state);
   }
-  let OPERATOR_PREFIXES = set ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
+  let OPERATOR_PREFIXES = set<char> ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
     '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
   if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
     return read_operator(&state);
@@ -292,14 +292,14 @@ fn read_next_token(ref state: State): Token {
 }
 
 fn read_whitespace(ref state: State) {
-  let whitespace = set [' ', '\n'];
+  let whitespace = set<char> [' ', '\n'];
   while (state.i < __size(state.code) && __has(whitespace, state.code[state.i])) {
     ++state.i;
   }
 }
 
 fn read_identifier(ref state: State): Token {
-  let keywords = set ["let", "fn", "ref", "while", "true",
+  let keywords = set<str> ["let", "fn", "ref", "while", "true",
     "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
     "enum", "struct"];
 
@@ -309,7 +309,7 @@ fn read_identifier(ref state: State): Token {
     value = value + state.code[state.i];
     ++state.i;
   }
-  if (__has_str(keywords, value)) {
+  if (__has(keywords, value)) {
     return Keyword {value};
   }
   return Identifier {value};
@@ -334,10 +334,10 @@ fn is_alpha(c: char): bool {
 }
 
 fn read_operator(ref state: State): Operator {
-  let operators = set ["&&", "++", "==", "!=", "||", ">=", "<="];
+  let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = "" + state.code[state.i];
   ++state.i;
-  if (state.i < __size(state.code) && __has_str(operators, value + state.code[state.i])) {
+  if (state.i < __size(state.code) && __has(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }

@@ -145,7 +145,7 @@ function write_function(state, id, func) {
 const builtin_types = [
   {__type: 'BuiltinType', name: 'bool'},
   {__type: 'BuiltinType', parameter_count: 1, name: 'vec'},
-  {__type: 'BuiltinType', parameter_count: 0, name: 'set'},
+  {__type: 'BuiltinType', parameter_count: 1, name: 'set'},
   {__type: 'BuiltinType', name: 'str'},
   {__type: 'BuiltinType', name: 'char'},
   {__type: 'BuiltinType', name: 'i32', is_number: true, is_signed: true},
@@ -156,10 +156,9 @@ const builtin_functions = [
   {name: '__size', arguments: [{type: get_base_type('str')}],
     return_type: get_base_type('u32')},
   {name: '__die', arguments: [{type: get_base_type('str')}]},
-  {name: '__has', arguments: [{type: get_base_type('set')},
-      {type: get_base_type('char')}], return_type: get_base_type('bool')},
-  {name: '__has_str', arguments: [{type: get_base_type('set')},
-      {type: get_base_type('str')}], return_type: get_base_type('bool')},
+  {name: '__has', type_parameter_names: ['Value'],
+    arguments: [{type: {name: ['set'], parameters: [get_base_type('Value')]}},
+      {type: get_base_type('Value')}], return_type: get_base_type('bool')},
   {name: '__size_vec', type_parameter_names: ['Value'],
       arguments: [{
         type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
@@ -736,38 +735,28 @@ function analyse_expression(state, exp, scope, refims) {
   }
 
   if (exp.__type === 'Collection_literal') {
-    if (exp.dataType === 'set') {
-      return {
-        type: {id: state.builtin_ids.set, parameters: []},
-        expression: {
-          __type: 'Typed_set_literal',
-          values: exp.values,
-        },
-      };
+    const item_type = resolve_type(state, scope, exp.item_type);
+    const items = [];
+    for (const value of exp.values) {
+      const res = analyse_expression(state, value, scope, refims);
+      refims = res.refinements;
+      match_types(state, res.type, item_type, EMPTY_MAP);
+      items.push(res.expression);
     }
-    if (exp.dataType === 'vec') {
-      const item_type = resolve_type(state, scope, exp.item_type);
-      const items = [];
-      for (const value of exp.values) {
-        const res = analyse_expression(state, value, scope, refims);
-        refims = res.refinements;
-        match_types(state, res.type, item_type, EMPTY_MAP);
-        items.push(res.expression);
+    return {
+      type: {
+        id: exp.dataType === 'vec' ?
+          state.builtin_ids.vec : state.builtin_ids.set,
+        parameters: [item_type],
+      },
+      refinements: refims,
+      expression: {
+        __type: 'Typed_collection_literal',
+        type: exp.dataType === 'vec' ? 'Vector' : 'Set',
+        item_type,
+        items,
       }
-      return {
-        type: {
-          id: state.builtin_ids.vec,
-          parameters: [item_type],
-        },
-        refinements: refims,
-        expression: {
-          __type: 'Typed_collection_literal',
-          item_type,
-          items,
-        }
-      };
-    }
-    invariant(false);
+    };
   }
 
   if (exp.__type === 'Binary_operation') {
@@ -1411,22 +1400,13 @@ function write_expression(state, expression) {
     write_expression(state, expression.value);
     return;
   }
-  if (expression.__type === 'Typed_set_literal') {
-    write('new Set([');
-    for (const value of expression.values) {
-      write_expression(state, value);
-      write(', ');
-    }
-    write('])');
-    return;
-  }
   if (expression.__type === 'Typed_collection_literal') {
-    write('[');
+    write(expression.type === 'Vector' ? '[' : 'new Set([');
     for (const item of expression.items) {
       write_expression(state, item);
       write(', ');
     }
-    write(']');
+    write(expression.type === 'Vector' ? ']' : '])');
     return;
   }
   if (expression.__type === 'Typed_character_literal' ||
