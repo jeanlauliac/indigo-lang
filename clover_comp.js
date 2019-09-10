@@ -1270,7 +1270,6 @@ function write_statement(state, statement, indent) {
 function write_expression(state, expression) {
   if (expression.__type === 'Typed_function_call') {
     const spec = state.types.get(expression.function_id);
-    // const func = state.functions.get(expression.function_id);
     invariant(spec.__type === 'Function');
     const {pseudo_name} = spec;
 
@@ -1335,8 +1334,7 @@ function write_expression(state, expression) {
     write(')');
     return;
   }
-  if (expression.__type === 'Typed_string_literal' ||
-          expression.__type === 'String_literal') {
+  if (expression.__type === 'Typed_string_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
@@ -1409,8 +1407,7 @@ function write_expression(state, expression) {
     write(expression.type === 'Vector' ? ']' : '])');
     return;
   }
-  if (expression.__type === 'Typed_character_literal' ||
-          expression.__type === 'Character_literal') {
+  if (expression.__type === 'Typed_character_literal') {
     write(JSON.stringify(expression.value));
     return;
   }
