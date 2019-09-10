@@ -1,4 +1,91 @@
 
+enum Token {
+  Keyword {value: str},
+  Operator {value: str},
+  String {value: str},
+  Character {value: char},
+  Identifier {value: str},
+  Number {value: str},
+  End_of_file,
+}
+
+fn read_next(ref state: State): Token {
+  if (state.i == __size(state.code)) {
+    return End_of_file {};
+  }
+  if (is_alpha(state.code[state.i])) {
+    return read_identifier(&state);
+  }
+  if (is_numeric(state.code[state.i])) {
+    return read_number(&state);
+  }
+  let OPERATOR_PREFIXES = set<char> ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
+    '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
+  if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
+    return read_operator(&state);
+  }
+  if (state.code[state.i] == '"') {
+    return read_string_literal(&state);
+  }
+  if (state.code[state.i] == '\'') {
+    return read_character_literal(&state);
+  }
+  __die("unexpected character '" + state.code[state.i] + "'");
+}
+
+fn read_whitespace(ref state: State) {
+  let whitespace = set<char> [' ', '\n'];
+  while (state.i < __size(state.code) && __has(whitespace, state.code[state.i])) {
+    ++state.i;
+  }
+}
+
+fn read_identifier(ref state: State): Token {
+  let keywords = set<str> ["let", "fn", "ref", "while", "true",
+    "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
+    "enum", "struct"];
+
+  let value = "" + state.code[state.i];
+  ++state.i;
+  while (state.i < __size(state.code) && is_alphanumeric(state.code[state.i])) {
+    value = value + state.code[state.i];
+    ++state.i;
+  }
+  if (__has(keywords, value)) {
+    return Keyword {value};
+  }
+  return Identifier {value};
+}
+
+fn read_number(ref state: State): Token {
+  let value = "" + state.code[state.i];
+  ++state.i;
+  while (state.i < __size(state.code) && is_numeric(state.code[state.i])) {
+    value = value + state.code[state.i];
+    ++state.i;
+  }
+  return Number {value};
+}
+
+fn is_alphanumeric(c: char): bool {
+  return is_alpha(c) || is_numeric(c);
+}
+
+fn is_alpha(c: char): bool {
+  return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+}
+
+fn read_operator(ref state: State): Operator {
+  let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
+  let value = "" + state.code[state.i];
+  ++state.i;
+  if (state.i < __size(state.code) && __has(operators, value + state.code[state.i])) {
+    value = value + state.code[state.i];
+    ++state.i;
+  }
+  return Operator {value};
+}
+
 fn read_string_literal(ref state: State): String {
   ++state.i;
   let value = "";

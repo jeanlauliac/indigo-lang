@@ -1,17 +1,6 @@
 
-
-enum Token {
-  Keyword {value: str},
-  Operator {value: str},
-  String {value: str},
-  Character {value: char},
-  Identifier {value: str},
-  Number {value: str},
-  End_of_file,
-}
-
 struct State {
-  token: Token,
+  token: tokens.Token,
   code: str,
   i: u32,
 }
@@ -57,17 +46,17 @@ fn read_primary_expression(
   ref state: State,
 ): Expression {
 
-  if (state.token is String) {
+  if (state.token is tokens.String) {
     let value = state.token.value;
     read_token(&state);
     return String_literal {value};
   }
-  if (state.token is Number) {
+  if (state.token is tokens.Number) {
     let value = state.token.value;
     read_token(&state);
     return Number_literal {value};
   }
-  if (state.token is Character) {
+  if (state.token is tokens.Character) {
     let value = state.token.value;
     read_token(&state);
     return Character_literal {value};
@@ -89,7 +78,7 @@ fn read_primary_expression(
     return expression;
   }
 
-  if (state.token is Operator && has_operator(state, "++")) {
+  if (state.token is tokens.Operator && has_operator(state, "++")) {
     let operator = state.token.value;
     read_token(&state);
     let target = read_primary_expression(&state);
@@ -97,14 +86,14 @@ fn read_primary_expression(
         target, is_prefix: true};
   }
 
-  if (state.token is Operator && (has_operator(state, "!") || has_operator(state, "-"))) {
+  if (state.token is tokens.Operator && (has_operator(state, "!") || has_operator(state, "-"))) {
     let operator = state.token.value;
     read_token(&state);
     let operand = read_primary_expression(&state);
     return Unary_operation {operator, operand};
   }
 
-  if (state.token is Keyword &&
+  if (state.token is tokens.Keyword &&
       (has_keyword(state, "set") || has_keyword(state, "vec"))) {
     let dataType = state.token.value;
     read_token(&state);
@@ -138,14 +127,14 @@ fn read_primary_expression(
   }
 
   let qualified_name = vec<str> [];
-  if (state.token is Identifier) {
+  if (state.token is tokens.Identifier) {
     qualified_name = read_qualified_name(&state);
   }
 
   if (has_operator(state, "{")) {
     read_token(&state);
     let fields = vec<Object_field> [];
-    while (state.token is Identifier) {
+    while (state.token is tokens.Identifier) {
       let name = state.token.value;
       read_token(&state);
       let value = read_object_field_value(&state);
@@ -188,16 +177,16 @@ fn read_primary_expression(
 }
 
 fn read_qualified_name(ref state: State): vec<str> {
-  invariant(state.token is Identifier);
+  invariant(state.token is tokens.Identifier);
   let qualifiedName = vec<str> [];
-  if (state.token is Identifier) {
+  if (state.token is tokens.Identifier) {
     qualifiedName = vec<str> [state.token.value];
   }
   read_token(&state);
   while (has_operator(state, ".")) {
     read_token(&state);
-    invariant(state.token is Identifier);
-    if (state.token is Identifier) {
+    invariant(state.token is tokens.Identifier);
+    if (state.token is tokens.Identifier) {
       __push(qualifiedName, state.token.value);
     }
     read_token(&state);
@@ -229,7 +218,7 @@ fn read_call_argument(ref state: State): Call_argument {
 
 fn read_type_name(ref state: State): Type_reference {
   let name = vec<str> [];
-  if (state.token is Keyword && (
+  if (state.token is tokens.Keyword && (
         has_keyword(state, "set") ||
         has_keyword(state, "vec") ||
         has_keyword(state, "dict")
@@ -255,93 +244,16 @@ fn read_type_name(ref state: State): Type_reference {
 }
 
 fn has_keyword(state: State, value: str): bool {
-  return state.token is Keyword && state.token.value == value;
+  return state.token is tokens.Keyword && state.token.value == value;
 }
 
 fn has_operator(state: State, value: str): bool {
-  return state.token is Operator && state.token.value == value;
+  return state.token is tokens.Operator && state.token.value == value;
 }
 
 fn read_token(ref state: State) {
-  read_whitespace(&state);
-  state.token = read_next_token(&state);
-}
-
-fn read_next_token(ref state: State): Token {
-  if (state.i == __size(state.code)) {
-    return End_of_file {};
-  }
-  if (is_alpha(state.code[state.i])) {
-    return read_identifier(&state);
-  }
-  if (tokens.is_numeric(state.code[state.i])) {
-    return read_number(&state);
-  }
-  let OPERATOR_PREFIXES = set<char> ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
-    '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
-  if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
-    return read_operator(&state);
-  }
-  if (state.code[state.i] == '"') {
-    return tokens.read_string_literal(&state);
-  }
-  if (state.code[state.i] == '\'') {
-    return tokens.read_character_literal(&state);
-  }
-  __die("unexpected character '" + state.code[state.i] + "'");
-}
-
-fn read_whitespace(ref state: State) {
-  let whitespace = set<char> [' ', '\n'];
-  while (state.i < __size(state.code) && __has(whitespace, state.code[state.i])) {
-    ++state.i;
-  }
-}
-
-fn read_identifier(ref state: State): Token {
-  let keywords = set<str> ["let", "fn", "ref", "while", "true",
-    "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
-    "enum", "struct"];
-
-  let value = "" + state.code[state.i];
-  ++state.i;
-  while (state.i < __size(state.code) && is_alphanumeric(state.code[state.i])) {
-    value = value + state.code[state.i];
-    ++state.i;
-  }
-  if (__has(keywords, value)) {
-    return Keyword {value};
-  }
-  return Identifier {value};
-}
-
-fn read_number(ref state: State): Token {
-  let value = "" + state.code[state.i];
-  ++state.i;
-  while (state.i < __size(state.code) && tokens.is_numeric(state.code[state.i])) {
-    value = value + state.code[state.i];
-    ++state.i;
-  }
-  return Number {value};
-}
-
-fn is_alphanumeric(c: char): bool {
-  return is_alpha(c) || tokens.is_numeric(c);
-}
-
-fn is_alpha(c: char): bool {
-  return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
-}
-
-fn read_operator(ref state: State): Operator {
-  let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
-  let value = "" + state.code[state.i];
-  ++state.i;
-  if (state.i < __size(state.code) && __has(operators, value + state.code[state.i])) {
-    value = value + state.code[state.i];
-    ++state.i;
-  }
-  return Operator {value};
+  tokens.read_whitespace(&state);
+  state.token = tokens.read_next(&state);
 }
 
 fn invariant(cond: bool) {

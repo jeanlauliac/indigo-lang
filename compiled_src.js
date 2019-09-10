@@ -194,24 +194,29 @@ function __has_operator(state, value, ) {
 
 module.exports.read_token = __read_token;
 function __read_token(state, ) {
-  __read_whitespace(state, );
-  state.token = __read_next_token(state, );
+  __tokens__read_whitespace(state, );
+  state.token = __tokens__read_next(state, );
 }
 
-module.exports.read_next_token = __read_next_token;
-function __read_next_token(state, ) {
+module.exports.invariant = __invariant;
+function __invariant(cond, ) {
+  if (!cond) throw new Error(clone("invariant failed"), );
+}
+
+module.exports.tokens__read_next = __tokens__read_next;
+function __tokens__read_next(state, ) {
   if ((state.i === (state.code).length)) {
     return {__type: "End_of_file"};
   }
-  if (__is_alpha(clone(access(state.code, state.i)), )) {
-    return __read_identifier(state, );
+  if (__tokens__is_alpha(clone(access(state.code, state.i)), )) {
+    return __tokens__read_identifier(state, );
   }
   if (__tokens__is_numeric(clone(access(state.code, state.i)), )) {
-    return __read_number(state, );
+    return __tokens__read_number(state, );
   }
   let OPERATOR_PREFIXES = new Set(["|", "(", ")", "{", "}", "=", ";", ":", ",", ".", "&", "<", ">", "/", "*", "+", "[", "]", "!", "-", ]);
   if ((OPERATOR_PREFIXES.has(access(state.code, state.i)))) {
-    return __read_operator(state, );
+    return __tokens__read_operator(state, );
   }
   if ((access(state.code, state.i) === "\"")) {
     return __tokens__read_string_literal(state, );
@@ -222,20 +227,20 @@ function __read_next_token(state, ) {
   throw new Error(clone((("unexpected character '" + access(state.code, state.i)) + "'")), );
 }
 
-module.exports.read_whitespace = __read_whitespace;
-function __read_whitespace(state, ) {
+module.exports.tokens__read_whitespace = __tokens__read_whitespace;
+function __tokens__read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
   while (((state.i < (state.code).length) && (whitespace.has(access(state.code, state.i))))) {
     ++state.i;
   }
 }
 
-module.exports.read_identifier = __read_identifier;
-function __read_identifier(state, ) {
+module.exports.tokens__read_identifier = __tokens__read_identifier;
+function __tokens__read_identifier(state, ) {
   let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
-  while (((state.i < (state.code).length) && __is_alphanumeric(clone(access(state.code, state.i)), ))) {
+  while (((state.i < (state.code).length) && __tokens__is_alphanumeric(clone(access(state.code, state.i)), ))) {
     value = (value + access(state.code, state.i));
     ++state.i;
   }
@@ -245,8 +250,8 @@ function __read_identifier(state, ) {
   return {value: value, __type: "Identifier"};
 }
 
-module.exports.read_number = __read_number;
-function __read_number(state, ) {
+module.exports.tokens__read_number = __tokens__read_number;
+function __tokens__read_number(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
   while (((state.i < (state.code).length) && __tokens__is_numeric(clone(access(state.code, state.i)), ))) {
@@ -256,18 +261,18 @@ function __read_number(state, ) {
   return {value: value, __type: "Number"};
 }
 
-module.exports.is_alphanumeric = __is_alphanumeric;
-function __is_alphanumeric(c, ) {
-  return (__is_alpha(clone(c), ) || __tokens__is_numeric(clone(c), ));
+module.exports.tokens__is_alphanumeric = __tokens__is_alphanumeric;
+function __tokens__is_alphanumeric(c, ) {
+  return (__tokens__is_alpha(clone(c), ) || __tokens__is_numeric(clone(c), ));
 }
 
-module.exports.is_alpha = __is_alpha;
-function __is_alpha(c, ) {
+module.exports.tokens__is_alpha = __tokens__is_alpha;
+function __tokens__is_alpha(c, ) {
   return (((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z")));
 }
 
-module.exports.read_operator = __read_operator;
-function __read_operator(state, ) {
+module.exports.tokens__read_operator = __tokens__read_operator;
+function __tokens__read_operator(state, ) {
   let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
@@ -276,11 +281,6 @@ function __read_operator(state, ) {
     ++state.i;
   }
   return {value: value, __type: "Operator"};
-}
-
-module.exports.invariant = __invariant;
-function __invariant(cond, ) {
-  if (!cond) throw new Error(clone("invariant failed"), );
 }
 
 module.exports.tokens__read_string_literal = __tokens__read_string_literal;
