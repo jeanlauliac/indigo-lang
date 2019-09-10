@@ -283,10 +283,10 @@ fn read_next_token(ref state: State): Token {
     return read_operator(&state);
   }
   if (state.code[state.i] == '"') {
-    return read_string_literal(&state);
+    return tokens.read_string_literal(&state);
   }
   if (state.code[state.i] == '\'') {
-    return read_character_literal(&state);
+    return tokens.read_character_literal(&state);
   }
   __die("unexpected character '" + state.code[state.i] + "'");
 }
@@ -342,49 +342,6 @@ fn read_operator(ref state: State): Operator {
     ++state.i;
   }
   return Operator {value};
-}
-
-fn read_string_literal(ref state: State): String {
-  ++state.i;
-  let value = "";
-  while (state.i < __size(state.code) && state.code[state.i] != '"') {
-    if (state.code[state.i] == '\\')  {
-      ++state.i;
-      value = value + get_escaped_char(state.code[state.i]);
-    } else {
-      value = value + state.code[state.i];
-    }
-    ++state.i;
-  }
-  invariant(state.i < __size(state.code));
-  let token = String {value};
-  ++state.i;
-  return token;
-}
-
-fn read_character_literal(ref state: State): Character {
-  ++state.i;
-  invariant(state.i < __size(state.code));
-  let value = ' ';
-  if (state.code[state.i] == '\\') {
-    ++state.i;
-    invariant(state.i < __size(state.code));
-    value = get_escaped_char(state.code[state.i]);
-  } else {
-    value = state.code[state.i];
-  }
-  ++state.i;
-  invariant(state.i < __size(state.code) && state.code[state.i] == '\'');
-  ++state.i;
-  return Character {value: value};
-}
-
-fn get_escaped_char(code: char): char {
-  if (code == 'n') {
-    return '\n';
-  }
-  invariant (code == '\\' || code == '\'' || code == '"');
-  return code;
 }
 
 fn invariant(cond: bool) {

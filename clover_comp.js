@@ -5,7 +5,7 @@ global.__read_expression = readExpression;
 const utils = require('./compiled_src');
 const fs = require('fs');
 const path = require('path');
-const {has_keyword, has_operator, get_escaped_char,
+const {has_keyword, has_operator,
   invariant, read_token, read_qualified_name, read_type_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);

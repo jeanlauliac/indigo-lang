@@ -214,10 +214,10 @@ function __read_next_token(state, ) {
     return __read_operator(state, );
   }
   if ((access(state.code, state.i) === "\"")) {
-    return __read_string_literal(state, );
+    return __tokens__read_string_literal(state, );
   }
   if ((access(state.code, state.i) === "'")) {
-    return __read_character_literal(state, );
+    return __tokens__read_character_literal(state, );
   }
   throw new Error(clone((("unexpected character '" + access(state.code, state.i)) + "'")), );
 }
@@ -278,14 +278,19 @@ function __read_operator(state, ) {
   return {value: value, __type: "Operator"};
 }
 
-module.exports.read_string_literal = __read_string_literal;
-function __read_string_literal(state, ) {
+module.exports.invariant = __invariant;
+function __invariant(cond, ) {
+  if (!cond) throw new Error(clone("invariant failed"), );
+}
+
+module.exports.tokens__read_string_literal = __tokens__read_string_literal;
+function __tokens__read_string_literal(state, ) {
   ++state.i;
   let value = "";
   while (((state.i < (state.code).length) && (access(state.code, state.i) !== "\""))) {
     if ((access(state.code, state.i) === "\\")) {
       ++state.i;
-      value = (value + __get_escaped_char(clone(access(state.code, state.i)), ));
+      value = (value + __tokens__get_escaped_char(clone(access(state.code, state.i)), ));
     } else {
       value = (value + access(state.code, state.i));
     }
@@ -297,15 +302,15 @@ function __read_string_literal(state, ) {
   return token;
 }
 
-module.exports.read_character_literal = __read_character_literal;
-function __read_character_literal(state, ) {
+module.exports.tokens__read_character_literal = __tokens__read_character_literal;
+function __tokens__read_character_literal(state, ) {
   ++state.i;
   __invariant(clone((state.i < (state.code).length)), );
   let value = " ";
   if ((access(state.code, state.i) === "\\")) {
     ++state.i;
     __invariant(clone((state.i < (state.code).length)), );
-    value = __get_escaped_char(clone(access(state.code, state.i)), );
+    value = __tokens__get_escaped_char(clone(access(state.code, state.i)), );
   } else {
     value = access(state.code, state.i);
   }
@@ -315,23 +320,18 @@ function __read_character_literal(state, ) {
   return {value: value, __type: "Character"};
 }
 
-module.exports.get_escaped_char = __get_escaped_char;
-function __get_escaped_char(code, ) {
+module.exports.tokens__is_numeric = __tokens__is_numeric;
+function __tokens__is_numeric(c, ) {
+  return ((c >= "0") && (c <= "9"));
+}
+
+module.exports.tokens__get_escaped_char = __tokens__get_escaped_char;
+function __tokens__get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
   __invariant(clone((((code === "\\") || (code === "'")) || (code === "\""))), );
   return code;
-}
-
-module.exports.invariant = __invariant;
-function __invariant(cond, ) {
-  if (!cond) throw new Error(clone("invariant failed"), );
-}
-
-module.exports.tokens__is_numeric = __tokens__is_numeric;
-function __tokens__is_numeric(c, ) {
-  return ((c >= "0") && (c <= "9"));
 }
 
 function clone(v) {
