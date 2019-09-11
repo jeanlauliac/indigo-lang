@@ -715,7 +715,6 @@ function analyse_expression(state, exp, scope, refims) {
     const arguments = [];
 
     for (let i = 0; i < func.argument_ids.length; ++i) {
-      // TODO: check `is_by_reference` is valid
       const arg_spec = exp.arguments[i];
       const arg = analyse_expression(state, arg_spec.value,
           scope, refims);
