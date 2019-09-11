@@ -119,7 +119,7 @@ fn read_primary_expression(
     let values = vec<Expression> [];
     while (!has_operator(state, "]")) {
       let expression = __read_expression(&state);
-      __push(values, expression);
+      __push(&values, expression);
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
@@ -147,7 +147,7 @@ fn read_primary_expression(
       } else {
         invariant(has_operator(state, "}"));
       }
-      __push(fields, Object_field {name, value});
+      __push(&fields, Object_field {name, value});
     }
     invariant(has_operator(state, "}"));
     read_token(&state);
@@ -167,7 +167,7 @@ fn read_primary_expression(
     read_token(&state);
     let arguments = vec<Call_argument> [];
     while (!has_operator(state, ")")) {
-      __push(arguments, read_call_argument(&state));
+      __push(&arguments, read_call_argument(&state));
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
@@ -191,7 +191,7 @@ fn read_qualified_name(ref state: State): vec<str> {
     read_token(&state);
     invariant(state.token is tokens.Identifier);
     if (state.token is tokens.Identifier) {
-      __push(qualifiedName, state.token.value);
+      __push(&qualifiedName, state.token.value);
     }
     read_token(&state);
   }
@@ -236,7 +236,7 @@ fn read_type_name(ref state: State): Type_reference {
   if (has_operator(state, "<")) {
     read_token(&state);
     while (!has_operator(state, ">")) {
-      __push(parameters, read_type_name(&state));
+      __push(&parameters, read_type_name(&state));
       if (has_operator(state, ",")) {
         read_token(&state);
       }

@@ -163,10 +163,20 @@ const builtin_functions = [
       arguments: [{
         type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
       return_type: get_base_type('u32')},
-  {name: '__push', type_parameter_names: ['Value'],
-      arguments: [{
-        type: {name: ['vec'], parameters: [get_base_type('Value')]}},
-      {type: get_base_type('Value')}]},
+  {
+    name: '__push',
+    type_parameter_names: ['Value'],
+    arguments: [
+      {
+        is_by_reference: true,
+        type: {
+          name: ['vec'],
+          parameters: [get_base_type('Value')],
+        },
+      },
+      {type: get_base_type('Value')},
+    ],
+  },
   {name: 'println', arguments: [{type: get_base_type('str')}]},
 ];
 
@@ -211,7 +221,7 @@ function create_fresh_state() {
       argument_ids.push(arg_id);
       state.types.set(arg_id, {__type: 'Function_argument',
           type: resolve_type(state, type_scope, arg.type),
-          is_by_reference: arg.is_by_reference});
+          is_by_reference: arg.is_by_reference || false});
     }
     let return_type;
     if (def.return_type != null) {
@@ -712,6 +722,9 @@ function analyse_expression(state, exp, scope, refims) {
       const arg_def = state.types.get(func.argument_ids[i]);
       invariant(arg_def.__type === 'Function_argument');
 
+      if (arg_def.is_by_reference !== arg_spec.is_by_reference) {
+        throw new Error(`reference arg mismatch for call to "${exp.functionName.join('.')}"`);
+      }
       match_types(state, arg.type, arg_def.type, settled_type_params);
       arguments.push({
         is_by_reference: arg_spec.is_by_reference,
