@@ -1315,7 +1315,10 @@ function write_expression(state, expression) {
     } else {
       write(`${pseudo_name}(`);
     }
+    let is_first = true;
     for (const argument of expression.arguments) {
+      if (!is_first) write(', ');
+      is_first = false;
       if (!argument.is_by_reference) {
         write('clone(');
         write_expression(state, argument.value);
@@ -1323,7 +1326,6 @@ function write_expression(state, expression) {
       } else {
         write_expression(state, argument.value);
       }
-      write(', ');
     }
     if (pseudo_name === '__read_file') {
       write("'utf8'")
