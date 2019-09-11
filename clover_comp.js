@@ -78,17 +78,17 @@ function main() {
 
   // ****** pass 3: analyse functions
 
-  analyse_module(state, index_module_scope, index_decls, '');
+  analyse_module(state, index_module_scope, index_decls);
   for (const {name, declarations, scope} of submodules) {
-    analyse_module(state, scope, declarations, `${name}__`);
+    analyse_module(state, scope, declarations);
   }
 
   // ****** write output
 
   write('// GENERATED, DO NOT EDIT\n\n');
 
-  for (const [id, func] of state.functions.entries()) {
-    write_function(state, id, func);
+  for (const func of state.functions) {
+    write_function(state, func);
   }
 
   write(`function clone(v) {
@@ -122,8 +122,8 @@ function identity_test(value, type) {
   if (call_main) write('__main();\n');
 }
 
-function write_function(state, id, func) {
-  const spec = state.types.get(id);
+function write_function(state, func) {
+  const spec = state.types.get(func.id);
   invariant(spec.__type === 'Function');
 
   write(`module.exports.${spec.pseudo_name} = __${spec.pseudo_name};\n`);
@@ -175,7 +175,7 @@ function create_fresh_state() {
   const state = {
     next_id: 2,
     types: new Map([[1, {__type: 'Module', names: root_names}]]),
-    functions: new Map(),
+    functions: [],
     builtin_ids: {},
     root_module_id: 1,
   };
@@ -252,10 +252,7 @@ function analyse_module(state, scope, declarations, name_prefix) {
       statements.push(res.statement);
     }
 
-    state.functions.set(id, {
-      pseudo_name: name_prefix + decl.name,
-      statements,
-    });
+    state.functions.push({id, statements});
   }
 }
 
