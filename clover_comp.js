@@ -506,6 +506,8 @@ function analyse_statement(state, statement, scope, refims) {
 
     const body = analyse_statement(state, statement.body, body_scope, body_refims);
     return {
+      refinements:
+        merge_refinements('Union', cond.refinements, body.refinements),
       statement: {
         __type: 'Typed_while_loop',
         condition: cond.expression,
