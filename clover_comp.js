@@ -73,7 +73,7 @@ function main() {
 
   build_module_types(state, index_module_scope, index_decls, '');
   for (const {name, scope, declarations} of submodules) {
-    build_module_types(state, scope, declarations, `${name}__`);
+    build_module_types(state, scope, declarations, `${name}\$`);
   }
 
   // ****** pass 3: analyse functions
@@ -119,15 +119,15 @@ function identity_test(value, type) {
   return value.__type === type;
 }
 `);
-  if (call_main) write('__main();\n');
+  if (call_main) write('main();\n');
 }
 
 function write_function(state, func) {
   const spec = state.types.get(func.id);
   invariant(spec.__type === 'Function');
 
-  write(`module.exports.${spec.pseudo_name} = __${spec.pseudo_name};\n`);
-  write(`function __${spec.pseudo_name}(`);
+  write(`module.exports.${spec.pseudo_name} = ${spec.pseudo_name};\n`);
+  write(`function ${spec.pseudo_name}(`);
 
   for (const arg_id of spec.argument_ids) {
     const arg = state.types.get(arg_id);
@@ -1313,7 +1313,7 @@ function write_expression(state, expression) {
     } else if (pseudo_name === 'println') {
       write('console.log(');
     } else {
-      write(`__${pseudo_name}(`);
+      write(`${pseudo_name}(`);
     }
     for (const argument of expression.arguments) {
       if (!argument.is_by_reference) {

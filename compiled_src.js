@@ -1,246 +1,246 @@
 // GENERATED, DO NOT EDIT
 
-module.exports.__read_expression = ____read_expression;
-function ____read_expression(state, ) {
+module.exports.__read_expression = __read_expression;
+function __read_expression(state, ) {
 }
 
-module.exports.read_primary_expression = __read_primary_expression;
-function __read_primary_expression(state, ) {
+module.exports.read_primary_expression = read_primary_expression;
+function read_primary_expression(state, ) {
   if (identity_test(state.token, "String")) {
     let value = state.token.value;
-    __read_token(state, );
+    read_token(state, );
     return {value: value, __type: "String_literal"};
   }
   if (identity_test(state.token, "Number")) {
     let value = state.token.value;
-    __read_token(state, );
+    read_token(state, );
     return {value: value, __type: "Number_literal"};
   }
   if (identity_test(state.token, "Character")) {
     let value = state.token.value;
-    __read_token(state, );
+    read_token(state, );
     return {value: value, __type: "Character_literal"};
   }
-  if (__has_keyword(clone(state), clone("true"), )) {
-    __read_token(state, );
+  if (has_keyword(clone(state), clone("true"), )) {
+    read_token(state, );
     return {value: true, __type: "Bool_literal"};
   }
-  if (__has_keyword(clone(state), clone("false"), )) {
-    __read_token(state, );
+  if (has_keyword(clone(state), clone("false"), )) {
+    read_token(state, );
     return {value: false, __type: "Bool_literal"};
   }
-  if (__has_operator(clone(state), clone("("), )) {
-    __read_token(state, );
+  if (has_operator(clone(state), clone("("), )) {
+    read_token(state, );
     let expression = global.__read_expression(state, );
-    __invariant(clone(__has_operator(clone(state), clone(")"), )), );
-    __read_token(state, );
+    invariant(clone(has_operator(clone(state), clone(")"), )), );
+    read_token(state, );
     return expression;
   }
-  if ((identity_test(state.token, "Operator") && __has_operator(clone(state), clone("++"), ))) {
+  if ((identity_test(state.token, "Operator") && has_operator(clone(state), clone("++"), ))) {
     let operator = state.token.value;
-    __read_token(state, );
-    let target = __read_primary_expression(state, );
+    read_token(state, );
+    let target = read_primary_expression(state, );
     return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment"};
   }
-  if ((identity_test(state.token, "Operator") && (__has_operator(clone(state), clone("!"), ) || __has_operator(clone(state), clone("-"), )))) {
+  if ((identity_test(state.token, "Operator") && (has_operator(clone(state), clone("!"), ) || has_operator(clone(state), clone("-"), )))) {
     let operator = state.token.value;
-    __read_token(state, );
-    let operand = __read_primary_expression(state, );
+    read_token(state, );
+    let operand = read_primary_expression(state, );
     return {operator: operator, operand: operand, __type: "Unary_operation"};
   }
-  if ((identity_test(state.token, "Keyword") && (__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )))) {
+  if ((identity_test(state.token, "Keyword") && (has_keyword(clone(state), clone("set"), ) || has_keyword(clone(state), clone("vec"), )))) {
     let dataType = state.token.value;
-    __read_token(state, );
+    read_token(state, );
     let item_type = {name: [], parameters: [], };
-    if (__has_operator(clone(state), clone("<"), )) {
-      __read_token(state, );
-      item_type = __read_type_name(state, );
-      __invariant(clone(__has_operator(clone(state), clone(">"), )), );
-      __read_token(state, );
+    if (has_operator(clone(state), clone("<"), )) {
+      read_token(state, );
+      item_type = read_type_name(state, );
+      invariant(clone(has_operator(clone(state), clone(">"), )), );
+      read_token(state, );
     }
-    __invariant(clone(__has_operator(clone(state), clone("["), )), );
-    __read_token(state, );
+    invariant(clone(has_operator(clone(state), clone("["), )), );
+    read_token(state, );
     let values = [];
-    while (!__has_operator(clone(state), clone("]"), )) {
+    while (!has_operator(clone(state), clone("]"), )) {
       let expression = global.__read_expression(state, );
       (values.push(expression));
-      if (__has_operator(clone(state), clone(","), )) {
-        __read_token(state, );
+      if (has_operator(clone(state), clone(","), )) {
+        read_token(state, );
       } else {
-        __invariant(clone(__has_operator(clone(state), clone("]"), )), );
+        invariant(clone(has_operator(clone(state), clone("]"), )), );
       }
     }
-    __read_token(state, );
+    read_token(state, );
     return {dataType: dataType, item_type: item_type, values: values, __type: "Collection_literal"};
   }
   let qualified_name = [];
   if (identity_test(state.token, "Identifier")) {
-    qualified_name = __read_qualified_name(state, );
+    qualified_name = read_qualified_name(state, );
   }
-  if (__has_operator(clone(state), clone("{"), )) {
-    __read_token(state, );
+  if (has_operator(clone(state), clone("{"), )) {
+    read_token(state, );
     let fields = [];
     while (identity_test(state.token, "Identifier")) {
       let name = state.token.value;
-      __read_token(state, );
-      let value = __read_object_field_value(state, );
-      if (__has_operator(clone(state), clone(","), )) {
-        __read_token(state, );
+      read_token(state, );
+      let value = read_object_field_value(state, );
+      if (has_operator(clone(state), clone(","), )) {
+        read_token(state, );
       } else {
-        __invariant(clone(__has_operator(clone(state), clone("}"), )), );
+        invariant(clone(has_operator(clone(state), clone("}"), )), );
       }
       (fields.push({name: name, value: value, }));
     }
-    __invariant(clone(__has_operator(clone(state), clone("}"), )), );
-    __read_token(state, );
+    invariant(clone(has_operator(clone(state), clone("}"), )), );
+    read_token(state, );
     return {typeName: qualified_name, fields: fields, __type: "Object_literal"};
   }
-  __invariant(clone(((qualified_name).length > 0)), );
-  if (__has_operator(clone(state), clone("["), )) {
-    __read_token(state, );
+  invariant(clone(((qualified_name).length > 0)), );
+  if (has_operator(clone(state), clone("["), )) {
+    read_token(state, );
     let key = global.__read_expression(state, );
-    __invariant(clone(__has_operator(clone(state), clone("]"), )), );
-    __read_token(state, );
+    invariant(clone(has_operator(clone(state), clone("]"), )), );
+    read_token(state, );
     return {collectionName: qualified_name, key: key, __type: "Collection_access"};
   }
-  if (__has_operator(clone(state), clone("("), )) {
-    __read_token(state, );
+  if (has_operator(clone(state), clone("("), )) {
+    read_token(state, );
     let arguments = [];
-    while (!__has_operator(clone(state), clone(")"), )) {
-      (arguments.push(__read_call_argument(state, )));
-      if (__has_operator(clone(state), clone(","), )) {
-        __read_token(state, );
+    while (!has_operator(clone(state), clone(")"), )) {
+      (arguments.push(read_call_argument(state, )));
+      if (has_operator(clone(state), clone(","), )) {
+        read_token(state, );
       } else {
-        __invariant(clone(__has_operator(clone(state), clone(")"), )), );
+        invariant(clone(has_operator(clone(state), clone(")"), )), );
       }
     }
-    __read_token(state, );
+    read_token(state, );
     return {functionName: qualified_name, arguments: arguments, __type: "Function_call"};
   }
   return {value: qualified_name, __type: "Qualified_name"};
 }
 
-module.exports.read_qualified_name = __read_qualified_name;
-function __read_qualified_name(state, ) {
-  __invariant(clone(identity_test(state.token, "Identifier")), );
+module.exports.read_qualified_name = read_qualified_name;
+function read_qualified_name(state, ) {
+  invariant(clone(identity_test(state.token, "Identifier")), );
   let qualifiedName = [];
   if (identity_test(state.token, "Identifier")) {
     qualifiedName = [state.token.value, ];
   }
-  __read_token(state, );
-  while (__has_operator(clone(state), clone("."), )) {
-    __read_token(state, );
-    __invariant(clone(identity_test(state.token, "Identifier")), );
+  read_token(state, );
+  while (has_operator(clone(state), clone("."), )) {
+    read_token(state, );
+    invariant(clone(identity_test(state.token, "Identifier")), );
     if (identity_test(state.token, "Identifier")) {
       (qualifiedName.push(state.token.value));
     }
-    __read_token(state, );
+    read_token(state, );
   }
   return qualifiedName;
 }
 
-module.exports.read_object_field_value = __read_object_field_value;
-function __read_object_field_value(state, ) {
-  if (!__has_operator(clone(state), clone(":"), )) {
+module.exports.read_object_field_value = read_object_field_value;
+function read_object_field_value(state, ) {
+  if (!has_operator(clone(state), clone(":"), )) {
     return {__type: "Shorthand_field_value"};
   }
-  __read_token(state, );
+  read_token(state, );
   return {expression: global.__read_expression(state, ), __type: "Expression_field_value"};
 }
 
-module.exports.read_call_argument = __read_call_argument;
-function __read_call_argument(state, ) {
+module.exports.read_call_argument = read_call_argument;
+function read_call_argument(state, ) {
   let is_by_reference = false;
-  if (__has_operator(clone(state), clone("&"), )) {
-    __read_token(state, );
+  if (has_operator(clone(state), clone("&"), )) {
+    read_token(state, );
     is_by_reference = true;
   }
   return {value: global.__read_expression(state, ), is_by_reference: is_by_reference, };
 }
 
-module.exports.read_type_name = __read_type_name;
-function __read_type_name(state, ) {
+module.exports.read_type_name = read_type_name;
+function read_type_name(state, ) {
   let name = [];
-  if ((identity_test(state.token, "Keyword") && ((__has_keyword(clone(state), clone("set"), ) || __has_keyword(clone(state), clone("vec"), )) || __has_keyword(clone(state), clone("dict"), )))) {
+  if ((identity_test(state.token, "Keyword") && ((has_keyword(clone(state), clone("set"), ) || has_keyword(clone(state), clone("vec"), )) || has_keyword(clone(state), clone("dict"), )))) {
     name = [state.token.value, ];
-    __read_token(state, );
+    read_token(state, );
   } else {
-    name = __read_qualified_name(state, );
+    name = read_qualified_name(state, );
   }
   let parameters = [];
-  if (__has_operator(clone(state), clone("<"), )) {
-    __read_token(state, );
-    while (!__has_operator(clone(state), clone(">"), )) {
-      (parameters.push(__read_type_name(state, )));
-      if (__has_operator(clone(state), clone(","), )) {
-        __read_token(state, );
+  if (has_operator(clone(state), clone("<"), )) {
+    read_token(state, );
+    while (!has_operator(clone(state), clone(">"), )) {
+      (parameters.push(read_type_name(state, )));
+      if (has_operator(clone(state), clone(","), )) {
+        read_token(state, );
       }
     }
-    __invariant(clone(__has_operator(clone(state), clone(">"), )), );
-    __read_token(state, );
+    invariant(clone(has_operator(clone(state), clone(">"), )), );
+    read_token(state, );
   }
   return {name: name, parameters: parameters, };
 }
 
-module.exports.has_keyword = __has_keyword;
-function __has_keyword(state, value, ) {
+module.exports.has_keyword = has_keyword;
+function has_keyword(state, value, ) {
   return (identity_test(state.token, "Keyword") && (state.token.value === value));
 }
 
-module.exports.has_operator = __has_operator;
-function __has_operator(state, value, ) {
+module.exports.has_operator = has_operator;
+function has_operator(state, value, ) {
   return (identity_test(state.token, "Operator") && (state.token.value === value));
 }
 
-module.exports.read_token = __read_token;
-function __read_token(state, ) {
-  __tokens__read_whitespace(state, );
-  state.token = __tokens__read_next(state, );
+module.exports.read_token = read_token;
+function read_token(state, ) {
+  tokens$read_whitespace(state, );
+  state.token = tokens$read_next(state, );
 }
 
-module.exports.invariant = __invariant;
-function __invariant(cond, ) {
+module.exports.invariant = invariant;
+function invariant(cond, ) {
   if (!cond) throw new Error(clone("invariant failed"), );
 }
 
-module.exports.tokens__read_next = __tokens__read_next;
-function __tokens__read_next(state, ) {
+module.exports.tokens$read_next = tokens$read_next;
+function tokens$read_next(state, ) {
   if ((state.i === (state.code).length)) {
     return {__type: "End_of_file"};
   }
-  if (__tokens__is_alpha(clone(access(state.code, state.i)), )) {
-    return __tokens__read_identifier(state, );
+  if (tokens$is_alpha(clone(access(state.code, state.i)), )) {
+    return tokens$read_identifier(state, );
   }
-  if (__tokens__is_numeric(clone(access(state.code, state.i)), )) {
-    return __tokens__read_number(state, );
+  if (tokens$is_numeric(clone(access(state.code, state.i)), )) {
+    return tokens$read_number(state, );
   }
   let OPERATOR_PREFIXES = new Set(["|", "(", ")", "{", "}", "=", ";", ":", ",", ".", "&", "<", ">", "/", "*", "+", "[", "]", "!", "-", ]);
   if ((OPERATOR_PREFIXES.has(access(state.code, state.i)))) {
-    return __tokens__read_operator(state, );
+    return tokens$read_operator(state, );
   }
   if ((access(state.code, state.i) === "\"")) {
-    return __tokens__read_string_literal(state, );
+    return tokens$read_string_literal(state, );
   }
   if ((access(state.code, state.i) === "'")) {
-    return __tokens__read_character_literal(state, );
+    return tokens$read_character_literal(state, );
   }
   throw new Error(clone((("unexpected character '" + access(state.code, state.i)) + "'")), );
 }
 
-module.exports.tokens__read_whitespace = __tokens__read_whitespace;
-function __tokens__read_whitespace(state, ) {
+module.exports.tokens$read_whitespace = tokens$read_whitespace;
+function tokens$read_whitespace(state, ) {
   let whitespace = new Set([" ", "\n", ]);
   while (((state.i < (state.code).length) && (whitespace.has(access(state.code, state.i))))) {
     ++state.i;
   }
 }
 
-module.exports.tokens__read_identifier = __tokens__read_identifier;
-function __tokens__read_identifier(state, ) {
+module.exports.tokens$read_identifier = tokens$read_identifier;
+function tokens$read_identifier(state, ) {
   let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
-  while (((state.i < (state.code).length) && __tokens__is_alphanumeric(clone(access(state.code, state.i)), ))) {
+  while (((state.i < (state.code).length) && tokens$is_alphanumeric(clone(access(state.code, state.i)), ))) {
     value = (value + access(state.code, state.i));
     ++state.i;
   }
@@ -250,29 +250,29 @@ function __tokens__read_identifier(state, ) {
   return {value: value, __type: "Identifier"};
 }
 
-module.exports.tokens__read_number = __tokens__read_number;
-function __tokens__read_number(state, ) {
+module.exports.tokens$read_number = tokens$read_number;
+function tokens$read_number(state, ) {
   let value = ("" + access(state.code, state.i));
   ++state.i;
-  while (((state.i < (state.code).length) && __tokens__is_numeric(clone(access(state.code, state.i)), ))) {
+  while (((state.i < (state.code).length) && tokens$is_numeric(clone(access(state.code, state.i)), ))) {
     value = (value + access(state.code, state.i));
     ++state.i;
   }
   return {value: value, __type: "Number"};
 }
 
-module.exports.tokens__is_alphanumeric = __tokens__is_alphanumeric;
-function __tokens__is_alphanumeric(c, ) {
-  return (__tokens__is_alpha(clone(c), ) || __tokens__is_numeric(clone(c), ));
+module.exports.tokens$is_alphanumeric = tokens$is_alphanumeric;
+function tokens$is_alphanumeric(c, ) {
+  return (tokens$is_alpha(clone(c), ) || tokens$is_numeric(clone(c), ));
 }
 
-module.exports.tokens__is_alpha = __tokens__is_alpha;
-function __tokens__is_alpha(c, ) {
+module.exports.tokens$is_alpha = tokens$is_alpha;
+function tokens$is_alpha(c, ) {
   return (((c === "_") || ((c >= "a") && (c <= "z"))) || ((c >= "A") && (c <= "Z")));
 }
 
-module.exports.tokens__read_operator = __tokens__read_operator;
-function __tokens__read_operator(state, ) {
+module.exports.tokens$read_operator = tokens$read_operator;
+function tokens$read_operator(state, ) {
   let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
@@ -283,54 +283,54 @@ function __tokens__read_operator(state, ) {
   return {value: value, __type: "Operator"};
 }
 
-module.exports.tokens__read_string_literal = __tokens__read_string_literal;
-function __tokens__read_string_literal(state, ) {
+module.exports.tokens$read_string_literal = tokens$read_string_literal;
+function tokens$read_string_literal(state, ) {
   ++state.i;
   let value = "";
   while (((state.i < (state.code).length) && (access(state.code, state.i) !== "\""))) {
     if ((access(state.code, state.i) === "\\")) {
       ++state.i;
-      value = (value + __tokens__get_escaped_char(clone(access(state.code, state.i)), ));
+      value = (value + tokens$get_escaped_char(clone(access(state.code, state.i)), ));
     } else {
       value = (value + access(state.code, state.i));
     }
     ++state.i;
   }
-  __invariant(clone((state.i < (state.code).length)), );
+  invariant(clone((state.i < (state.code).length)), );
   let token = {value: value, __type: "String"};
   ++state.i;
   return token;
 }
 
-module.exports.tokens__read_character_literal = __tokens__read_character_literal;
-function __tokens__read_character_literal(state, ) {
+module.exports.tokens$read_character_literal = tokens$read_character_literal;
+function tokens$read_character_literal(state, ) {
   ++state.i;
-  __invariant(clone((state.i < (state.code).length)), );
+  invariant(clone((state.i < (state.code).length)), );
   let value = " ";
   if ((access(state.code, state.i) === "\\")) {
     ++state.i;
-    __invariant(clone((state.i < (state.code).length)), );
-    value = __tokens__get_escaped_char(clone(access(state.code, state.i)), );
+    invariant(clone((state.i < (state.code).length)), );
+    value = tokens$get_escaped_char(clone(access(state.code, state.i)), );
   } else {
     value = access(state.code, state.i);
   }
   ++state.i;
-  __invariant(clone(((state.i < (state.code).length) && (access(state.code, state.i) === "'"))), );
+  invariant(clone(((state.i < (state.code).length) && (access(state.code, state.i) === "'"))), );
   ++state.i;
   return {value: value, __type: "Character"};
 }
 
-module.exports.tokens__is_numeric = __tokens__is_numeric;
-function __tokens__is_numeric(c, ) {
+module.exports.tokens$is_numeric = tokens$is_numeric;
+function tokens$is_numeric(c, ) {
   return ((c >= "0") && (c <= "9"));
 }
 
-module.exports.tokens__get_escaped_char = __tokens__get_escaped_char;
-function __tokens__get_escaped_char(code, ) {
+module.exports.tokens$get_escaped_char = tokens$get_escaped_char;
+function tokens$get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
-  __invariant(clone((((code === "\\") || (code === "'")) || (code === "\""))), );
+  invariant(clone((((code === "\\") || (code === "'")) || (code === "\""))), );
   return code;
 }
 
