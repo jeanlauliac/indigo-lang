@@ -1,0 +1,60 @@
+'Cannot override u32 argument':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let a = 1;
+        override(a);
+        if (a != 1) __die("fail");
+      }
+
+      fn override(a: u32) {
+        a = 10;
+      }
+
+'Cannot override string argument':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let a = "foo";
+        override(a);
+        if (a != "foo") __die("fail");
+      }
+
+      fn override(a: str) {
+        a = "bar";
+      }
+
+'Cannot override object argument':
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: u32}
+
+      fn main() {
+        let a = Foo {value: 1};
+        override(a);
+        if (a.value != 1) __die("fail");
+      }
+
+      fn override(a: Foo) {
+        a = Foo {value: 10};
+      }
+
+'Cannot override field of an object argument':
+  skip: true
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: u32}
+
+      fn main() {
+        let a = Foo {value: 1};
+        override(a);
+        if (a.value != 1) __die("fail");
+      }
+
+      fn override(a: Foo) {
+        a.value = 10;
+      }

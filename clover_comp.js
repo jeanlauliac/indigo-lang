@@ -1334,9 +1334,9 @@ function write_expression(state, expression) {
       if (!is_first) write(', ');
       is_first = false;
       if (!argument.is_by_reference) {
-        write('clone(');
+        // write('clone(');
         write_expression(state, argument.value);
-        write(')');
+        // write(')');
       } else {
         write_expression(state, argument.value);
       }
