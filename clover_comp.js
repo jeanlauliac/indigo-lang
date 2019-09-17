@@ -1407,10 +1407,12 @@ function write_expression(state, expression) {
   }
   if (expression.__type === 'Typed_assignment') {
     const {reference: ref} = expression;
-    write('(');
-
     const value = state.types.get(ref.value_id);
-    if (value.__type !== 'Function_argument' || !value.is_by_reference) {
+    const needs_copy =
+      (value.__type !== 'Function_argument' || !value.is_by_reference) &&
+       ref.path.length > 0;
+    if (needs_copy) {
+      write('(');
       for (let i = 0; i < ref.path.length; ++i) {
         const path = ref.path.slice(0, i);
         write_reference(state, {value_id: ref.value_id, path});
@@ -1423,7 +1425,7 @@ function write_expression(state, expression) {
     write_reference(state, expression.reference);
     write(' = ');
     write_expression(state, expression.value);
-    write(')');
+    if (needs_copy) write(')');
     return;
   }
   if (expression.__type === 'Typed_collection_literal') {
