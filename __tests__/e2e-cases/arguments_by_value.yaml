@@ -43,7 +43,6 @@
       }
 
 'Cannot override field of an object argument':
-  skip: true
   stdout: ''
   files:
     index.clv: >

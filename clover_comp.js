@@ -9,6 +9,7 @@ const {has_keyword, has_operator,
   invariant, read_token, read_qualified_name, read_type_name} = utils;
 
 const write = process.stdout.write.bind(process.stdout);
+const EMPTY_MAP = new Map();
 
 function main() {
   let code;
@@ -540,8 +541,6 @@ function analyse_statement(state, statement, scope, refims) {
 
 }
 
-const EMPTY_MAP = new Map();
-
 function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Bool_literal') {
     return {
@@ -735,6 +734,7 @@ function analyse_expression(state, exp, scope, refims) {
 
     const func_def = state.types.get(spec.id);
     return {
+      // TODO: replace type parameters in the return type
       type: func_def.return_type,
       expression: {
         __type: 'Typed_function_call',
@@ -1406,9 +1406,24 @@ function write_expression(state, expression) {
     return;
   }
   if (expression.__type === 'Typed_assignment') {
+    const {reference: ref} = expression;
+    write('(');
+
+    const value = state.types.get(ref.value_id);
+    if (value.__type !== 'Function_argument' || !value.is_by_reference) {
+      for (let i = 0; i < ref.path.length; ++i) {
+        const path = ref.path.slice(0, i);
+        write_reference(state, {value_id: ref.value_id, path});
+        write(' = {...');
+        write_reference(state, {value_id: ref.value_id, path});
+        write('}, ');
+      }
+    }
+
     write_reference(state, expression.reference);
     write(' = ');
     write_expression(state, expression.value);
+    write(')');
     return;
   }
   if (expression.__type === 'Typed_collection_literal') {
