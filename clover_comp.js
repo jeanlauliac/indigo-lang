@@ -130,6 +130,8 @@ function write_function(state, func) {
   write(`module.exports.${spec.pseudo_name} = ${spec.pseudo_name};\n`);
   write(`function ${spec.pseudo_name}(`);
 
+  const env = {argument_ids: spec.argument_ids};
+
   for (const arg_id of spec.argument_ids) {
     const arg = state.types.get(arg_id);
     write(`${arg.name}, `);
@@ -137,10 +139,31 @@ function write_function(state, func) {
   write(`) {\n`);
   for (const statement of func.statements) {
     write('  ');
-    write_statement(state, statement, '  ');
+    write_statement(state, statement, '  ', env);
     write('\n');
   }
+  if (spec.return_type == null) {
+    const ref_arg_ids = get_primitive_ref_arg_ids(state, env.argument_ids);
+    if (ref_arg_ids.length > 0) {
+      write(`  return [`);
+      for (const arg_id of ref_arg_ids) {
+        write_reference(state, {value_id: arg_id, path: []});
+        write(', ');
+      }
+      write('];\n');
+    }
+  }
+
   write(`}\n\n`);
+}
+
+function get_primitive_ref_arg_ids(state, argument_ids) {
+  return argument_ids.filter(arg_id => {
+    const arg = state.types.get(arg_id);
+    if (!arg.is_by_reference) return false;
+    const type_spec = state.types.get(arg.type.id);
+    return type_spec.__type === 'BuiltinType';
+  });
 }
 
 const builtin_types = [
@@ -1227,7 +1250,7 @@ function resolve_name(scope, name) {
 }
 
 
-function write_statement(state, statement, indent) {
+function write_statement(state, statement, indent, env) {
   if (statement.__type === 'Typed_variable_declaration') {
     const spec = state.types.get(statement.id);
     invariant(spec.__type === 'Variable');
@@ -1245,17 +1268,17 @@ function write_statement(state, statement, indent) {
     write(`while (`);
     write_expression(state, statement.condition);
     write(') ');
-    write_statement(state, statement.body, indent);
+    write_statement(state, statement.body, indent, env);
     return;
   }
   if (statement.__type === 'Typed_if') {
     write(`if (`);
     write_expression(state, statement.condition);
     write(') ');
-    write_statement(state, statement.consequent, indent);
+    write_statement(state, statement.consequent, indent, env);
     if (statement.alternate) {
       write(' else ');
-      write_statement(state, statement.alternate, indent);
+      write_statement(state, statement.alternate, indent, env);
     }
     return;
   }
@@ -1263,16 +1286,31 @@ function write_statement(state, statement, indent) {
     write('{\n');
     for (const subStatement of statement.statements) {
       write(indent + '  ');
-      write_statement(state, subStatement, indent + '  ');
+      write_statement(state, subStatement, indent + '  ', env);
       write('\n');
     }
     write(`${indent}}`);
     return;
   }
   if (statement.__type === 'Typed_return') {
-    write('return ');
-    write_expression(state, statement.value);
-    write(';');
+    const ref_arg_ids = get_primitive_ref_arg_ids(state, env.argument_ids);
+    write('return');
+    if (ref_arg_ids.length === 0) {
+      if (statement.value == null) write(';');
+      write(' ');
+      write_expression(state, statement.value);
+      write(';');
+      return;
+    }
+    write(' [');
+    for (const arg_id of ref_arg_ids) {
+      write_reference(state, {value_id: arg_id, path: []});
+      write(', ');
+    }
+    if (statement.value != null) {
+      write_expression(state, statement.value);
+    }
+    write('];');
     return;
   }
   throw new Error(`unknown statement type ${statement.__type}`);
@@ -1316,6 +1354,13 @@ function write_expression(state, expression) {
       write('))');
       return;
     }
+
+    const ref_arg_ids = get_primitive_ref_arg_ids(state, spec.argument_ids);
+
+    if (ref_arg_ids.length > 0) {
+      write('(() => { const $r = ');
+    }
+
     if (pseudo_name === '__read_file') {
       write("(require('fs').readFileSync)(");
     } else if (pseudo_name === '__write') {
@@ -1334,9 +1379,7 @@ function write_expression(state, expression) {
       if (!is_first) write(', ');
       is_first = false;
       if (!argument.is_by_reference) {
-        // write('clone(');
         write_expression(state, argument.value);
-        // write(')');
       } else {
         write_expression(state, argument.value);
       }
@@ -1345,6 +1388,20 @@ function write_expression(state, expression) {
       write("'utf8'")
     }
     write(')');
+
+    if (ref_arg_ids.length > 0) {
+      write('; ');
+      let index = 0;
+      for (const arg_id of ref_arg_ids) {
+        write_reference(state, {value_id: arg_id, path: []});
+        write(` = $r[${index++}]; `);
+      }
+      if (spec.return_type != null) {
+        write(`return $r[${index}];`);
+      }
+      write('})()');
+    }
+
     return;
   }
   if (expression.__type === 'Typed_string_literal') {

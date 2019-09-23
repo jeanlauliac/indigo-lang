@@ -1,0 +1,13 @@
+'Can set a u32 reference':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let a = 1;
+        override(&a);
+        if (a != 10) __die("fail");
+      }
+
+      fn override(ref a: u32) {
+        a = 10;
+      }
