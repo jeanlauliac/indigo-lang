@@ -11,3 +11,67 @@
       fn override(ref a: u32) {
         a = 10;
       }
+
+'Can set a string reference':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let a = "foo";
+        override(&a);
+        if (a != "bar") __die("fail");
+      }
+
+      fn override(ref a: str) {
+        a = "bar";
+      }
+
+'Can set object reference':
+  stdout: ''
+  skip: true
+  files:
+    index.clv: >
+      struct Foo {value: u32}
+
+      fn main() {
+        let a = Foo {value: 1};
+        override(&a);
+        if (a.value != 10) __die("fail");
+      }
+
+      fn override(ref a: Foo) {
+        a = Foo {value: 10};
+      }
+
+'Can set field of an object reference':
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: u32}
+
+      fn main() {
+        let a = Foo {value: 1};
+        override(&a);
+        if (a.value != 10) __die("fail");
+      }
+
+      fn override(ref a: Foo) {
+        a.value = 10;
+      }
+
+'Can set 2-level-deep field of an object reference':
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: Bar}
+      struct Bar {deep_value: u32}
+
+      fn main() {
+        let a = Foo {value: Bar {deep_value: 1}};
+        override(&a);
+        if (a.value.deep_value != 10) __die("fail");
+      }
+
+      fn override(ref a: Foo) {
+        a.value.deep_value = 10;
+      }
