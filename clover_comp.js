@@ -1785,39 +1785,34 @@ function readExpression(state) {
 }
 
 function readAssignmentExpression(state) {
-  const left_operand = readLogicalOrExpression(state);
+  const left_operand = readLeftAssociativeOperator(state, 0);
   if (!has_operator(state, '=')) return left_operand;
   read_token(state);
   const right_operand = readAssignmentExpression(state);
   return {__type: 'Binary_operation', operation: '=', left_operand, right_operand};
 }
 
-const readSumExpression =
-  makeLeftAssociativeOperatorReader(readIdentityExpression, new Set(['+', '-']));
+const operators_by_level = [
+  ['||'],
+  ['&&'],
+  ['==', '!='],
+  ['<', '<=', '>', '>='],
+  ['+', '-'],
+].map(x => new Set(x));
 
-const readComparisonExpression =
-  makeLeftAssociativeOperatorReader(readSumExpression, new Set(['<', '<=', '>', '>=']));
-
-const readEqualityExpression =
-  makeLeftAssociativeOperatorReader(readComparisonExpression, new Set(['==', '!=']));
-
-const readLogicalAndExpression =
-  makeLeftAssociativeOperatorReader(readEqualityExpression, new Set(['&&']));
-
-const readLogicalOrExpression =
-  makeLeftAssociativeOperatorReader(readLogicalAndExpression, new Set(['||']));
-
-function makeLeftAssociativeOperatorReader(expressionReader, operators) {
-  return state => {
-    let left_operand = expressionReader(state);
-    while (state.token.__type === 'Operator' && operators.has(state.token.value)) {
-      const operation = state.token.value;
-      read_token(state);
-      const right_operand = expressionReader(state);
-      left_operand = {__type: 'Binary_operation', operation, left_operand, right_operand};
-    }
-    return left_operand;
+function readLeftAssociativeOperator(state, level) {
+  if (level == operators_by_level.length) {
+    return readIdentityExpression(state);
   }
+  let left_operand = readLeftAssociativeOperator(state, level + 1);
+  const operators = operators_by_level[level];
+  while (state.token.__type === 'Operator' && operators.has(state.token.value)) {
+    const operation = state.token.value;
+    read_token(state);
+    const right_operand = readLeftAssociativeOperator(state, level + 1);
+    left_operand = {__type: 'Binary_operation', operation, left_operand, right_operand};
+  }
+  return left_operand;
 }
 
 function readIdentityExpression(state) {
