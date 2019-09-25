@@ -28,7 +28,6 @@
 
 'Can set object reference':
   stdout: ''
-  skip: true
   files:
     index.clv: >
       struct Foo {value: u32}

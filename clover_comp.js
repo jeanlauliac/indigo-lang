@@ -1465,9 +1465,23 @@ function write_expression(state, expression) {
   if (expression.__type === 'Typed_assignment') {
     const {reference: ref} = expression;
     const value = state.types.get(ref.value_id);
-    const needs_copy =
-      (value.__type !== 'Function_argument' || !value.is_by_reference) &&
-       ref.path.length > 0;
+
+    const is_by_ref =
+      value.__type === 'Function_argument' && value.is_by_reference;
+
+    if (is_by_ref && ref.path.length === 0) {
+      const type_spec = state.types.get(value.type.id);
+      if (type_spec.__type !== 'BuiltinType') {
+        write(`Object.assign(`);
+        write_reference(state, expression.reference);
+        write(', ');
+        write_expression(state, expression.value);
+        write(')');
+        return;
+      }
+    }
+
+    const needs_copy = !is_by_ref && ref.path.length > 0;
     if (needs_copy) {
       write('(');
       for (let i = 0; i < ref.path.length; ++i) {

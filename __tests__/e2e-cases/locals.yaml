@@ -1,0 +1,28 @@
+'Cannot override field of a copied object':
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: u32}
+
+      fn main() {
+        let a = Foo {value: 1};
+        let b = a;
+        b.value = 10;
+        if (a.value != 1) __die("fail");
+        if (b.value != 10) __die("fail");
+      }
+
+'Cannot override 2-level-deep field of a copied object':
+  stdout: ''
+  files:
+    index.clv: >
+      struct Foo {value: Bar}
+      struct Bar {deep_value: u32}
+
+      fn main() {
+        let a = Foo {value: Bar {deep_value: 1}};
+        let b = a;
+        b.value.deep_value = 10;
+        if (a.value.deep_value != 1) __die("fail");
+        if (b.value.deep_value != 10) __die("fail");
+      }
