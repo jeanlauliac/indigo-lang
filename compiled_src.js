@@ -334,21 +334,6 @@ function tokens$get_escaped_char(code, ) {
   return code;
 }
 
-function clone(v) {
-  if (v == null) return v;
-  if (typeof v === 'string') return v;
-  if (typeof v === 'number') return v;
-  if (typeof v === 'function') return v;
-  if (typeof v === 'boolean') return v;
-  if (Array.isArray(v)) return v.map(a => clone(a));
-  if (typeof v !== 'object') throw new Error('failed to clone: ' + typeof v);
-  const o = {};
-  for (const k in v) {
-    o[k] = clone(v[k]);
-  }
-  return o;
-}
-
 function access(collection, key) {
   if (typeof collection === 'string') {
     if (key < 0 || key >= collection.length) throw new Error('out of bounds');
