@@ -101,9 +101,6 @@ function main() {
   throw new Error('invalid collection');
 }
 
-function identity_test(value, type) {
-  return value.__type === type;
-}
 `);
   if (call_main) write('main();\n');
 }
@@ -1519,9 +1516,9 @@ function write_expression(state, expression) {
     if (expression.is_negative) {
       write('!');
     }
-    write(`identity_test(`);
+    write(`(`);
     write_expression(state, expression.operand);
-    write(', ');
+    write('.__type === ');
 
     const spec = state.types.get(expression.variant_id);
     invariant(spec.__type === 'Enum_variant');

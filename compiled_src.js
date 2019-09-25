@@ -6,17 +6,17 @@ function __read_expression(state, ) {
 
 module.exports.read_primary_expression = read_primary_expression;
 function read_primary_expression(state, ) {
-  if (identity_test(state.token, "String")) {
+  if ((state.token.__type === "String")) {
     let value = state.token.value;
     read_token(state);
     return {value: value, __type: "String_literal"};
   }
-  if (identity_test(state.token, "Number")) {
+  if ((state.token.__type === "Number")) {
     let value = state.token.value;
     read_token(state);
     return {value: value, __type: "Number_literal"};
   }
-  if (identity_test(state.token, "Character")) {
+  if ((state.token.__type === "Character")) {
     let value = state.token.value;
     read_token(state);
     return {value: value, __type: "Character_literal"};
@@ -36,19 +36,19 @@ function read_primary_expression(state, ) {
     read_token(state);
     return expression;
   }
-  if ((identity_test(state.token, "Operator") && has_operator(state, "++"))) {
+  if (((state.token.__type === "Operator") && has_operator(state, "++"))) {
     let operator = state.token.value;
     read_token(state);
     let target = read_primary_expression(state);
     return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment"};
   }
-  if ((identity_test(state.token, "Operator") && (has_operator(state, "!") || has_operator(state, "-")))) {
+  if (((state.token.__type === "Operator") && (has_operator(state, "!") || has_operator(state, "-")))) {
     let operator = state.token.value;
     read_token(state);
     let operand = read_primary_expression(state);
     return {operator: operator, operand: operand, __type: "Unary_operation"};
   }
-  if ((identity_test(state.token, "Keyword") && (has_keyword(state, "set") || has_keyword(state, "vec")))) {
+  if (((state.token.__type === "Keyword") && (has_keyword(state, "set") || has_keyword(state, "vec")))) {
     let dataType = state.token.value;
     read_token(state);
     let item_type = {name: [], parameters: [], };
@@ -74,13 +74,13 @@ function read_primary_expression(state, ) {
     return {dataType: dataType, item_type: item_type, values: values, __type: "Collection_literal"};
   }
   let qualified_name = [];
-  if (identity_test(state.token, "Identifier")) {
+  if ((state.token.__type === "Identifier")) {
     qualified_name = read_qualified_name(state);
   }
   if (has_operator(state, "{")) {
     read_token(state);
     let fields = [];
-    while (identity_test(state.token, "Identifier")) {
+    while ((state.token.__type === "Identifier")) {
       let name = state.token.value;
       read_token(state);
       let value = read_object_field_value(state);
@@ -122,16 +122,16 @@ function read_primary_expression(state, ) {
 
 module.exports.read_qualified_name = read_qualified_name;
 function read_qualified_name(state, ) {
-  invariant(identity_test(state.token, "Identifier"));
+  invariant((state.token.__type === "Identifier"));
   let qualifiedName = [];
-  if (identity_test(state.token, "Identifier")) {
+  if ((state.token.__type === "Identifier")) {
     qualifiedName = [state.token.value, ];
   }
   read_token(state);
   while (has_operator(state, ".")) {
     read_token(state);
-    invariant(identity_test(state.token, "Identifier"));
-    if (identity_test(state.token, "Identifier")) {
+    invariant((state.token.__type === "Identifier"));
+    if ((state.token.__type === "Identifier")) {
       (qualifiedName.push(state.token.value));
     }
     read_token(state);
@@ -161,7 +161,7 @@ function read_call_argument(state, ) {
 module.exports.read_type_name = read_type_name;
 function read_type_name(state, ) {
   let name = [];
-  if ((identity_test(state.token, "Keyword") && ((has_keyword(state, "set") || has_keyword(state, "vec")) || has_keyword(state, "dict")))) {
+  if (((state.token.__type === "Keyword") && ((has_keyword(state, "set") || has_keyword(state, "vec")) || has_keyword(state, "dict")))) {
     name = [state.token.value, ];
     read_token(state);
   } else {
@@ -184,12 +184,12 @@ function read_type_name(state, ) {
 
 module.exports.has_keyword = has_keyword;
 function has_keyword(state, value, ) {
-  return (identity_test(state.token, "Keyword") && (state.token.value === value));
+  return ((state.token.__type === "Keyword") && (state.token.value === value));
 }
 
 module.exports.has_operator = has_operator;
 function has_operator(state, value, ) {
-  return (identity_test(state.token, "Operator") && (state.token.value === value));
+  return ((state.token.__type === "Operator") && (state.token.value === value));
 }
 
 module.exports.read_token = read_token;
@@ -343,6 +343,3 @@ function access(collection, key) {
   throw new Error('invalid collection');
 }
 
-function identity_test(value, type) {
-  return value.__type === type;
-}
