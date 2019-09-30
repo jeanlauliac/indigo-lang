@@ -237,6 +237,7 @@ function create_fresh_state() {
     state.types.set(id, {__type: 'Function', argument_ids,
         type_parameter_ids, return_type, pseudo_name: def.name});
     root_names.set(def.name, {__type: 'Function', id});
+    state.builtin_ids[def.name] = id;
   }
 
   return state;
@@ -1300,7 +1301,8 @@ function write_statement(state, statement, indent, env) {
 
 function write_expression(state, expression) {
   if (expression.__type === 'Typed_function_call') {
-    const spec = state.types.get(expression.function_id);
+    const {function_id} = expression;
+    const spec = state.types.get(function_id);
     invariant(spec.__type === 'Function');
     const {pseudo_name} = spec;
 
@@ -1318,7 +1320,7 @@ function write_expression(state, expression) {
       write(').length');
       return;
     }
-    if (pseudo_name === '__push') {
+    if (function_id === state.builtin_ids.__push) {
       write('(');
       write_expression(state, expression.arguments[0].value);
       write('.push(');
@@ -1326,7 +1328,7 @@ function write_expression(state, expression) {
       write('))');
       return;
     }
-    if (pseudo_name === '__substring') {
+    if (function_id === state.builtin_ids.__substring) {
       write('(');
       write_expression(state, expression.arguments[0].value);
       write('.substring(');
@@ -1343,15 +1345,15 @@ function write_expression(state, expression) {
       write('(() => { const $r = ');
     }
 
-    if (pseudo_name === '__read_file') {
+    if (function_id === state.builtin_ids.__read_file) {
       write("(require('fs').readFileSync)(");
     } else if (pseudo_name === '__write') {
       write("process.stdout.write(");
-    } else if (pseudo_name === '__die') {
+    } else if (function_id === state.builtin_ids.__die) {
       write("throw new Error(");
     } else if (pseudo_name === '__read_expression') {
       write("global.__read_expression(");
-    } else if (pseudo_name === 'println') {
+    } else if (function_id === state.builtin_ids.println) {
       write('console.log(');
     } else {
       write(`${pseudo_name}(`);
