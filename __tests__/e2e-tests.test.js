@@ -20,7 +20,7 @@ for (const groupName of allGroups) {
       }
       testFunc(`${caseTitle}`, () => {
         let result = child_process.spawnSync(
-          path.join(__dirname, '../clover_comp.js'),
+          path.join(__dirname, '../cli.js'),
           ['-i'],
           {
             input: JSON.stringify(caseSpec.files),
