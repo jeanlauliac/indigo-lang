@@ -310,14 +310,24 @@ function build_module_type_names(state, module) {
       continue;
     }
 
-    if (decl.__type === 'Struct' || decl.__type === 'Function') {
+    if (decl.__type === 'Struct') {
       if (type_names.has(decl.name)) {
         throw new Error(`duplicate name "${decl.name}"`);
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {
-        __type: decl.__type === 'Struct' ? 'Type' : 'Function', id});
+      type_names.set(decl.name, {__type: 'Type', id});
+      assigned_declarations.push({id, declaration: decl});
+      continue;
+    }
+
+    if (decl.__type === 'Function') {
+      if (type_names.has(decl.name)) {
+        throw new Error(`duplicate name "${decl.name}"`);
+      }
+
+      const id = get_unique_id(state);
+      type_names.set(decl.name, {__type: 'Function', id});
       assigned_declarations.push({id, declaration: decl});
       continue;
     }
