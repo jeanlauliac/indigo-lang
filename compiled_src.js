@@ -291,7 +291,7 @@ function tokens$read_string_literal(state, ) {
     }
     ++state.i;
   }
-  invariant((state.i < (state.code).length));
+  if (!((state.i < (state.code).length))) throw new Error("expect() failed");
   let token = {value: value, __type: "String"};
   ++state.i;
   return token;
@@ -300,17 +300,17 @@ function tokens$read_string_literal(state, ) {
 module.exports.tokens$read_character_literal = tokens$read_character_literal;
 function tokens$read_character_literal(state, ) {
   ++state.i;
-  invariant((state.i < (state.code).length));
+  if (!((state.i < (state.code).length))) throw new Error("expect() failed");
   let value = " ";
   if ((access(state.code, state.i) === "\\")) {
     ++state.i;
-    invariant((state.i < (state.code).length));
+    if (!((state.i < (state.code).length))) throw new Error("expect() failed");
     value = tokens$get_escaped_char(access(state.code, state.i));
   } else {
     value = access(state.code, state.i);
   }
   ++state.i;
-  invariant(((state.i < (state.code).length) && (access(state.code, state.i) === "'")));
+  if (!(((state.i < (state.code).length) && (access(state.code, state.i) === "'")))) throw new Error("expect() failed");
   ++state.i;
   return {value: value, __type: "Character"};
 }
@@ -325,7 +325,7 @@ function tokens$get_escaped_char(code, ) {
   if ((code === "n")) {
     return "\n";
   }
-  invariant((((code === "\\") || (code === "'")) || (code === "\"")));
+  if (!((((code === "\\") || (code === "'")) || (code === "\"")))) throw new Error("expect() failed");
   return code;
 }
 

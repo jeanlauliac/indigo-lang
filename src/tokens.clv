@@ -98,7 +98,7 @@ fn read_string_literal(ref state: State): String {
     }
     ++state.i;
   }
-  invariant(state.i < size_of(state.code));
+  expect state.i < size_of(state.code);
   let token = String {value};
   ++state.i;
   return token;
@@ -106,17 +106,17 @@ fn read_string_literal(ref state: State): String {
 
 fn read_character_literal(ref state: State): Character {
   ++state.i;
-  invariant(state.i < size_of(state.code));
+  expect state.i < size_of(state.code);
   let value = ' ';
   if (state.code[state.i] == '\\') {
     ++state.i;
-    invariant(state.i < size_of(state.code));
+    expect state.i < size_of(state.code);
     value = get_escaped_char(state.code[state.i]);
   } else {
     value = state.code[state.i];
   }
   ++state.i;
-  invariant(state.i < size_of(state.code) && state.code[state.i] == '\'');
+  expect state.i < size_of(state.code) && state.code[state.i] == '\'';
   ++state.i;
   return Character {value: value};
 }
@@ -129,6 +129,6 @@ fn get_escaped_char(code: char): char {
   if (code == 'n') {
     return '\n';
   }
-  invariant (code == '\\' || code == '\'' || code == '"');
+  expect code == '\\' || code == '\'' || code == '"';
   return code;
 }
