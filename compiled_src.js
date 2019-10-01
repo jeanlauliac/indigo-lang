@@ -339,7 +339,11 @@ function access(collection, key) {
     if (key < 0 || key >= collection.length) throw new Error('out of bounds');
     return collection[key];
   }
+  if (Array.isArray(collection)) {
+    if (key < 0 || key >= collection.length) throw new Error('out of bounds');
+    return collection[key];
+  }
   if (collection instanceof Set) return collection.has(key);
-  throw new Error('invalid collection');
+  throw new Error('invalid collection: ' + require('util').inspect(collection));
 }
 
