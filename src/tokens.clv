@@ -76,7 +76,7 @@ fn is_alpha(c: char): bool {
 }
 
 fn read_operator(ref state: State): Operator {
-  let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
+  let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<=", "->"];
   let value = "" + state.code[state.i];
   ++state.i;
   if (state.i < size_of(state.code) && has(operators, value + state.code[state.i])) {

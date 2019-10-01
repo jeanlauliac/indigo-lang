@@ -165,19 +165,26 @@ fn read_primary_expression(
 
   if (has_operator(state, "(")) {
     read_token(&state);
-    let arguments = vec<Call_argument> [];
-    while (!has_operator(state, ")")) {
-      push(&arguments, read_call_argument(&state));
-      if (has_operator(state, ",")) {
-        read_token(&state);
-      } else {
-        expect has_operator(state, ")");
-      }
-    }
-    read_token(&state);
-    return Function_call {functionName: qualified_name, arguments};
+    return Function_call {
+      functionName: qualified_name,
+      arguments: read_function_arguments(&state),
+    };
   }
   return Qualified_name {value: qualified_name};
+}
+
+fn read_function_arguments(ref state: State): vec<Call_argument> {
+  let arguments = vec<Call_argument> [];
+  while (!has_operator(state, ")")) {
+    push(&arguments, read_call_argument(&state));
+    if (has_operator(state, ",")) {
+      read_token(&state);
+    } else {
+      expect has_operator(state, ")");
+    }
+  }
+  read_token(&state);
+  return arguments;
 }
 
 fn read_qualified_name(ref state: State): vec<str> {

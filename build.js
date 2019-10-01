@@ -1886,7 +1886,7 @@ function readLeftAssociativeOperator(state, level) {
 }
 
 function readIdentityExpression(state) {
-  const operand = utils.read_primary_expression(state);
+  const operand = read_method_call(state);
   if (
     !has_keyword(state, 'isnt') &&
     !has_keyword(state, 'is')
@@ -1895,6 +1895,27 @@ function readIdentityExpression(state) {
   read_token(state);
   const variant = read_qualified_name(state);
   return {__type: 'Identity_test', is_negative, operand, variant};
+}
+
+function read_method_call(state) {
+  const target = utils.read_primary_expression(state);
+  if (!has_operator(state, '->')) {
+    return target;
+  }
+  read_token(state);
+  const qualified_name = read_qualified_name(state);
+  invariant(has_operator(state, "("));
+  read_token(state);
+  const prefix_arg = {
+    is_by_reference: true,
+    value: target,
+  };
+  const args = [prefix_arg].concat(utils.read_function_arguments(state));
+  return {
+    __type: 'Function_call',
+    functionName: qualified_name,
+    arguments: args,
+  };
 }
 
 function has_identifier(state) {

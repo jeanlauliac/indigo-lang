@@ -106,19 +106,24 @@ function read_primary_expression(state, ) {
   }
   if (has_operator(state, "(")) {
     read_token(state);
-    let arguments$ = [];
-    while (!has_operator(state, ")")) {
-      (arguments$.push(read_call_argument(state)));
-      if (has_operator(state, ",")) {
-        read_token(state);
-      } else {
-        if (!(has_operator(state, ")"))) throw new Error("expect() failed");
-      }
-    }
-    read_token(state);
-    return {functionName: qualified_name, arguments: arguments$, __type: "Function_call"};
+    return {functionName: qualified_name, arguments: read_function_arguments(state), __type: "Function_call"};
   }
   return {value: qualified_name, __type: "Qualified_name"};
+}
+
+module.exports.read_function_arguments = read_function_arguments;
+function read_function_arguments(state, ) {
+  let arguments$ = [];
+  while (!has_operator(state, ")")) {
+    (arguments$.push(read_call_argument(state)));
+    if (has_operator(state, ",")) {
+      read_token(state);
+    } else {
+      if (!(has_operator(state, ")"))) throw new Error("expect() failed");
+    }
+  }
+  read_token(state);
+  return arguments$;
 }
 
 module.exports.read_qualified_name = read_qualified_name;
@@ -264,7 +269,7 @@ function tokens$is_alpha(c, ) {
 
 module.exports.tokens$read_operator = tokens$read_operator;
 function tokens$read_operator(state, ) {
-  let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", ]);
+  let operators = new Set(["&&", "++", "==", "!=", "||", ">=", "<=", "->", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
   if (((state.i < (state.code).length) && (operators.has((value + access(state.code, state.i)))))) {
