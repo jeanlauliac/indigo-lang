@@ -322,12 +322,17 @@ function build_module_type_names(state, module) {
     }
 
     if (decl.__type === 'Function') {
-      if (type_names.has(decl.name)) {
-        throw new Error(`duplicate name "${decl.name}"`);
+      let overload_ids = [];
+      if (!type_names.has(decl.name)) {
+        type_names.set(decl.name, {__type: 'Function', overload_ids});
+      } else {
+        const spec = type_names.get(decl.name);
+        invariant(spec.__type === 'Function');
+        ({overload_ids} = spec);
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {__type: 'Function', overload_ids: [id]});
+      overload_ids.push(id);
       assigned_declarations.push({id, declaration: decl});
       continue;
     }
