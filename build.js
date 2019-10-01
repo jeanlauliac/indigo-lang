@@ -1,3 +1,5 @@
+'use strict';
+
 global.__read_expression = readExpression;
 
 const utils = require('./compiled_src');
