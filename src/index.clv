@@ -254,7 +254,3 @@ fn read_token(ref state: State) {
   tokens.read_whitespace(&state);
   state.token = tokens.read_next(&state);
 }
-
-fn invariant(cond: bool) {
-  if (!cond) __die("invariant failed");
-}

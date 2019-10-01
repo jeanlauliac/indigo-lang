@@ -193,11 +193,6 @@ function read_token(state, ) {
   state.token = tokens$read_next(state);
 }
 
-module.exports.invariant = invariant;
-function invariant(cond, ) {
-  if (!cond) throw new Error("invariant failed");
-}
-
 module.exports.tokens$read_next = tokens$read_next;
 function tokens$read_next(state, ) {
   if ((state.i === (state.code).length)) {
