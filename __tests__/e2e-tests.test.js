@@ -22,8 +22,8 @@ for (const groupName of allGroups) {
       testFunc(`${caseTitle}`, () => {
 
         const filesystem = new Map();
-        for (const key of Object.keys(fileTree)) {
-          const code = fileTree[key];
+        for (const key of Object.keys(caseSpec.files)) {
+          const code = caseSpec.files[key];
           filesystem.set(key, code);
         }
 
