@@ -170,7 +170,7 @@ const builtin_functions = [
         type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
       return_type: get_base_type('u32')},
   {
-    name: '__push',
+    name: 'push',
     type_parameter_names: ['Value'],
     arguments: [
       {
@@ -1320,7 +1320,7 @@ function write_expression(state, expression) {
       write(').length');
       return;
     }
-    if (function_id === state.builtin_ids.__push) {
+    if (function_id === state.builtin_ids.push) {
       write('(');
       write_expression(state, expression.arguments[0].value);
       write('.push(');
