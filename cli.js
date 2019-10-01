@@ -333,7 +333,11 @@ function build_module_type_names(state, module) {
 
       const id = get_unique_id(state);
       overload_ids.push(id);
-      assigned_declarations.push({id, declaration: decl});
+      assigned_declarations.push({
+        id,
+        overload_index: overload_ids.length,
+        declaration: decl,
+      });
       continue;
     }
 
@@ -349,7 +353,7 @@ function build_module_type_names(state, module) {
  * state's type map.
  */
 function build_module_types(state, scope, declarations, name_prefix) {
-  for (const {id, variant_ids, declaration: decl} of declarations) {
+  for (const {id, variant_ids, overload_index, declaration: decl} of declarations) {
 
     if (decl.__type === 'Enum') {
 
@@ -421,11 +425,13 @@ function build_module_types(state, scope, declarations, name_prefix) {
       if (decl.return_type != null) {
         return_type = resolve_type(state, scope, decl.return_type);
       }
+      let suffix = '';
+      if (overload_index > 1) suffix = `\$${overload_index}`;
       state.types.set(id, {
         __type: 'Function',
         argument_ids,
         return_type,
-        pseudo_name: name_prefix + decl.name,
+        pseudo_name: name_prefix + decl.name + suffix,
       });
       continue;
     }
@@ -1079,7 +1085,9 @@ function match_types(state, actual_type, expected_type, settled_type_parameters)
 function try_match_types(state, actual_type, expected_type, settled_type_parameters) {
   if (actual_type.id !== expected_type.id) {
     const type_def = state.types.get(expected_type.id);
-    invariant(type_def.__type === 'Function_type_parameter');
+    if (type_def.__type !== 'Function_type_parameter') {
+      return {__type: 'Mismatch'};
+    }
 
     const settled_type = settled_type_parameters.get(expected_type.id);
     if (settled_type == null) {

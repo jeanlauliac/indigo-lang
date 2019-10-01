@@ -1,0 +1,18 @@
+'Can overload a function':
+  stdout: |
+    u32
+    str
+  files:
+    index.clv: >
+      fn main() {
+        foo(10);
+        foo("test");
+      }
+
+      fn foo(a: u32) {
+        println("u32");
+      }
+
+      fn foo(a: str) {
+        println("str");
+      }
