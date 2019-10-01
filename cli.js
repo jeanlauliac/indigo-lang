@@ -240,7 +240,7 @@ function create_fresh_state() {
 
     state.types.set(id, {__type: 'Function', argument_ids,
         type_parameter_ids, return_type, pseudo_name: def.name});
-    root_names.set(def.name, {__type: 'Function', id});
+    root_names.set(def.name, {__type: 'Function', overload_ids: [id]});
     state.builtin_ids[def.name] = id;
   }
 
@@ -327,7 +327,7 @@ function build_module_type_names(state, module) {
       }
 
       const id = get_unique_id(state);
-      type_names.set(decl.name, {__type: 'Function', id});
+      type_names.set(decl.name, {__type: 'Function', overload_ids: [id]});
       assigned_declarations.push({id, declaration: decl});
       continue;
     }
@@ -728,39 +728,57 @@ function analyse_expression(state, exp, scope, refims) {
   if (exp.__type === 'Function_call') {
     const spec = resolve_qualified_name(state, scope, exp.functionName);
     invariant(spec.__type === 'Function');
-    const func = state.types.get(spec.id);
-    invariant(func.__type === 'Function');
-    invariant(func.argument_ids.length === exp.arguments.length);
 
-    const settled_type_params = new Map();
-    const arguments = [];
+    const matches = [];
+    for (const overload_id of spec.overload_ids) {
 
-    for (let i = 0; i < func.argument_ids.length; ++i) {
-      const arg_spec = exp.arguments[i];
-      const arg = analyse_expression(state, arg_spec.value,
-          scope, refims);
-      const arg_def = state.types.get(func.argument_ids[i]);
-      invariant(arg_def.__type === 'Function_argument');
+      const func = state.types.get(overload_id);
+      invariant(func.__type === 'Function');
+      if (func.argument_ids.length !== exp.arguments.length) continue;
 
-      if (arg_def.is_by_reference !== arg_spec.is_by_reference) {
-        throw new Error(`reference arg mismatch for call to "${exp.functionName.join('.')}"`);
+      const settled_type_params = new Map();
+      const arguments = [];
+      let res = {__type: 'Match'};
+
+      for (let i = 0; i < func.argument_ids.length && res.__type === 'Match'; ++i) {
+        const arg_spec = exp.arguments[i];
+        const arg = analyse_expression(state, arg_spec.value,
+            scope, refims);
+        const arg_def = state.types.get(func.argument_ids[i]);
+        invariant(arg_def.__type === 'Function_argument');
+
+        if (arg_def.is_by_reference !== arg_spec.is_by_reference) {
+          throw new Error(`reference arg mismatch for call to "${exp.functionName.join('.')}"`);
+        }
+        res = try_match_types(state, arg.type, arg_def.type, settled_type_params);
+        arguments.push({
+          is_by_reference: arg_spec.is_by_reference,
+          value: arg.expression
+        });
       }
-      match_types(state, arg.type, arg_def.type, settled_type_params);
-      arguments.push({
-        is_by_reference: arg_spec.is_by_reference,
-        value: arg.expression
-      });
+      if (res.__type !== 'Match') continue;
+
+      matches.push({id: overload_id, settled_type_params, arguments});
     }
 
-    const func_def = state.types.get(spec.id);
+    if (matches.length === 0) {
+      throw new Error(`no match for call to function "${exp.functionName.join('.')}"`);
+    }
+    if (matches.length > 1) {
+      throw new Error(`too many matches for call to overloaded ` +
+        `function "${exp.functionName.join('.')}"`);
+    }
+
+    const mt = matches[0];
+    const func_def = state.types.get(mt.id);
     return {
       // TODO: replace type parameters in the return type
       type: func_def.return_type,
       expression: {
         __type: 'Typed_function_call',
-        function_id: spec.id,
-        type_parameters: settled_type_params,
-        arguments,
+        function_id: mt.id,
+        type_parameters: mt.settled_type_params,
+        arguments: mt.arguments,
       },
     };
   }
@@ -1049,6 +1067,11 @@ function analyse_object_literal_fields(
 }
 
 function match_types(state, actual_type, expected_type, settled_type_parameters) {
+  const res = try_match_types(state, actual_type, expected_type, settled_type_parameters);
+  invariant(res.__type === 'Match');
+}
+
+function try_match_types(state, actual_type, expected_type, settled_type_parameters) {
   if (actual_type.id !== expected_type.id) {
     const type_def = state.types.get(expected_type.id);
     invariant(type_def.__type === 'Function_type_parameter');
@@ -1056,17 +1079,24 @@ function match_types(state, actual_type, expected_type, settled_type_parameters)
     const settled_type = settled_type_parameters.get(expected_type.id);
     if (settled_type == null) {
       settled_type_parameters.set(expected_type.id, actual_type);
-      return;
+      return {__type: 'Match'};
     }
     expected_type = settled_type;
-    invariant(actual_type.id === expected_type.id);
+    if (actual_type.id !== expected_type.id) {
+      return {__type: 'Mismatch'};
+    }
   }
 
-  invariant(actual_type.parameters.length === expected_type.parameters.length);
-  for (let i = 0; i < actual_type.parameters.length; ++i) {
-    match_types(state, actual_type.parameters[i],
-        expected_type.parameters[i], settled_type_parameters);
+  if (actual_type.parameters.length !== expected_type.parameters.length) {
+    return {__type: 'Mismatch'};
   }
+
+  for (let i = 0; i < actual_type.parameters.length; ++i) {
+    const res = try_match_types(state, actual_type.parameters[i],
+        expected_type.parameters[i], settled_type_parameters);
+    if (res.__type !== 'Match') return res;
+  }
+  return {__type: 'Match'};
 }
 
 function merge_refinements(method, refims, right_refims) {
