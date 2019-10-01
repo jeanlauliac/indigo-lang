@@ -1380,7 +1380,6 @@ function write_expression(state, expression) {
       return;
     }
     if (
-      pseudo_name.startsWith('__size') ||
       function_id === state.builtin_ids.size_of ||
       function_id === state.builtin_ids.size_of_2
     ) {
@@ -1416,8 +1415,6 @@ function write_expression(state, expression) {
 
     if (function_id === state.builtin_ids.__read_file) {
       write("(require('fs').readFileSync)(");
-    } else if (pseudo_name === '__write') {
-      write("process.stdout.write(");
     } else if (function_id === state.builtin_ids.__die) {
       write("throw new Error(");
     } else if (pseudo_name === '__read_expression') {
@@ -1437,7 +1434,7 @@ function write_expression(state, expression) {
         write_expression(state, argument.value);
       }
     }
-    if (pseudo_name === '__read_file') {
+    if (function_id === state.builtin_ids.__read_file) {
       write("'utf8'")
     }
     write(')');
