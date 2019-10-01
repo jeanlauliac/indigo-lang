@@ -237,7 +237,7 @@ function tokens$read_whitespace(state, ) {
 
 module.exports.tokens$read_identifier = tokens$read_identifier;
 function tokens$read_identifier(state, ) {
-  let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", ]);
+  let keywords = new Set(["let", "fn", "ref", "while", "true", "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return", "enum", "struct", "expect", ]);
   let value = ("" + access(state.code, state.i));
   ++state.i;
   while (((state.i < (state.code).length) && tokens$is_alphanumeric(access(state.code, state.i)))) {

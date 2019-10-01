@@ -43,7 +43,7 @@ fn read_whitespace(ref state: State) {
 fn read_identifier(ref state: State): Token {
   let keywords = set<str> ["let", "fn", "ref", "while", "true",
     "false", "set", "dict", "vec", "if", "else", "is", "isnt", "return",
-    "enum", "struct"];
+    "enum", "struct", "expect"];
 
   let value = "" + state.code[state.i];
   ++state.i;

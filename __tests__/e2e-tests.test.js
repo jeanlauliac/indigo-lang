@@ -44,6 +44,10 @@ for (const groupName of allGroups) {
           encoding: 'utf8',
         });
 
+        if (caseSpec.error_code != null) {
+          expect(result.status).toBe(caseSpec.error_code);
+          return;
+        }
         expect(result.stderr).toBe('');
         expect(result.status).toBe(0);
         expect(result.signal).toBe(null);

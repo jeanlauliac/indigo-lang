@@ -1,0 +1,31 @@
+'Passthrough on true':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        expect true;
+      }
+
+'Fail on false':
+  error_code: 1
+  files:
+    index.clv: >
+      fn main() {
+        expect false;
+      }
+
+'Refine local variable':
+  stdout: "Hello, world\n"
+  files:
+    index.clv: >
+      enum Option {None, Some {value: str}}
+
+      fn main() {
+        let a = get();
+        expect a is Some;
+        println(a.value);
+      }
+
+      fn get(): Option {
+        return Some {value: "Hello, world"};
+      }

@@ -537,6 +537,17 @@ function analyse_statement(state, statement, scope, refims) {
     };
   }
 
+  if (statement.__type === 'Expect') {
+    const value = analyse_expression(state, statement.value, scope, refims);
+    invariant(value.type.id === state.builtin_ids.bool);
+
+    return {
+      refinements: merge_refinements('Intersection',
+         value.refinements, value.conditional_refinements),
+      statement: {__type: 'Typed_expect', value: value.expression},
+    };
+  }
+
   if (statement.__type === 'While_loop') {
     const cond = analyse_expression(state, statement.condition, scope, refims);
     invariant(cond.type.id === state.builtin_ids.bool);
@@ -1361,6 +1372,12 @@ function write_statement(state, statement, indent, env) {
     write('];');
     return;
   }
+  if (statement.__type === 'Typed_expect') {
+    write('if (!(');
+    write_expression(state, statement.value);
+    write(')) throw new Error("expect() failed");');
+    return;
+  }
   throw new Error(`unknown statement type ${statement.__type}`);
 }
 
@@ -1812,6 +1829,14 @@ function readStatement(state) {
     invariant(has_operator(state, ';'));
     read_token(state);
     return {__type: 'Return', value};
+  }
+
+  if (has_keyword(state, 'expect')) {
+    read_token(state);
+    const value = readExpression(state);
+    invariant(has_operator(state, ';'));
+    read_token(state);
+    return {__type: 'Expect', value};
   }
 
   if (has_operator(state, '{')) {
