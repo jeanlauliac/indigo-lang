@@ -1,4 +1,4 @@
-'Push item on vector':
+'Push and access item':
   stdout: ''
   files:
     index.clv: >
@@ -8,7 +8,7 @@
         if (v[0] != 10) __die("fail");
       }
 
-'Push items on vector':
+'Push and access two items':
   stdout: ''
   files:
     index.clv: >
@@ -20,3 +20,13 @@
         if (v[1] != 20) __die("fail");
       }
 
+'Push and get size':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let v = vec<u32> [];
+        push(&v, 10);
+        push(&v, 20);
+        if (size_of(v) != 2) __die("fail");
+      }
