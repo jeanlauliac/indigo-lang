@@ -750,7 +750,7 @@ function analyse_expression(state, exp, scope, refims) {
       if (func.argument_ids.length !== exp.arguments.length) continue;
 
       const settled_type_params = new Map();
-      const arguments = [];
+      const args = [];
       let res = {__type: 'Match'};
 
       for (let i = 0; i < func.argument_ids.length && res.__type === 'Match'; ++i) {
@@ -764,14 +764,14 @@ function analyse_expression(state, exp, scope, refims) {
           throw new Error(`reference arg mismatch for call to "${exp.functionName.join('.')}"`);
         }
         res = try_match_types(state, arg.type, arg_def.type, settled_type_params);
-        arguments.push({
+        args.push({
           is_by_reference: arg_spec.is_by_reference,
           value: arg.expression
         });
       }
       if (res.__type !== 'Match') continue;
 
-      matches.push({id: overload_id, settled_type_params, arguments});
+      matches.push({id: overload_id, settled_type_params, arguments: args});
     }
 
     if (matches.length === 0) {
@@ -1182,23 +1182,23 @@ function merge_refinement_entry(method, entry, right_entry) {
 function merge_refinement_fields(method, fields, right_fields) {
   invariant(method === 'Intersection' || method === 'Union');
 
-  const fields = new Map();
+  const new_fields = new Map();
   for (const [name, field] of fields.entries()) {
     const right_field = right_fields.get(name);
     if (right_field == null) {
-      fields.set(name, field);
+      new_fields.set(name, field);
       continue;
     }
     const new_field = merge_refinement_entry(method, field, right_field);
     if (new_field != null)
-      fields.set(value_id, new_field);
+      new_fields.set(value_id, new_field);
   }
   for (const [name, right_field] of right_fields.entries()) {
     if (fields.has(name)) continue;
-    fields.set(name, right_field);
+    new_fields.set(name, right_field);
   }
 
-  return fields;
+  return new_fields;
 }
 
 function resolve_type(state, scope, type) {
@@ -1655,7 +1655,7 @@ function read_function_declaration(state) {
   invariant(has_operator(state, '('));
   read_token(state);
 
-  const arguments = [];
+  const args = [];
   while (!has_operator(state, ')')) {
     const is_by_reference = has_keyword(state, 'ref');
     if (is_by_reference) {
@@ -1672,7 +1672,7 @@ function read_function_declaration(state) {
     } else {
       invariant(has_operator(state, ')'));
     }
-    arguments.push({name: arg_name, type, is_by_reference});
+    args.push({name: arg_name, type, is_by_reference});
   }
   read_token(state);
 
@@ -1690,7 +1690,7 @@ function read_function_declaration(state) {
   }
   read_token(state);
   return {__type: 'Value',
-    value: {__type: 'Function', name, statements, arguments, return_type}};
+    value: {__type: 'Function', name, statements, arguments: args, return_type}};
 }
 
 function read_enum_declaration(state) {
