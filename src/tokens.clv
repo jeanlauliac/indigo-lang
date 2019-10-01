@@ -14,21 +14,21 @@ fn read_next(ref state: State): Token {
     return End_of_file {};
   }
   if (is_alpha(state.code[state.i])) {
-    return read_identifier(&state);
+    return state->read_identifier();
   }
   if (is_numeric(state.code[state.i])) {
-    return read_number(&state);
+    return state->read_number();
   }
   let OPERATOR_PREFIXES = set<char> ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
     '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
   if (has(OPERATOR_PREFIXES, state.code[state.i])) {
-    return read_operator(&state);
+    return state->read_operator();
   }
   if (state.code[state.i] == '"') {
-    return read_string_literal(&state);
+    return state->read_string_literal();
   }
   if (state.code[state.i] == '\'') {
-    return read_character_literal(&state);
+    return state->read_character_literal();
   }
   __die("unexpected character '" + state.code[state.i] + "'");
 }

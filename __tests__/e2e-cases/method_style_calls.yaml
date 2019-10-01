@@ -1,0 +1,9 @@
+'Can call push() using the method style':
+  stdout: ''
+  files:
+    index.clv: >
+      fn main() {
+        let v = vec<u32> [];
+        v->push(10);
+        if (v[0] != 10) __die("fail");
+      }
