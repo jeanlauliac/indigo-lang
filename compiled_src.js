@@ -129,15 +129,15 @@ function read_function_arguments(state, ) {
 module.exports.read_qualified_name = read_qualified_name;
 function read_qualified_name(state, ) {
   if (!((state.token.__type === "Identifier"))) throw new Error("expect() failed");
-  let qualifiedName = [state.token.value, ];
+  let qualified_name = [state.token.value, ];
   read_token(state);
   while (has_operator(state, ".")) {
     read_token(state);
     if (!((state.token.__type === "Identifier"))) throw new Error("expect() failed");
-    (qualifiedName.push(state.token.value));
+    (qualified_name.push(state.token.value));
     read_token(state);
   }
-  return qualifiedName;
+  return qualified_name;
 }
 
 module.exports.read_object_field_value = read_object_field_value;

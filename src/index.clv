@@ -52,47 +52,47 @@ fn read_primary_expression(
 
   if (state.token is tokens.String) {
     let value = state.token.value;
-    read_token(&state);
+    state->read_token();
     return String_literal {value};
   }
   if (state.token is tokens.Number) {
     let value = state.token.value;
-    read_token(&state);
+    state->read_token();
     return Number_literal {value};
   }
   if (state.token is tokens.Character) {
     let value = state.token.value;
-    read_token(&state);
+    state->read_token();
     return Character_literal {value};
   }
   if (has_keyword(state, "true")) {
-    read_token(&state);
+    state->read_token();
     return Bool_literal {value: true};
   }
   if (has_keyword(state, "false")) {
-    read_token(&state);
+    state->read_token();
     return Bool_literal {value: false};
   }
 
   if (has_operator(state, "(")) {
-    read_token(&state);
+    state->read_token();
     let expression = __read_expression(&state);
     expect has_operator(state, ")");
-    read_token(&state);
+    state->read_token();
     return expression;
   }
 
   if (state.token is tokens.Operator && has_operator(state, "++")) {
     let operator = state.token.value;
-    read_token(&state);
-    let target = read_primary_expression(&state);
+    state->read_token();
+    let target = state->read_primary_expression();
     return In_place_assignment {operator, operation: "++",
         target, is_prefix: true};
   }
 
   if (state.token is tokens.Operator && (has_operator(state, "!") || has_operator(state, "-"))) {
     let operator = state.token.value;
-    read_token(&state);
+    state->read_token();
     let operand = read_primary_expression(&state);
     return Unary_operation {operator, operand};
   }
@@ -100,33 +100,33 @@ fn read_primary_expression(
   if (state.token is tokens.Keyword &&
       (has_keyword(state, "set") || has_keyword(state, "vec"))) {
     let dataType = state.token.value;
-    read_token(&state);
+    state->read_token();
 
     let item_type = Type_reference {
       name: vec<str> [],
       parameters: vec<Type_reference> [],
     };
     if (has_operator(state, "<")) {
-      read_token(&state);
+      state->read_token();
 
       item_type = read_type_name(&state);
       expect has_operator(state, ">");
-      read_token(&state);
+      state->read_token();
     }
 
     expect has_operator(state, "[");
-    read_token(&state);
+    state->read_token();
     let values = vec<Expression> [];
     while (!has_operator(state, "]")) {
       let expression = __read_expression(&state);
-      push(&values, expression);
+      values->push(expression);
       if (has_operator(state, ",")) {
-        read_token(&state);
+        state->read_token();
       } else {
         expect has_operator(state, "]");
       }
     }
-    read_token(&state);
+    state->read_token();
     return Collection_literal {dataType, item_type, values};
   }
 
@@ -136,35 +136,35 @@ fn read_primary_expression(
   }
 
   if (has_operator(state, "{")) {
-    read_token(&state);
+    state->read_token();
     let fields = vec<Object_field> [];
     while (state.token is tokens.Identifier) {
       let name = state.token.value;
-      read_token(&state);
+      state->read_token();
       let value = read_object_field_value(&state);
       if (has_operator(state, ",")) {
-        read_token(&state);
+        state->read_token();
       } else {
         expect has_operator(state, "}");
       }
-      push(&fields, Object_field {name, value});
+      fields->push(Object_field {name, value});
     }
     expect has_operator(state, "}");
-    read_token(&state);
+    state->read_token();
     return Object_literal {typeName: qualified_name, fields};
   }
   expect size_of(qualified_name) > 0;
 
   if (has_operator(state, "[")) {
-    read_token(&state);
+    state->read_token();
     let key = __read_expression(&state);
     expect has_operator(state, "]");
-    read_token(&state);
+    state->read_token();
     return Collection_access {collectionName: qualified_name, key};
   }
 
   if (has_operator(state, "(")) {
-    read_token(&state);
+    state->read_token();
     return Function_call {
       functionName: qualified_name,
       arguments: read_function_arguments(&state),
@@ -176,28 +176,28 @@ fn read_primary_expression(
 fn read_function_arguments(ref state: State): vec<Call_argument> {
   let arguments = vec<Call_argument> [];
   while (!has_operator(state, ")")) {
-    push(&arguments, read_call_argument(&state));
+    arguments->push(read_call_argument(&state));
     if (has_operator(state, ",")) {
-      read_token(&state);
+      state->read_token();
     } else {
       expect has_operator(state, ")");
     }
   }
-  read_token(&state);
+  state->read_token();
   return arguments;
 }
 
 fn read_qualified_name(ref state: State): vec<str> {
   expect state.token is tokens.Identifier;
-  let qualifiedName = vec<str> [state.token.value];
-  read_token(&state);
+  let qualified_name = vec<str> [state.token.value];
+  state->read_token();
   while (has_operator(state, ".")) {
-    read_token(&state);
+    state->read_token();
     expect state.token is tokens.Identifier;
-    push(&qualifiedName, state.token.value);
-    read_token(&state);
+    qualified_name->push(state.token.value);
+    state->read_token();
   }
-  return qualifiedName;
+  return qualified_name;
 }
 
 enum Object_field_value {
@@ -209,14 +209,14 @@ fn read_object_field_value(ref state: State): Object_field_value {
   if (!has_operator(state, ":")) {
     return Shorthand_field_value {};
   }
-  read_token(&state);
+  state->read_token();
   return Expression_field_value {expression: __read_expression(&state)};
 }
 
 fn read_call_argument(ref state: State): Call_argument {
   let is_by_reference = false;
   if (has_operator(state, "&")) {
-    read_token(&state);
+    state->read_token();
     is_by_reference = true;
   }
   return Call_argument {value: __read_expression(&state), is_by_reference};
@@ -230,21 +230,21 @@ fn read_type_name(ref state: State): Type_reference {
         has_keyword(state, "dict")
       )) {
     name = vec<str> [state.token.value];
-    read_token(&state);
+    state->read_token();
   } else {
     name = read_qualified_name(&state);
   }
   let parameters = vec<Type_reference> [];
   if (has_operator(state, "<")) {
-    read_token(&state);
+    state->read_token();
     while (!has_operator(state, ">")) {
-      push(&parameters, read_type_name(&state));
+      parameters->push(read_type_name(&state));
       if (has_operator(state, ",")) {
-        read_token(&state);
+        state->read_token();
       }
     }
     expect has_operator(state, ">");
-    read_token(&state);
+    state->read_token();
   }
   return Type_reference {name, parameters};
 }

@@ -51,6 +51,7 @@ fn read_identifier(ref state: State): Token {
     value = value + state.code[state.i];
     ++state.i;
   }
+
   if (has(keywords, value)) {
     return Keyword {value};
   }
