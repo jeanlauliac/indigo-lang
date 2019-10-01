@@ -163,16 +163,18 @@ const builtin_types = [
 ];
 
 const builtin_functions = [
-  {name: '__size', arguments: [{type: get_base_type('str')}],
+  {name: 'size_of', arguments: [{type: get_base_type('str')}],
     return_type: get_base_type('u32')},
+  {name: 'size_of', type_parameter_names: ['Value'],
+      arguments: [{
+        type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
+      return_type: get_base_type('u32')},
+
+
   {name: '__die', arguments: [{type: get_base_type('str')}]},
   {name: '__has', type_parameter_names: ['Value'],
     arguments: [{type: {name: ['set'], parameters: [get_base_type('Value')]}},
       {type: get_base_type('Value')}], return_type: get_base_type('bool')},
-  {name: '__size_vec', type_parameter_names: ['Value'],
-      arguments: [{
-        type: {name: ['vec'], parameters: [get_base_type('Value')]}}],
-      return_type: get_base_type('u32')},
   {
     name: 'push',
     type_parameter_names: ['Value'],
@@ -240,8 +242,13 @@ function create_fresh_state() {
 
     state.types.set(id, {__type: 'Function', argument_ids,
         type_parameter_ids, return_type, pseudo_name: def.name});
-    root_names.set(def.name, {__type: 'Function', overload_ids: [id]});
-    state.builtin_ids[def.name] = id;
+    if (!root_names.has(def.name)) {
+      root_names.set(def.name, {__type: 'Function', overload_ids: []});
+    }
+    const {overload_ids} = root_names.get(def.name);
+    overload_ids.push(id);
+    const suffix = overload_ids.length > 1 ? `_${overload_ids.length}` : '';
+    state.builtin_ids[def.name + suffix] = id;
   }
 
   return state;
@@ -1371,7 +1378,11 @@ function write_expression(state, expression) {
       write('))');
       return;
     }
-    if (pseudo_name.startsWith('__size')) {
+    if (
+      pseudo_name.startsWith('__size') ||
+      function_id === state.builtin_ids.size_of ||
+      function_id === state.builtin_ids.size_of_2
+    ) {
       write('(');
       write_expression(state, expression.arguments[0].value);
       write(').length');

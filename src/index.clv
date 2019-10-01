@@ -153,7 +153,7 @@ fn read_primary_expression(
     read_token(&state);
     return Object_literal {typeName: qualified_name, fields};
   }
-  invariant(__size_vec(qualified_name) > 0);
+  invariant(size_of(qualified_name) > 0);
 
   if (has_operator(state, "[")) {
     read_token(&state);

@@ -10,7 +10,7 @@ enum Token {
 }
 
 fn read_next(ref state: State): Token {
-  if (state.i == __size(state.code)) {
+  if (state.i == size_of(state.code)) {
     return End_of_file {};
   }
   if (is_alpha(state.code[state.i])) {
@@ -35,7 +35,7 @@ fn read_next(ref state: State): Token {
 
 fn read_whitespace(ref state: State) {
   let whitespace = set<char> [' ', '\n'];
-  while (state.i < __size(state.code) && __has(whitespace, state.code[state.i])) {
+  while (state.i < size_of(state.code) && __has(whitespace, state.code[state.i])) {
     ++state.i;
   }
 }
@@ -47,7 +47,7 @@ fn read_identifier(ref state: State): Token {
 
   let value = "" + state.code[state.i];
   ++state.i;
-  while (state.i < __size(state.code) && is_alphanumeric(state.code[state.i])) {
+  while (state.i < size_of(state.code) && is_alphanumeric(state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
@@ -60,7 +60,7 @@ fn read_identifier(ref state: State): Token {
 fn read_number(ref state: State): Token {
   let value = "" + state.code[state.i];
   ++state.i;
-  while (state.i < __size(state.code) && is_numeric(state.code[state.i])) {
+  while (state.i < size_of(state.code) && is_numeric(state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
@@ -79,7 +79,7 @@ fn read_operator(ref state: State): Operator {
   let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = "" + state.code[state.i];
   ++state.i;
-  if (state.i < __size(state.code) && __has(operators, value + state.code[state.i])) {
+  if (state.i < size_of(state.code) && __has(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
@@ -89,7 +89,7 @@ fn read_operator(ref state: State): Operator {
 fn read_string_literal(ref state: State): String {
   ++state.i;
   let value = "";
-  while (state.i < __size(state.code) && state.code[state.i] != '"') {
+  while (state.i < size_of(state.code) && state.code[state.i] != '"') {
     if (state.code[state.i] == '\\')  {
       ++state.i;
       value = value + get_escaped_char(state.code[state.i]);
@@ -98,7 +98,7 @@ fn read_string_literal(ref state: State): String {
     }
     ++state.i;
   }
-  invariant(state.i < __size(state.code));
+  invariant(state.i < size_of(state.code));
   let token = String {value};
   ++state.i;
   return token;
@@ -106,17 +106,17 @@ fn read_string_literal(ref state: State): String {
 
 fn read_character_literal(ref state: State): Character {
   ++state.i;
-  invariant(state.i < __size(state.code));
+  invariant(state.i < size_of(state.code));
   let value = ' ';
   if (state.code[state.i] == '\\') {
     ++state.i;
-    invariant(state.i < __size(state.code));
+    invariant(state.i < size_of(state.code));
     value = get_escaped_char(state.code[state.i]);
   } else {
     value = state.code[state.i];
   }
   ++state.i;
-  invariant(state.i < __size(state.code) && state.code[state.i] == '\'');
+  invariant(state.i < size_of(state.code) && state.code[state.i] == '\'');
   ++state.i;
   return Character {value: value};
 }
