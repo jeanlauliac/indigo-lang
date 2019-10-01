@@ -68,6 +68,7 @@ function build(filesystem, write, call_main) {
 
   // ****** write output
 
+  write('"use strict";\n');
   write('// GENERATED, DO NOT EDIT\n\n');
 
   for (const func of state.functions) {
@@ -490,8 +491,11 @@ function analyse_statement(state, statement, scope, refims) {
     const id = get_unique_id(state);
     scope.names.set(statement.name, {__type: 'Value_reference',
         type: init_value.type, id});
+    let name = statement.name;
+    if (name === 'arguments') name += '$';
+
     state.types.set(id, {__type: 'Variable',
-        type: init_value.type, name: statement.name});
+        type: init_value.type, name});
     return {
       refinements: init_value.refinements,
       statement: {

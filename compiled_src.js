@@ -1,3 +1,4 @@
+"use strict";
 // GENERATED, DO NOT EDIT
 
 module.exports.__read_expression = __read_expression;
@@ -105,9 +106,9 @@ function read_primary_expression(state, ) {
   }
   if (has_operator(state, "(")) {
     read_token(state);
-    let arguments = [];
+    let arguments$ = [];
     while (!has_operator(state, ")")) {
-      (arguments.push(read_call_argument(state)));
+      (arguments$.push(read_call_argument(state)));
       if (has_operator(state, ",")) {
         read_token(state);
       } else {
@@ -115,7 +116,7 @@ function read_primary_expression(state, ) {
       }
     }
     read_token(state);
-    return {functionName: qualified_name, arguments: arguments, __type: "Function_call"};
+    return {functionName: qualified_name, arguments: arguments$, __type: "Function_call"};
   }
   return {value: qualified_name, __type: "Qualified_name"};
 }
