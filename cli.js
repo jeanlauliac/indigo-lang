@@ -8,27 +8,31 @@ const path = require('path');
 const {has_keyword, has_operator,
   read_token, read_qualified_name, read_type_name} = utils;
 
-const write = process.stdout.write.bind(process.stdout);
 const EMPTY_MAP = new Map();
 
 function main() {
-  let code;
-  let call_main = false;
   let filesystem = new Map();
+  const write = process.stdout.write.bind(process.stdout);
+
   if (process.argv[2] === '-i') {
     fileTree = JSON.parse(fs.readFileSync(0, "utf8"));
     for (const key of Object.keys(fileTree)) {
       const code = fileTree[key];
       filesystem.set(key, readModule(code));
     }
-    call_main = true;
-  } else {
-    const all_files = fs.readdirSync('./src');
-    for (const file_name of all_files) {
-      const code = fs.readFileSync(`./src/${file_name}`, 'utf8');
-      filesystem.set(file_name, readModule(code));
-    }
+    build(filesystem, write, true);
+    return;
   }
+
+  const all_files = fs.readdirSync('./src');
+  for (const file_name of all_files) {
+    const code = fs.readFileSync(`./src/${file_name}`, 'utf8');
+    filesystem.set(file_name, readModule(code));
+  }
+  build(filesystem, write, false);
+}
+
+function build(filesystem, write, call_main) {
 
   const state = create_fresh_state();
 
@@ -89,7 +93,7 @@ function main() {
   write('// GENERATED, DO NOT EDIT\n\n');
 
   for (const func of state.functions) {
-    write_function(state, func);
+    write_function({...state, write}, func);
   }
 
   write(`function access(collection, key) {
@@ -110,6 +114,7 @@ function main() {
 }
 
 function write_function(state, func) {
+  const {write} = state;
   const spec = state.types.get(func.id);
   invariant(spec.__type === 'Function');
 
@@ -1310,6 +1315,8 @@ function resolve_name(scope, name) {
 
 
 function write_statement(state, statement, indent, env) {
+  const {write} = state;
+
   if (statement.__type === 'Typed_variable_declaration') {
     const spec = state.types.get(statement.id);
     invariant(spec.__type === 'Variable');
@@ -1382,6 +1389,8 @@ function write_statement(state, statement, indent, env) {
 }
 
 function write_expression(state, expression) {
+  const {write} = state;
+
   if (expression.__type === 'Typed_function_call') {
     const {function_id} = expression;
     const spec = state.types.get(function_id);
@@ -1621,6 +1630,8 @@ function write_expression(state, expression) {
 }
 
 function write_reference(state, ref) {
+  const {write} = state;
+
   const value = state.types.get(ref.value_id);
   invariant(value.name != null);
   write(value.name);
