@@ -172,7 +172,8 @@ const builtin_functions = [
 
 
   {name: '__die', arguments: [{type: get_base_type('str')}]},
-  {name: '__has', type_parameter_names: ['Value'],
+
+  {name: 'has', type_parameter_names: ['Value'],
     arguments: [{type: {name: ['set'], parameters: [get_base_type('Value')]}},
       {type: get_base_type('Value')}], return_type: get_base_type('bool')},
   {
@@ -1370,7 +1371,7 @@ function write_expression(state, expression) {
     invariant(spec.__type === 'Function');
     const {pseudo_name} = spec;
 
-    if (pseudo_name.startsWith('__has')) {
+    if (function_id === state.builtin_ids.has) {
       write('(');
       write_expression(state, expression.arguments[0].value);
       write('.has(');

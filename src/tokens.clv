@@ -21,7 +21,7 @@ fn read_next(ref state: State): Token {
   }
   let OPERATOR_PREFIXES = set<char> ['|', '(', ')', '{', '}', '=', ';', ':', ',', '.',
     '&', '<', '>', '/', '*', '+', '[', ']', '!', '-'];
-  if (__has(OPERATOR_PREFIXES, state.code[state.i])) {
+  if (has(OPERATOR_PREFIXES, state.code[state.i])) {
     return read_operator(&state);
   }
   if (state.code[state.i] == '"') {
@@ -35,7 +35,7 @@ fn read_next(ref state: State): Token {
 
 fn read_whitespace(ref state: State) {
   let whitespace = set<char> [' ', '\n'];
-  while (state.i < size_of(state.code) && __has(whitespace, state.code[state.i])) {
+  while (state.i < size_of(state.code) && has(whitespace, state.code[state.i])) {
     ++state.i;
   }
 }
@@ -51,7 +51,7 @@ fn read_identifier(ref state: State): Token {
     value = value + state.code[state.i];
     ++state.i;
   }
-  if (__has(keywords, value)) {
+  if (has(keywords, value)) {
     return Keyword {value};
   }
   return Identifier {value};
@@ -79,7 +79,7 @@ fn read_operator(ref state: State): Operator {
   let operators = set<str> ["&&", "++", "==", "!=", "||", ">=", "<="];
   let value = "" + state.code[state.i];
   ++state.i;
-  if (state.i < size_of(state.code) && __has(operators, value + state.code[state.i])) {
+  if (state.i < size_of(state.code) && has(operators, value + state.code[state.i])) {
     value = value + state.code[state.i];
     ++state.i;
   }
