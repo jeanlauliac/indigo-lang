@@ -32,7 +32,7 @@ function read_primary_expression(state, ) {
   if (has_operator(state, "(")) {
     read_token(state);
     let expression = global.__read_expression(state);
-    invariant(has_operator(state, ")"));
+    if (!(has_operator(state, ")"))) throw new Error("expect() failed");
     read_token(state);
     return expression;
   }
@@ -55,10 +55,10 @@ function read_primary_expression(state, ) {
     if (has_operator(state, "<")) {
       read_token(state);
       item_type = read_type_name(state);
-      invariant(has_operator(state, ">"));
+      if (!(has_operator(state, ">"))) throw new Error("expect() failed");
       read_token(state);
     }
-    invariant(has_operator(state, "["));
+    if (!(has_operator(state, "["))) throw new Error("expect() failed");
     read_token(state);
     let values = [];
     while (!has_operator(state, "]")) {
@@ -67,7 +67,7 @@ function read_primary_expression(state, ) {
       if (has_operator(state, ",")) {
         read_token(state);
       } else {
-        invariant(has_operator(state, "]"));
+        if (!(has_operator(state, "]"))) throw new Error("expect() failed");
       }
     }
     read_token(state);
@@ -87,19 +87,19 @@ function read_primary_expression(state, ) {
       if (has_operator(state, ",")) {
         read_token(state);
       } else {
-        invariant(has_operator(state, "}"));
+        if (!(has_operator(state, "}"))) throw new Error("expect() failed");
       }
       (fields.push({name: name, value: value, }));
     }
-    invariant(has_operator(state, "}"));
+    if (!(has_operator(state, "}"))) throw new Error("expect() failed");
     read_token(state);
     return {typeName: qualified_name, fields: fields, __type: "Object_literal"};
   }
-  invariant(((qualified_name).length > 0));
+  if (!(((qualified_name).length > 0))) throw new Error("expect() failed");
   if (has_operator(state, "[")) {
     read_token(state);
     let key = global.__read_expression(state);
-    invariant(has_operator(state, "]"));
+    if (!(has_operator(state, "]"))) throw new Error("expect() failed");
     read_token(state);
     return {collectionName: qualified_name, key: key, __type: "Collection_access"};
   }
@@ -111,7 +111,7 @@ function read_primary_expression(state, ) {
       if (has_operator(state, ",")) {
         read_token(state);
       } else {
-        invariant(has_operator(state, ")"));
+        if (!(has_operator(state, ")"))) throw new Error("expect() failed");
       }
     }
     read_token(state);
@@ -122,18 +122,13 @@ function read_primary_expression(state, ) {
 
 module.exports.read_qualified_name = read_qualified_name;
 function read_qualified_name(state, ) {
-  invariant((state.token.__type === "Identifier"));
-  let qualifiedName = [];
-  if ((state.token.__type === "Identifier")) {
-    qualifiedName = [state.token.value, ];
-  }
+  if (!((state.token.__type === "Identifier"))) throw new Error("expect() failed");
+  let qualifiedName = [state.token.value, ];
   read_token(state);
   while (has_operator(state, ".")) {
     read_token(state);
-    invariant((state.token.__type === "Identifier"));
-    if ((state.token.__type === "Identifier")) {
-      (qualifiedName.push(state.token.value));
-    }
+    if (!((state.token.__type === "Identifier"))) throw new Error("expect() failed");
+    (qualifiedName.push(state.token.value));
     read_token(state);
   }
   return qualifiedName;
@@ -176,7 +171,7 @@ function read_type_name(state, ) {
         read_token(state);
       }
     }
-    invariant(has_operator(state, ">"));
+    if (!(has_operator(state, ">"))) throw new Error("expect() failed");
     read_token(state);
   }
   return {name: name, parameters: parameters, };

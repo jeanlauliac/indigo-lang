@@ -77,7 +77,7 @@ fn read_primary_expression(
   if (has_operator(state, "(")) {
     read_token(&state);
     let expression = __read_expression(&state);
-    invariant(has_operator(state, ")"));
+    expect has_operator(state, ")");
     read_token(&state);
     return expression;
   }
@@ -110,11 +110,11 @@ fn read_primary_expression(
       read_token(&state);
 
       item_type = read_type_name(&state);
-      invariant(has_operator(state, ">"));
+      expect has_operator(state, ">");
       read_token(&state);
     }
 
-    invariant(has_operator(state, "["));
+    expect has_operator(state, "[");
     read_token(&state);
     let values = vec<Expression> [];
     while (!has_operator(state, "]")) {
@@ -123,7 +123,7 @@ fn read_primary_expression(
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
-        invariant(has_operator(state, "]"));
+        expect has_operator(state, "]");
       }
     }
     read_token(&state);
@@ -145,20 +145,20 @@ fn read_primary_expression(
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
-        invariant(has_operator(state, "}"));
+        expect has_operator(state, "}");
       }
       push(&fields, Object_field {name, value});
     }
-    invariant(has_operator(state, "}"));
+    expect has_operator(state, "}");
     read_token(&state);
     return Object_literal {typeName: qualified_name, fields};
   }
-  invariant(size_of(qualified_name) > 0);
+  expect size_of(qualified_name) > 0;
 
   if (has_operator(state, "[")) {
     read_token(&state);
     let key = __read_expression(&state);
-    invariant(has_operator(state, "]"));
+    expect has_operator(state, "]");
     read_token(&state);
     return Collection_access {collectionName: qualified_name, key};
   }
@@ -171,7 +171,7 @@ fn read_primary_expression(
       if (has_operator(state, ",")) {
         read_token(&state);
       } else {
-        invariant(has_operator(state, ")"));
+        expect has_operator(state, ")");
       }
     }
     read_token(&state);
@@ -181,18 +181,13 @@ fn read_primary_expression(
 }
 
 fn read_qualified_name(ref state: State): vec<str> {
-  invariant(state.token is tokens.Identifier);
-  let qualifiedName = vec<str> [];
-  if (state.token is tokens.Identifier) {
-    qualifiedName = vec<str> [state.token.value];
-  }
+  expect state.token is tokens.Identifier;
+  let qualifiedName = vec<str> [state.token.value];
   read_token(&state);
   while (has_operator(state, ".")) {
     read_token(&state);
-    invariant(state.token is tokens.Identifier);
-    if (state.token is tokens.Identifier) {
-      push(&qualifiedName, state.token.value);
-    }
+    expect state.token is tokens.Identifier;
+    push(&qualifiedName, state.token.value);
     read_token(&state);
   }
   return qualifiedName;
@@ -241,7 +236,7 @@ fn read_type_name(ref state: State): Type_reference {
         read_token(&state);
       }
     }
-    invariant(has_operator(state, ">"));
+    expect has_operator(state, ">");
     read_token(&state);
   }
   return Type_reference {name, parameters};
