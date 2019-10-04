@@ -1,7 +1,7 @@
 'Passthrough on true':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         expect true;
       }
@@ -9,7 +9,7 @@
 'Fail on false':
   error_code: 1
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         expect false;
       }
@@ -17,7 +17,7 @@
 'Refine local variable':
   stdout: "Hello, world\n"
   files:
-    index.clv: >
+    index.idg: >
       enum Option {None, Some {value: str}}
 
       fn main() {

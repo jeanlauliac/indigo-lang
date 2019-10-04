@@ -17,7 +17,7 @@ function build(filesystem, write, call_main) {
 
   // ****** pass 1: build type names
 
-  const INDEX_MODULE_NAME = 'index.clv';
+  const INDEX_MODULE_NAME = 'index.idg';
   const index_module_ast = readModule(filesystem.get(INDEX_MODULE_NAME));
   const {type_names: index_module_names, assigned_declarations: index_decls} =
       build_module_type_names(state, index_module_ast);
@@ -34,13 +34,13 @@ function build(filesystem, write, call_main) {
   for (const [file_name, module_code] of filesystem) {
     if (file_name === INDEX_MODULE_NAME) continue;
     const module_ast = readModule(module_code);
-    if (path.extname(file_name) !== '.clv') continue;
+    if (path.extname(file_name) !== '.idg') continue;
     const {type_names, assigned_declarations} =
         build_module_type_names(state, module_ast);
 
     const module_id = get_unique_id(state);
     state.types.set(module_id, {__type: 'Module', names: type_names});
-    const module_name = path.basename(file_name, '.clv');
+    const module_name = path.basename(file_name, '.idg');
     if (index_module_names.has(module_name)) {
       throw new Error(`duplicate name "${module_name}"`);
     }

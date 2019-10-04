@@ -1,7 +1,7 @@
 'Cannot override u32 argument':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let a = 1;
         override(a);
@@ -15,7 +15,7 @@
 'Cannot override string argument':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let a = "foo";
         override(a);
@@ -29,7 +29,7 @@
 'Cannot override object argument':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: u32}
 
       fn main() {
@@ -45,7 +45,7 @@
 'Cannot override field of an object argument':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: u32}
 
       fn main() {
@@ -61,7 +61,7 @@
 'Cannot override 2-level-deep field of an object argument':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: Bar}
       struct Bar {deep_value: u32}
 

@@ -1,11 +1,11 @@
 'Calling a function from another module':
   stdout: "Hello, world\n"
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         something.print_hello();
       }
-    something.clv: >
+    something.idg: >
       fn print_hello() {
         println("Hello, world");
       }

@@ -3,7 +3,7 @@
     u32
     str
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         foo(10);
         foo("test");

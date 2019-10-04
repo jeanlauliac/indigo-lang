@@ -1,13 +1,13 @@
 'Empty main function':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {}
 
 'Say hello':
   stdout: "Hello, world\n"
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         println("Hello, world");
       }
@@ -15,7 +15,7 @@
 'Say hello, with variable':
   stdout: "Hello, world\n"
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let name = "world";
         println("Hello, " + name);
@@ -24,7 +24,7 @@
 'Fail on argument type mismatch':
   fail: true
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         println(12);
       }

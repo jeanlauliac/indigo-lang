@@ -1,7 +1,7 @@
 'Can call push() using the method style':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let v = vec<u32> [];
         v->push(10);

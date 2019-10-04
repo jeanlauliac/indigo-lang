@@ -1,7 +1,7 @@
 'Cannot override field of a copied object':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: u32}
 
       fn main() {
@@ -15,7 +15,7 @@
 'Cannot override 2-level-deep field of a copied object':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: Bar}
       struct Bar {deep_value: u32}
 

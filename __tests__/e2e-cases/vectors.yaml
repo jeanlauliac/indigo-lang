@@ -1,7 +1,7 @@
 'Push and access item':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let v = vec<u32> [];
         push(&v, 10);
@@ -11,7 +11,7 @@
 'Push and access two items':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let v = vec<u32> [];
         push(&v, 10);
@@ -23,7 +23,7 @@
 'Push and get size':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let v = vec<u32> [];
         push(&v, 10);

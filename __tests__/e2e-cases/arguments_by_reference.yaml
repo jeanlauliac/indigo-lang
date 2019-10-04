@@ -1,7 +1,7 @@
 'Can set a u32 reference':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let a = 1;
         override(&a);
@@ -15,7 +15,7 @@
 'Can set a string reference':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       fn main() {
         let a = "foo";
         override(&a);
@@ -29,7 +29,7 @@
 'Can set object reference':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: u32}
 
       fn main() {
@@ -45,7 +45,7 @@
 'Can set field of an object reference':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: u32}
 
       fn main() {
@@ -61,7 +61,7 @@
 'Can set 2-level-deep field of an object reference':
   stdout: ''
   files:
-    index.clv: >
+    index.idg: >
       struct Foo {value: Bar}
       struct Bar {deep_value: u32}
 
