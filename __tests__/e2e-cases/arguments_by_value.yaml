@@ -42,6 +42,37 @@
         a = Foo {value: 10};
       }
 
+'Cannot append items to vector argument':
+  stdout: ''
+  skip: true
+  files:
+    index.idg: >
+      fn main() {
+        let v = vec<u32> [10];
+        override(v);
+        if (size_of(v) != 1) __die("fail");
+      }
+
+      fn override(a: vec<u32>) {
+        a->push(20);
+      }
+
+'Cannot override item of vector argument':
+  stdout: ''
+  skip: true
+  files:
+    index.idg: >
+      fn main() {
+        let v = vec<u32> [10];
+        override(v);
+        if (size_of(v) != 1) __die("fail");
+        if (a[0] != 10) __die("fail");
+      }
+
+      fn override(a: vec<u32>) {
+        a[0] = 20;
+      }
+
 'Cannot override field of an object argument':
   stdout: ''
   files:

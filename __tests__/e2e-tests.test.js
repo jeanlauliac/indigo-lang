@@ -32,7 +32,9 @@ for (const groupName of allGroups) {
         try {
           build(filesystem, write, true);
         } catch (ex) {
-          expect(caseSpec.fail).toBe(true);
+          if (!caseSpec.fail) {
+            throw ex;
+          }
           return;
         }
 
@@ -67,6 +69,10 @@ for (const groupName of allGroups) {
           expect(result.status).toBe(caseSpec.error_code);
           return;
         }
+        if (result.stderr != '') {
+          console.error(js_code);
+        }
+
         expect(result.stderr).toBe('');
         expect(result.status).toBe(0);
         expect(result.signal).toBe(null);

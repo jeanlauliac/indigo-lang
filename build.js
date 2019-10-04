@@ -102,7 +102,7 @@ function write_function(state, func) {
   write(`module.exports.${spec.pseudo_name} = ${spec.pseudo_name};\n`);
   write(`function ${spec.pseudo_name}(`);
 
-  const env = {argument_ids: spec.argument_ids};
+  const env = {argument_ids: spec.argument_ids, function_id: func.id};
 
   for (const arg_id of spec.argument_ids) {
     const arg = state.types.get(arg_id);
@@ -1305,25 +1305,28 @@ function write_statement(state, statement, indent, env) {
     const spec = state.types.get(statement.id);
     invariant(spec.__type === 'Variable');
     write(`let ${spec.name} = `);
-    write_expression(state, statement.initial_value);
+    write_expression(state, statement.initial_value, {
+      ...env,
+      variable_id: statement.id,
+    });
     write(';');
     return;
   }
   if (statement.__type === 'Typed_expression') {
-    write_expression(state, statement.value);
+    write_expression(state, statement.value, env);
     write(';');
     return;
   }
   if (statement.__type === 'Typed_while_loop') {
     write(`while (`);
-    write_expression(state, statement.condition);
+    write_expression(state, statement.condition, env);
     write(') ');
     write_statement(state, statement.body, indent, env);
     return;
   }
   if (statement.__type === 'Typed_if') {
     write(`if (`);
-    write_expression(state, statement.condition);
+    write_expression(state, statement.condition, env);
     write(') ');
     write_statement(state, statement.consequent, indent, env);
     if (statement.alternate) {
@@ -1348,7 +1351,7 @@ function write_statement(state, statement, indent, env) {
     if (ref_arg_ids.length === 0) {
       if (statement.value == null) write(';');
       write(' ');
-      write_expression(state, statement.value);
+      write_expression(state, statement.value, env);
       write(';');
       return;
     }
@@ -1358,21 +1361,21 @@ function write_statement(state, statement, indent, env) {
       write(', ');
     }
     if (statement.value != null) {
-      write_expression(state, statement.value);
+      write_expression(state, statement.value, env);
     }
     write('];');
     return;
   }
   if (statement.__type === 'Typed_expect') {
     write('if (!(');
-    write_expression(state, statement.value);
+    write_expression(state, statement.value, env);
     write(')) throw new Error("expect() failed");');
     return;
   }
   throw new Error(`unknown statement type ${statement.__type}`);
 }
 
-function write_expression(state, expression) {
+function write_expression(state, expression, env) {
   const {write} = state;
 
   if (expression.__type === 'Typed_function_call') {
@@ -1383,9 +1386,9 @@ function write_expression(state, expression) {
 
     if (function_id === state.builtin_ids.has) {
       write('(');
-      write_expression(state, expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value, env);
       write('.has(');
-      write_expression(state, expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value, env);
       write('))');
       return;
     }
@@ -1394,25 +1397,25 @@ function write_expression(state, expression) {
       function_id === state.builtin_ids.size_of_2
     ) {
       write('(');
-      write_expression(state, expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value, env);
       write(').length');
       return;
     }
     if (function_id === state.builtin_ids.push) {
       write('(');
-      write_expression(state, expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value, env);
       write('.push(');
-      write_expression(state, expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value, env);
       write('))');
       return;
     }
     if (function_id === state.builtin_ids.__substring) {
       write('(');
-      write_expression(state, expression.arguments[0].value);
+      write_expression(state, expression.arguments[0].value, env);
       write('.substring(');
-      write_expression(state, expression.arguments[1].value);
+      write_expression(state, expression.arguments[1].value, env);
       write(', ');
-      write_expression(state, expression.arguments[2].value);
+      write_expression(state, expression.arguments[2].value, env);
       write('))');
       return;
     }
@@ -1439,9 +1442,9 @@ function write_expression(state, expression) {
       if (!is_first) write(', ');
       is_first = false;
       if (!argument.is_by_reference) {
-        write_expression(state, argument.value);
+        write_expression(state, argument.value, env);
       } else {
-        write_expression(state, argument.value);
+        write_expression(state, argument.value, env);
       }
     }
     if (function_id === state.builtin_ids.__read_file) {
@@ -1484,21 +1487,24 @@ function write_expression(state, expression) {
     for (const [name, value] of expression.fields.entries()) {
       write(name);
       write(': ');
-      write_expression(state, value);
+      write_expression(state, value, env);
       write(', ');
     }
     if (expression.__type === 'Typed_enum_literal') {
       // enum_id
       const spec = state.types.get(expression.variant_id);
       invariant(spec.__type === 'Enum_variant');
-      write(`__type: ${JSON.stringify(spec.pseudo_name)}`);
+      write(`__type: ${JSON.stringify(spec.pseudo_name)}, `);
+    }
+    if (env.variable_id != null) {
+      write(`__owner: ${env.variable_id}`);
     }
     write('}');
     return;
   }
   if (expression.__type === 'Typed_binary_operation') {
     write('(');
-    write_expression(state, expression.left_operand);
+    write_expression(state, expression.left_operand, env);
     const op_map = {
       'And': '&&',
       'Or': '||',
@@ -1514,7 +1520,7 @@ function write_expression(state, expression) {
     invariant(op_string != null);
     write(` ${op_string} `);
 
-    write_expression(state, expression.right_operand);
+    write_expression(state, expression.right_operand, env);
     write(')');
     return;
   }
@@ -1535,7 +1541,7 @@ function write_expression(state, expression) {
         write(`Object.assign(`);
         write_reference(state, expression.reference);
         write(', ');
-        write_expression(state, expression.value);
+        write_expression(state, expression.value, env);
         write(')');
         return;
       }
@@ -1546,23 +1552,26 @@ function write_expression(state, expression) {
       write('(');
       for (let i = 0; i < ref.path.length; ++i) {
         const path = ref.path.slice(0, i);
-        write_reference(state, {value_id: ref.value_id, path});
+        const part_ref = {value_id: ref.value_id, path};
+        write_reference(state, part_ref);
+        write(`.__owner !== ${ref.value_id} && (`);
+        write_reference(state, part_ref);
         write(' = {...');
-        write_reference(state, {value_id: ref.value_id, path});
-        write('}, ');
+        write_reference(state, part_ref);
+        write(`, __owner: ${ref.value_id}}), `);
       }
     }
 
     write_reference(state, expression.reference);
     write(' = ');
-    write_expression(state, expression.value);
+    write_expression(state, expression.value, env);
     if (needs_copy) write(')');
     return;
   }
   if (expression.__type === 'Typed_collection_literal') {
     write(expression.type === 'Vector' ? '[' : 'new Set([');
     for (const item of expression.items) {
-      write_expression(state, item);
+      write_expression(state, item, env);
       write(', ');
     }
     write(expression.type === 'Vector' ? ']' : '])');
@@ -1576,7 +1585,7 @@ function write_expression(state, expression) {
     write(`access(`);
     write_reference(state, expression.operand);
     write(`, `);
-    write_expression(state, expression.key);
+    write_expression(state, expression.key, env);
     write(')');
     return;
   }
@@ -1584,7 +1593,7 @@ function write_expression(state, expression) {
     if (expression.is_prefix) {
       write(expression.operator);
     }
-    write_expression(state, expression.operand);
+    write_expression(state, expression.operand, env);
     if (!expression.is_prefix) {
       write(expression.operator);
     }
@@ -1595,7 +1604,7 @@ function write_expression(state, expression) {
       write('!');
     }
     write(`(`);
-    write_expression(state, expression.operand);
+    write_expression(state, expression.operand, env);
     write('.__type === ');
 
     const spec = state.types.get(expression.variant_id);
@@ -1607,7 +1616,7 @@ function write_expression(state, expression) {
   }
   if (expression.__type === 'Typed_unary_operation') {
     write(expression.operator);
-    write_expression(state, expression.operand);
+    write_expression(state, expression.operand, env);
     return;
   }
   throw new Error(`unknown expression type "${expression.__type}"`);

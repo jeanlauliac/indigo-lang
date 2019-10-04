@@ -10,25 +10,25 @@ function read_primary_expression(state, ) {
   if ((state.token.__type === "String")) {
     let value = state.token.value;
     read_token(state);
-    return {value: value, __type: "String_literal"};
+    return {value: value, __type: "String_literal", };
   }
   if ((state.token.__type === "Number")) {
     let value = state.token.value;
     read_token(state);
-    return {value: value, __type: "Number_literal"};
+    return {value: value, __type: "Number_literal", };
   }
   if ((state.token.__type === "Character")) {
     let value = state.token.value;
     read_token(state);
-    return {value: value, __type: "Character_literal"};
+    return {value: value, __type: "Character_literal", };
   }
   if (has_keyword(state, "true")) {
     read_token(state);
-    return {value: true, __type: "Bool_literal"};
+    return {value: true, __type: "Bool_literal", };
   }
   if (has_keyword(state, "false")) {
     read_token(state);
-    return {value: false, __type: "Bool_literal"};
+    return {value: false, __type: "Bool_literal", };
   }
   if (has_operator(state, "(")) {
     read_token(state);
@@ -41,18 +41,18 @@ function read_primary_expression(state, ) {
     let operator = state.token.value;
     read_token(state);
     let target = read_primary_expression(state);
-    return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment"};
+    return {operator: operator, operation: "++", target: target, is_prefix: true, __type: "In_place_assignment", };
   }
   if (((state.token.__type === "Operator") && (has_operator(state, "!") || has_operator(state, "-")))) {
     let operator = state.token.value;
     read_token(state);
     let operand = read_primary_expression(state);
-    return {operator: operator, operand: operand, __type: "Unary_operation"};
+    return {operator: operator, operand: operand, __type: "Unary_operation", };
   }
   if (((state.token.__type === "Keyword") && (has_keyword(state, "set") || has_keyword(state, "vec")))) {
     let dataType = state.token.value;
     read_token(state);
-    let item_type = {name: [], parameters: [], };
+    let item_type = {name: [], parameters: [], __owner: 109};
     if (has_operator(state, "<")) {
       read_token(state);
       item_type = read_type_name(state);
@@ -72,7 +72,7 @@ function read_primary_expression(state, ) {
       }
     }
     read_token(state);
-    return {dataType: dataType, item_type: item_type, values: values, __type: "Collection_literal"};
+    return {dataType: dataType, item_type: item_type, values: values, __type: "Collection_literal", };
   }
   let qualified_name = [];
   if ((state.token.__type === "Identifier")) {
@@ -94,7 +94,7 @@ function read_primary_expression(state, ) {
     }
     if (!(has_operator(state, "}"))) throw new Error("expect() failed");
     read_token(state);
-    return {typeName: qualified_name, fields: fields, __type: "Object_literal"};
+    return {typeName: qualified_name, fields: fields, __type: "Object_literal", };
   }
   if (!(((qualified_name).length > 0))) throw new Error("expect() failed");
   if (has_operator(state, "[")) {
@@ -102,13 +102,13 @@ function read_primary_expression(state, ) {
     let key = global.__read_expression(state);
     if (!(has_operator(state, "]"))) throw new Error("expect() failed");
     read_token(state);
-    return {collectionName: qualified_name, key: key, __type: "Collection_access"};
+    return {collectionName: qualified_name, key: key, __type: "Collection_access", };
   }
   if (has_operator(state, "(")) {
     read_token(state);
-    return {functionName: qualified_name, arguments: read_function_arguments(state), __type: "Function_call"};
+    return {functionName: qualified_name, arguments: read_function_arguments(state), __type: "Function_call", };
   }
-  return {value: qualified_name, __type: "Qualified_name"};
+  return {value: qualified_name, __type: "Qualified_name", };
 }
 
 module.exports.read_function_arguments = read_function_arguments;
@@ -143,10 +143,10 @@ function read_qualified_name(state, ) {
 module.exports.read_object_field_value = read_object_field_value;
 function read_object_field_value(state, ) {
   if (!has_operator(state, ":")) {
-    return {__type: "Shorthand_field_value"};
+    return {__type: "Shorthand_field_value", };
   }
   read_token(state);
-  return {expression: global.__read_expression(state), __type: "Expression_field_value"};
+  return {expression: global.__read_expression(state), __type: "Expression_field_value", };
 }
 
 module.exports.read_call_argument = read_call_argument;
@@ -202,7 +202,7 @@ function read_token(state, ) {
 module.exports.tokens$read_next = tokens$read_next;
 function tokens$read_next(state, ) {
   if ((state.i === (state.code).length)) {
-    return {__type: "End_of_file"};
+    return {__type: "End_of_file", };
   }
   if (tokens$is_alpha(access(state.code, state.i))) {
     return tokens$read_identifier(state);
@@ -241,9 +241,9 @@ function tokens$read_identifier(state, ) {
     ++state.i;
   }
   if ((keywords.has(value))) {
-    return {value: value, __type: "Keyword"};
+    return {value: value, __type: "Keyword", };
   }
-  return {value: value, __type: "Identifier"};
+  return {value: value, __type: "Identifier", };
 }
 
 module.exports.tokens$read_number = tokens$read_number;
@@ -254,7 +254,7 @@ function tokens$read_number(state, ) {
     value = (value + access(state.code, state.i));
     ++state.i;
   }
-  return {value: value, __type: "Number"};
+  return {value: value, __type: "Number", };
 }
 
 module.exports.tokens$is_alphanumeric = tokens$is_alphanumeric;
@@ -276,7 +276,7 @@ function tokens$read_operator(state, ) {
     value = (value + access(state.code, state.i));
     ++state.i;
   }
-  return {value: value, __type: "Operator"};
+  return {value: value, __type: "Operator", };
 }
 
 module.exports.tokens$read_string_literal = tokens$read_string_literal;
@@ -293,7 +293,7 @@ function tokens$read_string_literal(state, ) {
     ++state.i;
   }
   if (!((state.i < (state.code).length))) throw new Error("expect() failed");
-  let token = {value: value, __type: "String"};
+  let token = {value: value, __type: "String", __owner: 130};
   ++state.i;
   return token;
 }
@@ -313,7 +313,7 @@ function tokens$read_character_literal(state, ) {
   ++state.i;
   if (!(((state.i < (state.code).length) && (access(state.code, state.i) === "'")))) throw new Error("expect() failed");
   ++state.i;
-  return {value: value, __type: "Character"};
+  return {value: value, __type: "Character", };
 }
 
 module.exports.tokens$is_numeric = tokens$is_numeric;
