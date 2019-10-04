@@ -772,7 +772,8 @@ function analyse_expression(state, exp, scope, refims) {
         res = try_match_types(state, arg.type, arg_def.type, settled_type_params);
         args.push({
           is_by_reference: arg_spec.is_by_reference,
-          value: arg.expression
+          value: arg.expression,
+          reference: arg.reference,
         });
       }
       if (res.__type !== 'Match') continue;
@@ -1444,7 +1445,25 @@ function write_expression(state, expression, env) {
       if (!argument.is_by_reference) {
         write_expression(state, argument.value, env);
       } else {
-        write_expression(state, argument.value, env);
+        const ref = argument.reference;
+        const value = state.types.get(ref.value_id);
+        const is_by_ref =
+          value.__type === 'Function_argument' && value.is_by_reference;
+
+        if (is_by_ref) {
+          write_reference(state, argument.reference, env);
+        } else {
+          write('(');
+          write_reference(state, ref, env);
+          write(`.__owner != ${ref.value_id} && (`)
+          write_reference(state, ref, env);
+          write(' = {...');
+          write_reference(state, ref, env);
+          write(`, __owner: ${ref.value_id}}`);
+          write('), ');
+          write_expression(state, argument.value, env);
+          write(')');
+        }
       }
     }
     if (function_id === state.builtin_ids.__read_file) {
@@ -1547,9 +1566,12 @@ function write_expression(state, expression, env) {
       }
     }
 
-    const needs_copy = !is_by_ref && ref.path.length > 0;
-    if (needs_copy) {
+    let close_paren = false;
+
+    if (!is_by_ref && ref.path.length > 0) {
       write('(');
+      close_paren = true;
+
       for (let i = 0; i < ref.path.length; ++i) {
         const path = ref.path.slice(0, i);
         const part_ref = {value_id: ref.value_id, path};
@@ -1562,10 +1584,31 @@ function write_expression(state, expression, env) {
       }
     }
 
+    if (is_by_ref && ref.path.length > 1) {
+      write('(');
+      close_paren = true;
+
+      for (let i = 1; i < ref.path.length; ++i) {
+        const path = ref.path.slice(0, i);
+        const part_ref = {value_id: ref.value_id, path};
+        const parent_ref = {value_id: ref.value_id, path: []};
+        write_reference(state, part_ref);
+        write(`.__owner !== `);
+        write_reference(state, parent_ref);
+        write('.__owner && (')
+        write_reference(state, part_ref);
+        write(' = {...');
+        write_reference(state, part_ref);
+        write(`, __owner: `);
+        write_reference(state, parent_ref);
+        write(`.__owner}), `);
+      }
+    }
+
     write_reference(state, expression.reference);
     write(' = ');
     write_expression(state, expression.value, env);
-    if (needs_copy) write(')');
+    if (close_paren) write(')');
     return;
   }
   if (expression.__type === 'Typed_collection_literal') {

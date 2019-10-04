@@ -59,6 +59,10 @@ for (const groupName of allGroups) {
         // expect(result.signal).toBe(null);
         // expect(result.error).toBeUndefined();
 
+        if (caseSpec.only) {
+          console.warn(js_code);
+        }
+
         const result = child_process.spawnSync(process.execPath, [], {
           input: js_code,
           stdio: 'pipe',
@@ -68,9 +72,6 @@ for (const groupName of allGroups) {
         if (caseSpec.error_code != null) {
           expect(result.status).toBe(caseSpec.error_code);
           return;
-        }
-        if (result.stderr != '') {
-          console.error(js_code);
         }
 
         expect(result.stderr).toBe('');

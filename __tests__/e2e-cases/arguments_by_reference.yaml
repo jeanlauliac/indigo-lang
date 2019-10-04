@@ -77,7 +77,6 @@
 
 'Cannot override field of an object reference which caller is not the owner':
   stdout: ''
-  skip: true
   files:
     index.idg: >
       struct Foo {value: u32}
@@ -95,4 +94,26 @@
 
       fn override(ref a: Foo) {
         a.value = 10;
+      }
+
+'Cannot override 2-level-deep field of an object reference which caller is not the owner':
+  stdout: ''
+  files:
+    index.idg: >
+      struct Foo {value: Bar}
+      struct Bar {deep_value: u32}
+
+      fn main() {
+        let a = Foo {value: Bar {deep_value: 1}};
+        process(a);
+        expect a.value.deep_value == 1;
+      }
+
+      fn process(a: Foo) {
+        override(&a);
+        expect a.value.deep_value == 10;
+      }
+
+      fn override(ref a: Foo) {
+        a.value.deep_value = 10;
       }
