@@ -64,7 +64,7 @@ function read_primary_expression(state, ) {
     let values = [];
     while (!has_operator(state, "]")) {
       let expression = global.__read_expression(state);
-      (values.push(expression));
+      (() => { const $r = $push(values, expression); values = $r[0]; })();
       if (has_operator(state, ",")) {
         read_token(state);
       } else {
@@ -90,7 +90,7 @@ function read_primary_expression(state, ) {
       } else {
         if (!(has_operator(state, "}"))) throw new Error("expect() failed");
       }
-      (fields.push({name: name, value: value, }));
+      (() => { const $r = $push(fields, {name: name, value: value, }); fields = $r[0]; })();
     }
     if (!(has_operator(state, "}"))) throw new Error("expect() failed");
     read_token(state);
@@ -115,7 +115,7 @@ module.exports.read_function_arguments = read_function_arguments;
 function read_function_arguments(state, ) {
   let arguments$ = [];
   while (!has_operator(state, ")")) {
-    (arguments$.push(read_call_argument(state)));
+    (() => { const $r = $push(arguments$, read_call_argument(state)); arguments$ = $r[0]; })();
     if (has_operator(state, ",")) {
       read_token(state);
     } else {
@@ -134,7 +134,7 @@ function read_qualified_name(state, ) {
   while (has_operator(state, ".")) {
     read_token(state);
     if (!((state.token.__type === "Identifier"))) throw new Error("expect() failed");
-    (qualified_name.push(state.token.value));
+    (() => { const $r = $push(qualified_name, state.token.value); qualified_name = $r[0]; })();
     read_token(state);
   }
   return qualified_name;
@@ -172,7 +172,7 @@ function read_type_name(state, ) {
   if (has_operator(state, "<")) {
     read_token(state);
     while (!has_operator(state, ">")) {
-      (parameters.push(read_type_name(state)));
+      (() => { const $r = $push(parameters, read_type_name(state)); parameters = $r[0]; })();
       if (has_operator(state, ",")) {
         read_token(state);
       }
@@ -341,5 +341,10 @@ function access(collection, key) {
   }
   if (collection instanceof Set) return collection.has(key);
   throw new Error('invalid collection: ' + require('util').inspect(collection));
+}
+
+function $push(vec, item) {
+  vec.push(item);
+  return [vec];
 }
 

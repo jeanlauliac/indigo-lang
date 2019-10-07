@@ -90,6 +90,11 @@ function build(filesystem, write, call_main) {
   throw new Error('invalid collection: ' + require('util').inspect(collection));
 }
 
+function $push(vec, item) {
+  vec.push(item);
+  return [vec];
+}
+
 `);
   if (call_main) write('main();\n');
 }
@@ -227,8 +232,6 @@ function create_fresh_state() {
       return_type = resolve_type(state, type_scope, def.return_type);
     }
 
-    state.types.set(id, {__type: 'Function', argument_ids,
-        type_parameter_ids, return_type, pseudo_name: def.name});
     if (!root_names.has(def.name)) {
       root_names.set(def.name, {__type: 'Function', overload_ids: []});
     }
@@ -236,6 +239,9 @@ function create_fresh_state() {
     overload_ids.push(id);
     const suffix = overload_ids.length > 1 ? `_${overload_ids.length}` : '';
     state.builtin_ids[def.name + suffix] = id;
+
+    state.types.set(id, {__type: 'Function', argument_ids,
+        type_parameter_ids, return_type, pseudo_name: '$' + def.name + suffix});
   }
 
   return state;
@@ -774,6 +780,7 @@ function analyse_expression(state, exp, scope, refims) {
           is_by_reference: arg_spec.is_by_reference,
           value: arg.expression,
           reference: arg.reference,
+          type: arg.type,
         });
       }
       if (res.__type !== 'Match') continue;
@@ -1402,14 +1409,15 @@ function write_expression(state, expression, env) {
       write(').length');
       return;
     }
-    if (function_id === state.builtin_ids.push) {
-      write('(');
-      write_expression(state, expression.arguments[0].value, env);
-      write('.push(');
-      write_expression(state, expression.arguments[1].value, env);
-      write('))');
-      return;
-    }
+    // if (function_id === state.builtin_ids.push) {
+      // console.error(pseudo_name);
+    //   write('(');
+    //   write_expression(state, expression.arguments[0].value, env);
+    //   write('.push(');
+    //   write_expression(state, expression.arguments[1].value, env);
+    //   write('))');
+    //   return;
+    // }
     if (function_id === state.builtin_ids.__substring) {
       write('(');
       write_expression(state, expression.arguments[0].value, env);
@@ -1421,7 +1429,12 @@ function write_expression(state, expression, env) {
       return;
     }
 
-    const ref_arg_ids = get_primitive_ref_arg_ids(state, spec.argument_ids);
+    // const ref_arg_ids = get_primitive_ref_arg_ids(state, spec.argument_ids);
+    const ref_arg_ids = expression.arguments.filter(arg => {
+      if (!arg.is_by_reference) return false;
+      const type_spec = state.types.get(arg.type.id);
+      return type_spec.__type === 'BuiltinType';
+    }).map(arg => arg.reference.value_id);
 
     if (ref_arg_ids.length > 0) {
       write('(() => { const $r = ');
@@ -1450,7 +1463,9 @@ function write_expression(state, expression, env) {
         const is_by_ref =
           value.__type === 'Function_argument' && value.is_by_reference;
 
-        if (is_by_ref) {
+        const type_spec = state.types.get(argument.type.id);
+
+        if (is_by_ref || type_spec.__type === 'BuiltinType') {
           write_reference(state, argument.reference, env);
         } else {
           write('(');
