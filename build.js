@@ -4,7 +4,7 @@ const utils = require('./compiled_src');
 global.__utils = utils;
 
 const read_expression = require('./src_js/read_expression');
-const read_statement = require('./src_js/read_statement');
+const read_module = require('./src_js/read_module');
 const fs = require('fs');
 const path = require('path');
 const {has_keyword, has_operator,
@@ -27,7 +27,7 @@ function build(filesystem, write, call_main) {
   // ****** pass 1: build type names
 
   const INDEX_MODULE_NAME = 'index.idg';
-  const index_module_ast = readModule(filesystem.get(INDEX_MODULE_NAME));
+  const index_module_ast = read_module(filesystem.get(INDEX_MODULE_NAME));
   const {type_names: index_module_names, assigned_declarations: index_decls} =
       build_module_type_names(state, index_module_ast);
 
@@ -42,7 +42,7 @@ function build(filesystem, write, call_main) {
 
   for (const [file_name, module_code] of filesystem) {
     if (file_name === INDEX_MODULE_NAME) continue;
-    const module_ast = readModule(module_code);
+    const module_ast = read_module(module_code);
     if (path.extname(file_name) !== '.idg') continue;
     const {type_names, assigned_declarations} =
         build_module_type_names(state, module_ast);
@@ -979,160 +979,4 @@ function write_reference(state, ref) {
     write('.');
     write(entry.name);
   }
-}
-
-/**
- * ======== Parsing ========================================================
- */
-
-function readModule(code) {
-  const state = {code, i: 0, token: null};
-  read_token(state);
-
-  const declarations = [];
-  while (state.token.__type !== 'End_of_file') {
-    declarations.push(readModuleDeclaration(state));
-  }
-  return {declarations};
-}
-
-function readModuleDeclaration(state) {
-  let maybe = read_function_declaration(state);
-  if (maybe.__type === 'Value') return maybe.value;
-  maybe = read_enum_declaration(state);
-  if (maybe.__type === 'Value') return maybe.value;
-  maybe = read_struct_declaration(state);
-  if (maybe.__type === 'Value') return maybe.value;
-  invariant(false);
-}
-
-function read_function_declaration(state) {
-  if (!has_keyword(state, 'fn')) {
-    return {__type: 'None'};
-  }
-  read_token(state);
-  invariant(has_identifier(state));
-  const name = state.token.value;
-  read_token(state);
-  invariant(has_operator(state, '('));
-  read_token(state);
-
-  const args = [];
-  while (!has_operator(state, ')')) {
-    const is_by_reference = has_keyword(state, 'ref');
-    if (is_by_reference) {
-      read_token(state);
-    }
-    invariant(has_identifier(state));
-    const arg_name = state.token.value;
-    read_token(state);
-    invariant(has_operator(state, ':'));
-    read_token(state);
-    const type = read_type_name(state);
-    if (has_operator(state, ',')) {
-      read_token(state);
-    } else {
-      invariant(has_operator(state, ')'));
-    }
-    args.push({name: arg_name, type, is_by_reference});
-  }
-  read_token(state);
-
-  let return_type = null;
-  if (has_operator(state, ':')) {
-    read_token(state);
-    return_type = read_type_name(state);
-  }
-  invariant(has_operator(state, '{'));
-  read_token(state);
-
-  const statements = [];
-  while (!has_operator(state, '}')) {
-    statements.push(read_statement(state));
-  }
-  read_token(state);
-  return {__type: 'Value',
-    value: {__type: 'Function', name, statements, arguments: args, return_type}};
-}
-
-function read_enum_declaration(state) {
-  if (!has_keyword(state, 'enum')) {
-    return {__type: 'None'};
-  }
-  read_token(state);
-  invariant(has_identifier(state));
-  const name = state.token.value;
-  read_token(state);
-  invariant(has_operator(state, '{'));
-  read_token(state);
-
-  let variants = [];
-  while (has_identifier(state)) {
-    variants.push(read_enum_variant(state));
-  }
-
-  invariant(has_operator(state, '}'));
-  read_token(state);
-
-  return {__type: 'Value', value: {__type: 'Enum', name, variants}};
-}
-
-function read_enum_variant(state) {
-  const name = state.token.value;
-  const fields = [];
-  read_token(state);
-  if (has_operator(state, '{')) {
-    read_token(state);
-    while (has_identifier(state)) {
-      fields.push(read_struct_field(state));
-    }
-    invariant(has_operator(state, '}'));
-    read_token(state);
-  }
-  if (has_operator(state, ',')) {
-    read_token(state);
-  } else {
-    invariant(has_operator(state, '}'));
-  }
-  return {name, fields};
-}
-
-function read_struct_declaration(state) {
-  if (!has_keyword(state, 'struct')) {
-    return {__type: 'None'};
-  }
-  read_token(state);
-  invariant(has_identifier(state));
-  const name = state.token.value;
-  read_token(state);
-  invariant(has_operator(state, '{'));
-  read_token(state);
-
-  const fields = [];
-  while (has_identifier(state)) {
-    fields.push(read_struct_field(state));
-  }
-
-  invariant(has_operator(state, '}'));
-  read_token(state);
-
-  return {__type: 'Value', value: {__type: 'Struct', name, fields}};
-}
-
-function read_struct_field(state) {
-  const name = state.token.value;
-  read_token(state);
-  invariant(has_operator(state, ':'));
-  read_token(state);
-  const type = read_type_name(state);
-  if (has_operator(state, ',')) {
-    read_token(state);
-  } else {
-    invariant(has_operator(state, '}'));
-  }
-  return {name, type};
-}
-
-function has_identifier(state) {
-  return state.token.__type === 'Identifier';
 }
