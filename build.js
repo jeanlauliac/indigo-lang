@@ -1,7 +1,10 @@
 'use strict';
 
 const utils = require('./compiled_src');
-const read_expression = require('./src_js/read_expression')(utils);
+global.__utils = utils;
+
+const read_expression = require('./src_js/read_expression');
+const read_statement = require('./src_js/read_statement');
 const fs = require('fs');
 const path = require('path');
 const {has_keyword, has_operator,
@@ -1045,7 +1048,7 @@ function read_function_declaration(state) {
 
   const statements = [];
   while (!has_operator(state, '}')) {
-    statements.push(readStatement(state));
+    statements.push(read_statement(state));
   }
   read_token(state);
   return {__type: 'Value',
@@ -1128,79 +1131,6 @@ function read_struct_field(state) {
     invariant(has_operator(state, '}'));
   }
   return {name, type};
-}
-
-function readStatement(state) {
-  if (has_keyword(state, 'let')) {
-    read_token(state);
-    invariant(has_identifier(state));
-    const name = state.token.value;
-    read_token(state);
-    invariant(has_operator(state, '='));
-    read_token(state);
-    const initialValue = read_expression(state);
-    invariant(has_operator(state, ';'));
-    read_token(state);
-    return {__type: 'Variable_declaration', name, initialValue};
-  }
-
-  if (has_keyword(state, 'while')) {
-    read_token(state);
-    invariant(has_operator(state, '('));
-    read_token(state);
-    const condition = read_expression(state);
-    invariant(has_operator(state, ')'));
-    read_token(state);
-    const body = readStatement(state);
-    return {__type: 'While_loop', condition, body};
-  }
-
-  if (has_keyword(state, 'if')) {
-    read_token(state);
-    invariant(has_operator(state, '('));
-    read_token(state);
-    const condition = read_expression(state);
-    invariant(has_operator(state, ')'));
-    read_token(state);
-    const consequent = readStatement(state);
-    let alternate;
-    if (has_keyword(state, 'else')) {
-      read_token(state);
-      alternate = readStatement(state);
-    }
-    return {__type: 'If', condition, consequent, alternate};
-  }
-
-  if (has_keyword(state, 'return')) {
-    read_token(state);
-    const value = read_expression(state);
-    invariant(has_operator(state, ';'));
-    read_token(state);
-    return {__type: 'Return', value};
-  }
-
-  if (has_keyword(state, 'expect')) {
-    read_token(state);
-    const value = read_expression(state);
-    invariant(has_operator(state, ';'));
-    read_token(state);
-    return {__type: 'Expect', value};
-  }
-
-  if (has_operator(state, '{')) {
-    read_token(state);
-    const statements = [];
-    while (!has_operator(state, '}')) {
-      statements.push(readStatement(state));
-    }
-    read_token(state);
-    return {__type: 'Block', statements};
-  }
-
-  const value = read_expression(state);
-  invariant(has_operator(state, ';'));
-  read_token(state);
-  return {__type: 'Expression', value};
 }
 
 function has_identifier(state) {
