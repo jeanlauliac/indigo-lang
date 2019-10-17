@@ -1,17 +1,18 @@
 'use strict';
 
-global.__read_expression = readExpression;
-
 const utils = require('./compiled_src');
+const read_expression = require('./src_js/read_expression')(utils);
 const fs = require('fs');
 const path = require('path');
 const {has_keyword, has_operator,
-  read_token, read_qualified_name, read_type_name} = utils;
+  read_token, read_type_name} = utils;
 const merge_refinements = require('./src_js/merge_refinements');
 const invariant = require('./src_js/invariant');
 const analyse_expression = require('./src_js/analyse_expression');
 const resolve_name = require('./src_js/resolve_name');
 const resolve_type = require('./src_js/resolve_type');
+
+global.__read_expression = read_expression;
 
 const EMPTY_MAP = new Map();
 
@@ -1137,7 +1138,7 @@ function readStatement(state) {
     read_token(state);
     invariant(has_operator(state, '='));
     read_token(state);
-    const initialValue = readExpression(state);
+    const initialValue = read_expression(state);
     invariant(has_operator(state, ';'));
     read_token(state);
     return {__type: 'Variable_declaration', name, initialValue};
@@ -1147,7 +1148,7 @@ function readStatement(state) {
     read_token(state);
     invariant(has_operator(state, '('));
     read_token(state);
-    const condition = readExpression(state);
+    const condition = read_expression(state);
     invariant(has_operator(state, ')'));
     read_token(state);
     const body = readStatement(state);
@@ -1158,7 +1159,7 @@ function readStatement(state) {
     read_token(state);
     invariant(has_operator(state, '('));
     read_token(state);
-    const condition = readExpression(state);
+    const condition = read_expression(state);
     invariant(has_operator(state, ')'));
     read_token(state);
     const consequent = readStatement(state);
@@ -1172,7 +1173,7 @@ function readStatement(state) {
 
   if (has_keyword(state, 'return')) {
     read_token(state);
-    const value = readExpression(state);
+    const value = read_expression(state);
     invariant(has_operator(state, ';'));
     read_token(state);
     return {__type: 'Return', value};
@@ -1180,7 +1181,7 @@ function readStatement(state) {
 
   if (has_keyword(state, 'expect')) {
     read_token(state);
-    const value = readExpression(state);
+    const value = read_expression(state);
     invariant(has_operator(state, ';'));
     read_token(state);
     return {__type: 'Expect', value};
@@ -1196,78 +1197,10 @@ function readStatement(state) {
     return {__type: 'Block', statements};
   }
 
-  const value = readExpression(state);
+  const value = read_expression(state);
   invariant(has_operator(state, ';'));
   read_token(state);
   return {__type: 'Expression', value};
-}
-
-function readExpression(state) {
-  return readAssignmentExpression(state);
-}
-
-function readAssignmentExpression(state) {
-  const left_operand = readLeftAssociativeOperator(state, 0);
-  if (!has_operator(state, '=')) return left_operand;
-  read_token(state);
-  const right_operand = readAssignmentExpression(state);
-  return {__type: 'Binary_operation', operation: '=', left_operand, right_operand};
-}
-
-const operators_by_level = [
-  ['||'],
-  ['&&'],
-  ['==', '!='],
-  ['<', '<=', '>', '>='],
-  ['+', '-'],
-].map(x => new Set(x));
-
-function readLeftAssociativeOperator(state, level) {
-  if (level == operators_by_level.length) {
-    return readIdentityExpression(state);
-  }
-  let left_operand = readLeftAssociativeOperator(state, level + 1);
-  const operators = operators_by_level[level];
-  while (state.token.__type === 'Operator' && operators.has(state.token.value)) {
-    const operation = state.token.value;
-    read_token(state);
-    const right_operand = readLeftAssociativeOperator(state, level + 1);
-    left_operand = {__type: 'Binary_operation', operation, left_operand, right_operand};
-  }
-  return left_operand;
-}
-
-function readIdentityExpression(state) {
-  const operand = read_method_call(state);
-  if (
-    !has_keyword(state, 'isnt') &&
-    !has_keyword(state, 'is')
-  ) return operand;
-  const is_negative = state.token.value === 'isnt';
-  read_token(state);
-  const variant = read_qualified_name(state);
-  return {__type: 'Identity_test', is_negative, operand, variant};
-}
-
-function read_method_call(state) {
-  const target = utils.read_primary_expression(state);
-  if (!has_operator(state, '->')) {
-    return target;
-  }
-  read_token(state);
-  const qualified_name = read_qualified_name(state);
-  invariant(has_operator(state, "("));
-  read_token(state);
-  const prefix_arg = {
-    is_by_reference: true,
-    value: target,
-  };
-  const args = [prefix_arg].concat(utils.read_function_arguments(state));
-  return {
-    __type: 'Function_call',
-    functionName: qualified_name,
-    arguments: args,
-  };
 }
 
 function has_identifier(state) {
